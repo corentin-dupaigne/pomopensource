@@ -29,7 +29,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/Juicyyyyyyy/pomopensource">
-    <img src="public/images/readme/pomodoro-technique.png" alt="Logo" width="80" height="80">
+    <img src="public/images/readme/pomodoro-technique.webp" alt="Logo" width="80" height="80">
   </a>
 
 <h3 align="center">Pomopensource</h3>
@@ -76,18 +76,18 @@
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="/public/images/readme/home.png"><img src="/public/images/readme/home.png" alt="Home" width="100%"></a>
+      <a href="/public/images/readme/home.webp"><img src="/public/images/readme/home.webp" alt="Home" width="100%"></a>
     </td>
     <td align="center" width="50%">
-      <a href="/public/images/readme/calendar.png"><img src="/public/images/readme/calendar.png" alt="Calendar" width="100%"></a>
+      <a href="/public/images/readme/calendar.webp"><img src="/public/images/readme/calendar.webp" alt="Calendar" width="100%"></a>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <a href="/public/images/readme/settings.png"><img src="/public/images/readme/settings.png" alt="Settings" width="100%"></a>
+      <a href="/public/images/readme/settings.webp"><img src="/public/images/readme/settings.webp" alt="Settings" width="100%"></a>
     </td>
     <td align="center" width="50%">
-      <a href="/public/images/readme/activity.png"><img src="/public/images/readme/activity.png" alt="Activity" width="100%"></a>
+      <a href="/public/images/readme/activity.webp"><img src="/public/images/readme/activity.webp" alt="Activity" width="100%"></a>
     </td>
   </tr>
 </table>

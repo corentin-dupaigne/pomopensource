@@ -3,7 +3,7 @@
         <div class="flex items-center space-x-2">
             <!-- Logo -->
             <img
-                src="/images/logo.png"
+                src="/images/logo.webp"
                 alt="Pomopensource Logo"
                 class="h-16 md:h-20" />
         </div>

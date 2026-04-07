@@ -90,7 +90,7 @@ export default {
         // Construct the image path based on the theme name
         const getBackgroundImage = (theme) => {
             const formattedTheme = theme.toLowerCase().replace(/ /g, '_');
-            return `images/backgrounds/${formattedTheme}.png`;
+            return `images/backgrounds/${formattedTheme}.webp`;
         };
 
         // Save settings and update background image
