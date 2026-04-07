@@ -1,0 +1,9 @@
+.git/
+node_modules/
+vendor/
+public/build/
+public/hot
+storage/*.key
+.env
+.env.*
+*.log
