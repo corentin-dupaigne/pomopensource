@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image: "ghcr.io/corentin-dupaigne/pomopensource/pomopensource"
+
+hostname: "pomopensource.corentindupaigne.com"
+
+namespace: default
+
+gateway:
+  name: gateway
+  namespace: default
+
+servicePort: 80
+
+app:
+  env: production
+  url: "https://pomopensource.corentindupaigne.com"
+  key: ""  # required: set with --set app.key=<value>
+
+mysql:
+  enabled: true
+  auth:
+    database: pomopensource
+    username: pomopensource
+    password: ""  # required: set with --set mysql.auth.password=<value>
