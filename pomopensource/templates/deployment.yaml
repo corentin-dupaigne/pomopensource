@@ -26,8 +26,17 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "pomopensource.fullname" . }}
-        - secretRef:
-            name: {{ include "pomopensource.fullname" . }}
+        env:
+        - name: APP_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pomopensource.appSecretName" . }}
+              key: {{ include "pomopensource.appSecretKey" . }}
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "pomopensource.dbSecretName" . }}
+              key: {{ include "pomopensource.dbSecretPasswordKey" . }}
         livenessProbe:
           httpGet:
             path: /

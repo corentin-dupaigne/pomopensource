@@ -16,11 +16,29 @@ containerPort: 80
 app:
   env: production
   url: "https://pomopensource.corentindupaigne.com"
-  key: ""  # required: set with --set app.key=<value>
+
+  # APP_KEY resolution, in order of precedence:
+  #   1. existingSecret set         -> read from that Secret (production / GitOps path)
+  #   2. key set                    -> use inline value (dev / testing)
+  #   3. neither set                -> chart generates one on first install and reuses it
+  #                                    on subsequent upgrades via Helm `lookup`
+  key: ""
+  existingSecret: ""
+  existingSecretKey: APP_KEY
 
 mysql:
   enabled: true
   auth:
     database: pomopensource
     username: pomopensource
-    password: ""  # required: set with --set mysql.auth.password=<value>
+
+    # DB password resolution:
+    #   - existingSecret set -> Bitnami MySQL subchart uses it directly, and the app
+    #                           reads DB_PASSWORD from the same Secret.
+    #                           Secret must contain Bitnami-conventional keys
+    #                           (mysql-root-password, mysql-password, mysql-replication-password).
+    #   - existingSecret empty -> Bitnami subchart creates `<release>-mysql` Secret from
+    #                             the inline `password` value below.
+    password: ""
+    existingSecret: ""
+    existingSecretPasswordKey: mysql-password

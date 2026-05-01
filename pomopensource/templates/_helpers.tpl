@@ -49,3 +49,36 @@ Selector labels
 app.kubernetes.io/name: {{ include "pomopensource.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Name of the Secret holding APP_KEY: external if app.existingSecret is set,
+otherwise the chart-managed Secret.
+*/}}
+{{- define "pomopensource.appSecretName" -}}
+{{- if .Values.app.existingSecret -}}
+{{- .Values.app.existingSecret -}}
+{{- else -}}
+{{- printf "%s-app" (include "pomopensource.fullname" .) -}}
+{{- end -}}
+{{- end }}
+
+{{- define "pomopensource.appSecretKey" -}}
+{{- .Values.app.existingSecretKey | default "APP_KEY" -}}
+{{- end }}
+
+{{/*
+Name of the Secret holding the DB password. Mirrors the Bitnami MySQL subchart
+naming: `<release>-mysql` when it manages the secret, or the user-provided
+existingSecret name.
+*/}}
+{{- define "pomopensource.dbSecretName" -}}
+{{- if .Values.mysql.auth.existingSecret -}}
+{{- .Values.mysql.auth.existingSecret -}}
+{{- else -}}
+{{- printf "%s-mysql" .Release.Name -}}
+{{- end -}}
+{{- end }}
+
+{{- define "pomopensource.dbSecretPasswordKey" -}}
+{{- .Values.mysql.auth.existingSecretPasswordKey | default "mysql-password" -}}
+{{- end }}
