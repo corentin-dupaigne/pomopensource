@@ -21,12 +21,11 @@ class SettingsSeeder extends Seeder
         }
 
         // Read theme image files from the directory
-        $themeImages = glob(public_path('images/backgrounds/*.png'));
+        $themeImages = glob(public_path('images/backgrounds/*.webp'));
         $themeOptions = [];
 
         foreach ($themeImages as $image) {
-            // Get the base name (e.g., "Lofi_Cafe.png")
-            $basename = basename($image, '.png');
+            $basename = basename($image, '.webp');
             if ($basename != "gf") {
                 // Replace underscores with spaces and capitalize each word
                 $formattedName = ucwords(str_replace('_', ' ', $basename));

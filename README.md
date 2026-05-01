@@ -59,10 +59,10 @@
       </ul>
     </li>
     <li>
-      <a href="#getting-started">Getting Started</a>
+      <a href="#installing-the-project">Installing the Project</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
+        <li><a href="#option-1-helm-kubernetes">Option 1: Helm (Kubernetes)</a></li>
+        <li><a href="#option-2-local-development">Option 2: Local Development</a></li>
       </ul>
     </li>
     <li><a href="#license">License</a></li>
@@ -127,59 +127,83 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
 
 If you'd like to use the application directly, visit [pomopensource.com](https://pomopensource.com).
 
-### Prerequisites
+### Option 1: Helm (Kubernetes)
 
-Ensure you have the following installed on your system:
+**Prerequisites:** a Kubernetes cluster with the [Gateway API CRDs](https://gateway-api.sigs.k8s.io/guides/#install-standard-channel) installed and a Gateway resource available.
 
-- **Node.js** (npm included)
-- **PHP**
-- **Composer**
-- **Laravel**
-
-### Installation Steps
-
-1. **Clone the repository**  
+1. **Clone the repository**
    ```bash
    git clone https://github.com/Juicyyyyyyy/pomopensource
    cd pomopensource
    ```
 
-2. **Update dependencies**  
-   Run the following command to install PHP dependencies:  
+2. **Install chart dependencies**
    ```bash
-   composer update
-   ```  
-
-3. **Install JavaScript dependencies**  
-   ```bash
-   npm install
+   helm dependency update ./pomopensource
    ```
 
-4. **Configure the environment**  
-   Modify the `.env` file with your specific environment settings.
-
-5. **Run database migrations**  
+3. **Generate an application key**
    ```bash
-   php artisan migrate
+   php artisan key:generate --show
    ```
 
-6. **Seed the database**  
-   Use the settings seeder to populate initial data:  
+4. **Install the chart**
    ```bash
-   php artisan db:seed --class=SettingsSeeder
+   helm install pomopensource ./pomopensource \
+     --set app.key=<your-app-key> \
+     --set mysql.auth.password=<your-db-password>
    ```
 
-### Running the Project
+   The chart will deploy the app and a MySQL instance. The container automatically runs migrations and seeds the database on startup, so no further setup is needed.
 
-Start the development servers:  
-- **Run frontend assets**:  
-  ```bash
-  npm run dev
-  ```
-- **Start the backend server**:  
-  ```bash
-  php artisan serve
-  ```
+   **Optional overrides:**
+   | Parameter | Description | Default |
+   |-----------|-------------|---------|
+   | `app.key` | Laravel application key (**required**) | — |
+   | `mysql.auth.password` | MySQL password (**required**) | — |
+   | `app.env` | Laravel environment | `production` |
+   | `app.url` | Public URL of the app | `https://pomopensource.corentindupaigne.com` |
+   | `hostname` | Hostname for the HTTPRoute | `pomopensource.corentindupaigne.com` |
+   | `image.tag` | Docker image tag | `prod` |
+   | `replicaCount` | Number of replicas | `1` |
+   | `gateway.name` | Name of the Gateway resource | `gateway` |
+   | `gateway.namespace` | Namespace of the Gateway resource | `default` |
+
+5. **Upgrade**
+   ```bash
+   helm upgrade pomopensource ./pomopensource \
+     --set app.key=<your-app-key> \
+     --set mysql.auth.password=<your-db-password>
+   ```
+
+6. **Uninstall**
+   ```bash
+   helm uninstall pomopensource
+   ```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Option 2: Local Development (Docker)
+
+**Prerequisites:** Docker
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Juicyyyyyyy/pomopensource
+   cd pomopensource
+   ```
+
+2. **Build the image**
+   ```bash
+   docker build -t pomopensource:prod .
+   ```
+
+3. **Run the container**
+   ```bash
+   docker run -p 8080:80 pomopensource:prod
+   ```
+
+   The app will be available at `http://localhost:8080`. Migrations and seeding run automatically on startup using SQLite.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

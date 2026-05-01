@@ -45,6 +45,8 @@ RUN mkdir -p storage/logs storage/framework/{cache,sessions,views} bootstrap/cac
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+LABEL org.opencontainers.image.source=https://github.com/corentin-dupaigne/pomopensource
+
 EXPOSE 80
 
 ENTRYPOINT ["/entrypoint.sh"]

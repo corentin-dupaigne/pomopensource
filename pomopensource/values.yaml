@@ -1,16 +1,17 @@
 replicaCount: 1
 
-image: "ghcr.io/corentin-dupaigne/pomopensource/pomopensource"
+image:
+  repository: "ghcr.io/corentin-dupaigne/pomopensource/pomopensource"
+  tag: "prod"
 
 hostname: "pomopensource.corentindupaigne.com"
-
-namespace: default
 
 gateway:
   name: gateway
   namespace: default
 
 servicePort: 80
+containerPort: 80
 
 app:
   env: production

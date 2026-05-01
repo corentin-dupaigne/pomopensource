@@ -2,26 +2,51 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: {{ .Release.Name }}-{{ .Chart.Name }}
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  namespace: {{ .Values.namespace }}
+    {{- include "pomopensource.labels" . | nindent 4 }}
+  name: {{ include "pomopensource.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Release.Name }}-{{ .Chart.Name }}
+      {{- include "pomopensource.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ .Release.Name }}-{{ .Chart.Name }}
+        {{- include "pomopensource.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-      - image: {{ .Values.image }}
+      - image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         name: {{ .Chart.Name }}
         imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.containerPort }}
+          name: http
+          protocol: TCP
         envFrom:
         - configMapRef:
-            name: {{ .Release.Name }}-{{ .Chart.Name }}
+            name: {{ include "pomopensource.fullname" . }}
         - secretRef:
-            name: {{ .Release.Name }}-{{ .Chart.Name }}
-        resources: {}
+            name: {{ include "pomopensource.fullname" . }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi

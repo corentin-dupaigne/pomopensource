@@ -2,15 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: {{ .Release.Name }}-{{ .Chart.Name }}
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
-  namespace: {{ .Values.namespace }}
+    {{- include "pomopensource.labels" . | nindent 4 }}
+  name: {{ include "pomopensource.fullname" . }}
+  namespace: {{ .Release.Namespace }}
 spec:
   ports:
   - name: http
     port: {{ .Values.servicePort }}
     protocol: TCP
-    targetPort: 80
+    targetPort: {{ .Values.containerPort }}
   selector:
-    app: {{ .Release.Name }}-{{ .Chart.Name }}
+    {{- include "pomopensource.selectorLabels" . | nindent 4 }}
   type: ClusterIP

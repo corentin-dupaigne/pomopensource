@@ -21,6 +21,9 @@ fi
 php artisan migrate --force
 php artisan db:seed --class=SettingsSeeder --force
 
+# Ensure SQLite database file (if used) is writable by www-data
+chown -R www-data:www-data database/ 2>/dev/null || true
+
 # Create public storage symlink
 php artisan storage:link --force 2>/dev/null || true
 
