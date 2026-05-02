@@ -45,6 +45,10 @@ RUN mkdir -p storage/logs storage/framework/{cache,sessions,views} bootstrap/cac
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
+# Regenerate package discovery cache against prod-only vendor (no dev deps like Collision)
+RUN php artisan package:discover --no-ansi \
+    && chown www-data:www-data bootstrap/cache/packages.php
+
 LABEL org.opencontainers.image.source=https://github.com/corentin-dupaigne/pomopensource
 
 EXPOSE 80
