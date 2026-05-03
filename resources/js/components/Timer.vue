@@ -1,12 +1,15 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="flex space-x-4 mb-8">
+        <div class="flex space-x-4 mb-8" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro', settings.timers.settings.pomodoro_duration)"
                 id="default-timer"
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'pomodoro' }"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
+                role="tab"
+                :aria-selected="currentTimerType === 'pomodoro'"
+                aria-label="Pomodoro timer"
             >
                 pomodoro
             </button>
@@ -15,6 +18,9 @@
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'short_break' }"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
+                role="tab"
+                :aria-selected="currentTimerType === 'short_break'"
+                aria-label="Short break timer"
             >
                 short break
             </button>
@@ -23,40 +29,57 @@
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'long_break' }"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
+                role="tab"
+                :aria-selected="currentTimerType === 'long_break'"
+                aria-label="Long break timer"
             >
                 long break
             </button>
         </div>
 
-        <div id="timerDisplay" class="text-9xl font-oswald font-bold mb-8">
+        <div
+            id="timerDisplay"
+            class="text-9xl font-oswald font-bold mb-8"
+            :aria-label="`Timer: ${formattedTime}`"
+            aria-live="off"
+        >
             {{ formattedTime }}
         </div>
 
         <div class="flex space-x-4 mb-8 cent">
-            <button @click="toggleTimer" id="stop-start-button" class="control-button bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white">
+            <button
+                @click="toggleTimer"
+                id="stop-start-button"
+                class="control-button bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white"
+                :aria-label="isRunning ? 'Pause timer' : 'Start timer'"
+            >
                 {{ isRunning ? 'pause' : 'start' }}
             </button>
-            <button @click="resetTimer" class="text-3xl">
-                <i class="fas fa-sync-alt"></i>
+            <button
+                @click="resetTimer"
+                class="text-3xl"
+                aria-label="Reset timer"
+            >
+                <i class="fas fa-sync-alt" aria-hidden="true"></i>
             </button>
         </div>
 
-        <!-- Dropdown for project and task selection -->
-        <div v-if="!isRunning && currentTimerType === 'pomodoro'" class="mb-4" id="task-dropdown">
-            <select v-model="selectedId"
-                    class="bg-gray-100 text-gray-800 rounded-lg p-3 border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none hover:bg-gray-200 transition duration-150 ease-in-out">
-                <option value="" class="text-gray-600">No specific project (General focus)</option>
-                <template v-for="project in projects" :key="project.id">
-                    <option :value="'project:rbNiqBehszLPVzMmR_' + project.id" class="font-bold">
-                        {{ project.name }} (Project)
-                    </option>
-                    <template v-for="task in project.tasks" :key="task.id">
-                        <option :value="'task:rbNiqBehszLPVzMmR_' + task.id">
-                            - {{ task.name }}
-                        </option>
-                    </template>
-                </template>
-            </select>
+        <!-- Project / task selector -->
+        <ProjectSelect
+            v-if="!isRunning && currentTimerType === 'pomodoro'"
+            v-model="selectedId"
+            :projects="projects"
+            class="mb-4"
+        />
+
+        <!-- Selected context label while running -->
+        <div
+            v-if="isRunning && currentTimerType === 'pomodoro' && selectedId"
+            class="mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
+            aria-live="polite"
+        >
+            <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[10px]'" class="text-white/35" aria-hidden="true"></i>
+            <span>{{ selectedLabel }}</span>
         </div>
     </div>
 </template>
@@ -64,8 +87,28 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
+import { useToast } from '../composables/toast.js';
+import ProjectSelect from './ProjectSelect.vue';
+
+const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+};
+
+const notifyTimerDone = (timerType) => {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (document.visibilityState === 'visible') return;
+    const isPomodoro = timerType === 'pomodoro';
+    new Notification(isPomodoro ? 'Pomodoro complete!' : 'Break over!', {
+        body: isPomodoro ? 'Time to take a break.' : 'Ready to focus?',
+        icon: '/images/logo.webp',
+        silent: false,
+    });
+};
 
 export default {
+  components: { ProjectSelect },
   props: {
     projects: {
       type: Array,
@@ -74,9 +117,14 @@ export default {
     settings: {
       type: Object,
       default: () => ({})
+    },
+    isAuthenticated: {
+      type: [Boolean, Number],
+      default: false
     }
   },
   setup(props) {
+    const { error } = useToast();
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
     const initialTime = ref(time.value);
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
@@ -89,12 +137,7 @@ export default {
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
 
-    // Track when we are restoring from localStorage to avoid overwriting timer
     let isRestoring = false;
-
-    // -----------------------
-    //   WATCHERS
-    // -----------------------
 
     watch(
       () => props.settings?.sound?.settings?.alert_volume,
@@ -105,15 +148,11 @@ export default {
 
     watch(
       () => props.settings?.sound?.settings?.play_sound,
-      (newValue, oldValue) => {
-        console.log(`playSound changed from ${oldValue} to ${newValue}`);
+      (newValue) => {
         playSound.value = newValue;
       }
     );
 
-    // Watch for changes in timer settings
-    // Only update timer from settings when we are NOT restoring
-    // and only if the timer isn’t running, so we don’t overwrite a live countdown
     watch(
       () => props.settings.timers.settings,
       () => {
@@ -124,21 +163,29 @@ export default {
       { deep: true }
     );
 
-    // Whenever time changes and the timer is running, update localStorage
     watch(time, () => {
       if (isRunning.value) {
         saveTimerStateToLocalStorage();
       }
     });
 
-    // -----------------------
-    //   FUNCTIONS
-    // -----------------------
-
     const formattedTime = computed(() => {
       const min = Math.floor(time.value / 60);
       const sec = time.value % 60;
       return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    });
+
+    const selectedLabel = computed(() => {
+      if (!selectedId.value) return '';
+      for (const project of props.projects) {
+        if (selectedId.value === 'project:rbNiqBehszLPVzMmR_' + project.id) return project.name;
+        for (const task of project.tasks ?? []) {
+          if (selectedId.value === 'task:rbNiqBehszLPVzMmR_' + task.id) {
+            return `${project.name} › ${task.name}`;
+          }
+        }
+      }
+      return '';
     });
 
     const updateTimerFromSettings = () => {
@@ -163,6 +210,7 @@ export default {
     const startTimer = () => {
       isRunning.value = true;
       sessionStartTime.value = new Date();
+      requestNotificationPermission();
 
       timerInterval.value = setInterval(() => {
         time.value--;
@@ -171,14 +219,14 @@ export default {
           isRunning.value = false;
 
           if (playSound.value === '1') playAlarmSound();
+          notifyTimerDone(currentTimerType.value);
           if (currentTimerType.value === 'pomodoro') endSession();
         }
       }, 1000);
 
       saveTimerStateToLocalStorage();
 
-      // Start a focused session only if it's a pomodoro
-      if (currentTimerType.value === 'pomodoro') {
+      if (currentTimerType.value === 'pomodoro' && props.isAuthenticated) {
         const payload = {
           project_id: null,
           task_id: null,
@@ -196,11 +244,12 @@ export default {
 
         axios
           .post('/focused-sessions', payload)
-          .then((response) => {
-            console.log('Session started successfully', response.data);
-          })
-          .catch((error) => {
-            console.error('Error starting session', error);
+          .catch((err) => {
+            const status = err.response?.status;
+            if (status !== 401 && status !== 403) {
+              error('Failed to start focus session');
+            }
+            console.error('Error starting session', err);
           });
       }
     };
@@ -235,14 +284,10 @@ export default {
 
       axios
         .patch('/focused-sessions/current', payload)
-        .then((response) => {
-          console.log('Session ended successfully', response.data);
-        })
-        .catch((error) => {
-          console.error('Error ending session', error);
+        .catch((err) => {
+          console.error('Error ending session', err);
         });
 
-      // Reset the session-related state
       sessionStartTime.value = null;
       selectedTaskId.value = '';
     };
@@ -255,8 +300,8 @@ export default {
       audio.value = new Audio(`/sounds/${soundFile}`);
       const volume = Math.min(Math.max(parseInt(alertVolume.value) / 100, 0), 1);
       audio.value.volume = volume;
-      audio.value.play().catch((error) => {
-        console.error('Error playing sound:', error);
+      audio.value.play().catch((err) => {
+        console.error('Error playing sound:', err);
       });
     };
 
@@ -265,13 +310,8 @@ export default {
       return index !== -1 ? str.slice(index + 1) : '';
     }
 
-    // -----------------------
-    //   LOCALSTORAGE
-    // -----------------------
-
     const saveTimerStateToLocalStorage = () => {
       if (isRunning.value) {
-        // endTime is now + whatever is left in `time.value`
         const endTime = Date.now() + time.value * 1000;
         localStorage.setItem(
           'pomodoroTimer',
@@ -286,46 +326,37 @@ export default {
       }
     };
 
-    // -----------------------
-    //   RESTORE ON MOUNT
-    // -----------------------
     onMounted(() => {
-      isRestoring = true; // we’re about to restore, so don’t overwrite time
+      isRestoring = true;
 
       const storedData = localStorage.getItem('pomodoroTimer');
       if (!storedData) {
-        // If there is no stored data, just set defaults from settings
         updateTimerFromSettings();
         isRestoring = false;
         return;
       }
 
-      if (storedData)
-        {
-            endSession();
-        }
+      if (storedData) {
+        endSession();
+      }
 
       const { isRunning: storedIsRunning, endTime, currentTimerType: storedTimerType } =
         JSON.parse(storedData);
 
-      // Restore the timer type
       if (storedTimerType) {
         currentTimerType.value = storedTimerType;
       }
 
-      // compute the remaining time from the endTime
       const remainingSeconds = Math.floor((endTime - Date.now()) / 1000);
 
       if (remainingSeconds > 0) {
         time.value = remainingSeconds;
         initialTime.value = remainingSeconds;
 
-        // If the timer was running before refresh, resume it
         if (storedIsRunning) {
           startTimer();
         }
       } else {
-        // Timer expired already
         localStorage.removeItem('pomodoroTimer');
         updateTimerFromSettings();
       }
@@ -344,13 +375,14 @@ export default {
       setTimer,
       toggleTimer,
       resetTimer,
+      selectedLabel,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
   }
 };
-
 </script>
+
 <style scoped>
 .timer-button {
     padding: 0.5rem 1rem;

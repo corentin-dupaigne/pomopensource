@@ -33,12 +33,12 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <div class="flex items-center justify-between mt-4">
-            <a class="hover:underline text-sm text-white" href="{{ route('login') }}">
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-4">
+            <a class="hover:underline text-sm text-white/70 hover:text-white transition" href="{{ route('login') }}">
                 {{ __('Already registered?') }}
             </a>
 
-            <x-primary-button class="ml-4 bg-blue-800/50 text-white rounded-lg hover:bg-blue-900/50 transition">
+            <x-primary-button class="ml-auto">
                 {{ __('Register') }}
             </x-primary-button>
         </div>

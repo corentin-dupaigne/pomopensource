@@ -14,35 +14,18 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans text-gray-900 antialiased bg-gray-100">
+<body class="font-sans text-gray-900 antialiased">
 <div class="relative min-h-screen flex flex-col items-center justify-center bg-cover bg-center" style="background-image: url('{{ asset('images/backgrounds/lofi_cafe.webp') }}');">
-    <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+    <div class="absolute inset-0 bg-black/50"></div>
 
-    <div class="z-10">
-        <a href="/">
-            <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-        </a>
-    </div>
+    <a href="/" class="z-10 mb-4 flex items-center gap-2 text-sm text-white/60 hover:text-white transition">
+        <i class="fas fa-arrow-left text-xs"></i>
+        Back to app
+    </a>
 
-    <div class="z-10 w-full sm:max-w-md mt-6 px-6 py-4 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl overflow-hidden">
+    <div class="z-10 w-full max-w-md mx-3 sm:mx-auto px-5 py-6 sm:px-8 bg-white/10 backdrop-blur-lg rounded-xl shadow-xl">
         {{ $slot }}
     </div>
 </div>
 </body>
 </html>
-
-<style>
-    .bg-cover {
-        background-size: cover;
-    }
-
-    .bg-center {
-        background-position: center;
-    }
-
-    .app {
-        position: relative;
-    }
-
-    /* Additional styles can be added if needed */
-</style>

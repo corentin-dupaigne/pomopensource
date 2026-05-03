@@ -1,6 +1,8 @@
 <template>
-    <div class="app min-h-screen bg-cover bg-center bg-no-repeat flex flex-col"
-         :style="{ backgroundImage: `url(${backgroundImage})` }">
+    <div class="app min-h-screen flex flex-col">
+        <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
+        <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
+        <div class="background-overlay"></div>
         <div class="header">
             <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" />
         </div>
@@ -8,18 +10,19 @@
             <ProjectsAndTasks :projects="projects" :settings="settings" :isAuthenticated="isAuthenticated"/>
         </main>
         <StatsModal v-if="showStatsModal" @close="toggleStatsModal" />
-        <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" />
-        <div class="background-overlay"></div>
+        <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
+        <Toast />
     </div>
 </template>
 
 <script>
-import {ref, onMounted, watch, computed} from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import Header from '../components/Header.vue';
 import ProjectsAndTasks from '../components/ProjectsAndTasks.vue';
 import Footer from '../components/Footer.vue';
 import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
+import Toast from '../components/Toast.vue';
 import axios from 'axios';
 
 export default {
@@ -28,7 +31,8 @@ export default {
         ProjectsAndTasks,
         Footer,
         StatsModal,
-        SettingsModal
+        SettingsModal,
+        Toast,
     },
     props: {
         projects: {
@@ -43,12 +47,16 @@ export default {
         const isAuthenticated = ref(false);
         const settings = ref({});
 
+        const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
+        const bgA = ref(initialBg);
+        const bgB = ref('');
+        const activeLayer = ref('a');
+
         const fetchSettings = async () => {
             try {
                 const response = await axios.get('/user-settings');
                 const rawData = response.data;
 
-                // Transform the data into a more usable JSON format
                 const transformedData = Array.from(rawData).reduce((acc, category) => {
                     acc[category.name.toLowerCase()] = {
                         icon: category.icon,
@@ -67,40 +75,28 @@ export default {
             }
         };
 
-        // Fetch settings on component mount
         const fetchBackgroundImage = async () => {
             try {
                 const response = await axios.get('/background');
                 backgroundImage.value = getBackgroundImage(response.data);
                 localStorage.setItem('userBackground', backgroundImage.value);
             } catch (error) {
-                console.error('Error fetching settings:', error);
+                console.error('Error fetching background:', error);
             }
         };
 
         const checkAuthentication = async () => {
             try {
                 const response = await axios.get('/isAuthenticated');
-                isAuthenticated.value = response.data;
+                isAuthenticated.value = !!response.data;
             } catch (error) {
                 console.error('Error fetching auth status:', error);
             }
         };
 
-        // Construct the image path based on the theme name
         const getBackgroundImage = (theme) => {
             const formattedTheme = theme.toLowerCase().replace(/ /g, '_');
             return `images/backgrounds/${formattedTheme}.webp`;
-        };
-
-        // Save settings and update background image
-        const saveSettings = async (newSettingValue) => {
-            try {
-                await axios.post('/user-settings', {settings: [{id: 'theme_id', value: newSettingValue}]});
-                backgroundImage.value = getBackgroundImage(newSettingValue);
-            } catch (error) {
-                console.error('Error saving settings:', error);
-            }
         };
 
         const loadSettingsFromStorage = () => {
@@ -110,7 +106,7 @@ export default {
                     settings.value = JSON.parse(storedSettings);
                 } catch (error) {
                     console.error('Error parsing stored settings:', error);
-                    settings.value = {};  // Fallback to empty object if parsing fails
+                    settings.value = {};
                 }
             }
         };
@@ -123,14 +119,24 @@ export default {
             showSettingsModal.value = !showSettingsModal.value;
         };
 
-        // Watch for background changes and save settings
+        const handleSettingsSaved = async () => {
+            await Promise.all([fetchSettings(), fetchBackgroundImage()]);
+        };
+
         watch(backgroundImage, (newValue) => {
             localStorage.setItem('userBackground', newValue);
+            const newUrl = newValue ? `url(${newValue})` : '';
+            if (activeLayer.value === 'a') {
+                bgB.value = newUrl;
+                activeLayer.value = 'b';
+            } else {
+                bgA.value = newUrl;
+                activeLayer.value = 'a';
+            }
         });
 
         loadSettingsFromStorage();
 
-        // Fetch settings on mount
         onMounted(fetchSettings);
         onMounted(fetchBackgroundImage);
         checkAuthentication();
@@ -140,9 +146,11 @@ export default {
             showSettingsModal,
             toggleStatsModal,
             toggleSettingsModal,
-            backgroundImage,
+            handleSettingsSaved,
+            bgA,
+            bgB,
+            activeLayer,
             settings,
-            saveSettings,
             isAuthenticated
         };
     },
@@ -152,29 +160,29 @@ export default {
 <style>
 .app {
     position: relative;
+}
+
+.bg-layer {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     background-attachment: fixed;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    z-index: 0;
+}
+
+.bg-layer-active {
+    opacity: 1;
 }
 
 .background-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: fixed;
+    inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1;
-}
-
-.bg-cover {
-    background-size: cover;
-}
-
-.bg-no-repeat {
-    background-repeat: no-repeat;
-}
-
-.bg-center {
-    background-position: center;
 }
 
 .main-content {
@@ -186,5 +194,4 @@ export default {
     position: relative;
     z-index: 2;
 }
-
 </style>
