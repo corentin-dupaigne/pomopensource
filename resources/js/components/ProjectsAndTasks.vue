@@ -11,14 +11,11 @@
     <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
 
     <div class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg" :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode }]">
-        <h2 class="text-3xl font-bold mb-6 font-oswald text-white">Projects</h2>
-
-        <!-- Auth prompt -->
-        <div v-if="!isAuthenticated" class="mb-5 flex items-center gap-3 px-4 py-3 bg-yellow-500/20 border border-yellow-400/30 rounded-lg text-white">
-            <i class="fas fa-info-circle text-yellow-300 shrink-0" aria-hidden="true"></i>
-            <span class="text-sm font-inter">
-                <a href="/register" class="font-semibold underline hover:text-yellow-200">Sign in</a>
-                to save projects and track focus sessions.
+        <div class="flex items-baseline justify-between mb-6">
+            <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
+            <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
+                saved locally ·
+                <a href="/register" class="hover:text-white/60 transition underline">sign in to sync</a>
             </span>
         </div>
 
@@ -30,14 +27,13 @@
                     type="text"
                     placeholder="New project name"
                     required
-                    :disabled="!isAuthenticated"
                     aria-label="New project name"
-                    class="w-full py-3 px-4 bg-white/10 border border-white/30 rounded-lg text-center text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="w-full py-3 px-4 bg-white/10 border border-white/30 rounded-lg text-center text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200"
                 >
             </div>
             <button
                 type="submit"
-                :disabled="!isAuthenticated || isAddingProject"
+                :disabled="isAddingProject"
                 aria-label="Add new project"
                 class="w-full py-3 border-2 border-dashed border-white rounded-lg text-center text-sm font-inter font-semibold text-white hover:bg-white/20 transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -50,7 +46,6 @@
         <ul class="space-y-4" aria-label="Projects">
             <li v-for="project in localProjects" :key="project.id" class="bg-white/5 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-2 gap-2">
-                    <!-- Editable project name -->
                     <div class="flex-1 group relative flex items-center gap-2 min-w-0">
                         <input
                             v-model="project.name"
@@ -145,46 +140,47 @@ import Timer from './Timer.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useToast } from '../composables/toast.js';
 
+const LOCAL_KEY = 'localProjects';
+let localIdCounter = Date.now();
+const localId = () => `local_${localIdCounter++}`;
+
 export default {
     components: { Timer, ConfirmModal },
     props: {
-        projects: {
-            type: Array,
-            required: true
-        },
-        settings: {
-            type: Object,
-        },
-        isAuthenticated: {
-            type: [Number, Boolean],
-            default: false
-        },
-        zenMode: {
-            type: Boolean,
-            default: false
-        }
+        projects: { type: Array, required: true },
+        settings: { type: Object },
+        isAuthenticated: { type: [Number, Boolean], default: false },
+        zenMode: { type: Boolean, default: false }
     },
     setup(props) {
         const { success, error } = useToast();
-        const localProjects = ref([...props.projects]);
+
+        const loadLocal = () => {
+            try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '[]'); }
+            catch { return []; }
+        };
+
+        const localProjects = ref(
+            props.isAuthenticated ? [...props.projects] : loadLocal()
+        );
+
+        const persistLocal = () => {
+            if (!props.isAuthenticated) {
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(localProjects.value));
+            }
+        };
+
         const newProjectName = ref('');
         const newTaskNames = reactive({});
         const isAddingProject = ref(false);
         const isAddingTask = reactive({});
 
         const confirmDialog = reactive({
-            visible: false,
-            title: '',
-            message: '',
-            confirmLabel: 'Delete',
-            onConfirm: null
+            visible: false, title: '', message: '', confirmLabel: 'Delete', onConfirm: null
         });
 
         const showConfirm = (title, message, onConfirm) => {
-            confirmDialog.title = title;
-            confirmDialog.message = message;
-            confirmDialog.onConfirm = onConfirm;
-            confirmDialog.visible = true;
+            Object.assign(confirmDialog, { title, message, onConfirm, visible: true });
         };
 
         const handleConfirm = async () => {
@@ -192,20 +188,19 @@ export default {
             if (confirmDialog.onConfirm) await confirmDialog.onConfirm();
         };
 
-        const handleCancel = () => {
-            confirmDialog.visible = false;
-        };
+        const handleCancel = () => { confirmDialog.visible = false; };
 
         const addProject = async () => {
             if (!newProjectName.value.trim()) return;
             isAddingProject.value = true;
             try {
-                const response = await axios.post('/projects', { name: newProjectName.value });
-                localProjects.value.push({
-                    ...response.data,
-                    tasks: response.data.tasks ?? [],
-                    showTasks: false
-                });
+                if (props.isAuthenticated) {
+                    const response = await axios.post('/projects', { name: newProjectName.value });
+                    localProjects.value.push({ ...response.data, tasks: response.data.tasks ?? [], showTasks: false });
+                } else {
+                    localProjects.value.push({ id: localId(), name: newProjectName.value.trim(), tasks: [], showTasks: false });
+                    persistLocal();
+                }
                 newProjectName.value = '';
                 success('Project added');
             } catch (err) {
@@ -216,25 +211,23 @@ export default {
         };
 
         const updateProject = async (project) => {
-            try {
-                await axios.patch(`/projects/${project.id}`, { name: project.name });
-            } catch (err) {
-                error('Failed to update project');
+            if (props.isAuthenticated) {
+                try { await axios.patch(`/projects/${project.id}`, { name: project.name }); }
+                catch { error('Failed to update project'); }
+            } else {
+                persistLocal();
             }
         };
 
         const openDeleteProject = (projectId, projectName) => {
-            showConfirm(
-                'Delete project',
-                `Delete "${projectName}" and all its tasks? This cannot be undone.`,
-                () => deleteProject(projectId)
-            );
+            showConfirm('Delete project', `Delete "${projectName}" and all its tasks? This cannot be undone.`, () => deleteProject(projectId));
         };
 
         const deleteProject = async (projectId) => {
             try {
-                await axios.delete(`/projects/${projectId}`);
+                if (props.isAuthenticated) await axios.delete(`/projects/${projectId}`);
                 localProjects.value = localProjects.value.filter(p => p.id !== projectId);
+                persistLocal();
                 success('Project deleted');
             } catch (err) {
                 error('Failed to delete project');
@@ -243,6 +236,7 @@ export default {
 
         const toggleTasksVisibility = (project) => {
             project.showTasks = !project.showTasks;
+            persistLocal();
         };
 
         const addTask = async (project) => {
@@ -250,8 +244,13 @@ export default {
             if (!taskName) return;
             isAddingTask[project.id] = true;
             try {
-                const response = await axios.post(`/projects/${project.id}/tasks`, { name: taskName });
-                project.tasks.push(response.data);
+                if (props.isAuthenticated) {
+                    const response = await axios.post(`/projects/${project.id}/tasks`, { name: taskName });
+                    project.tasks.push(response.data);
+                } else {
+                    project.tasks.push({ id: localId(), name: taskName });
+                    persistLocal();
+                }
                 newTaskNames[project.id] = '';
                 success('Task added');
             } catch (err) {
@@ -262,25 +261,23 @@ export default {
         };
 
         const updateTask = async (project, task) => {
-            try {
-                await axios.patch(`/tasks/${task.id}`, { name: task.name });
-            } catch (err) {
-                error('Failed to update task');
+            if (props.isAuthenticated) {
+                try { await axios.patch(`/tasks/${task.id}`, { name: task.name }); }
+                catch { error('Failed to update task'); }
+            } else {
+                persistLocal();
             }
         };
 
         const openDeleteTask = (project, taskId, taskName) => {
-            showConfirm(
-                'Delete task',
-                `Delete "${taskName}"? This cannot be undone.`,
-                () => deleteTask(project, taskId)
-            );
+            showConfirm('Delete task', `Delete "${taskName}"? This cannot be undone.`, () => deleteTask(project, taskId));
         };
 
         const deleteTask = async (project, taskId) => {
             try {
-                await axios.delete(`/tasks/${taskId}`);
+                if (props.isAuthenticated) await axios.delete(`/tasks/${taskId}`);
                 project.tasks = project.tasks.filter(t => t.id !== taskId);
+                persistLocal();
                 success('Task deleted');
             } catch (err) {
                 error('Failed to delete task');
@@ -288,21 +285,11 @@ export default {
         };
 
         return {
-            localProjects,
-            newProjectName,
-            newTaskNames,
-            isAddingProject,
-            isAddingTask,
-            confirmDialog,
-            handleConfirm,
-            handleCancel,
-            addProject,
-            updateProject,
-            openDeleteProject,
-            toggleTasksVisibility,
-            addTask,
-            updateTask,
-            openDeleteTask,
+            localProjects, newProjectName, newTaskNames,
+            isAddingProject, isAddingTask, confirmDialog,
+            handleConfirm, handleCancel,
+            addProject, updateProject, openDeleteProject,
+            toggleTasksVisibility, addTask, updateTask, openDeleteTask,
         };
     }
 };

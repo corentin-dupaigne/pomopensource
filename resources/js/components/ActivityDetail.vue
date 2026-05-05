@@ -31,7 +31,10 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 export default {
-    setup() {
+    props: {
+        localProjectsData: { type: Array, default: null },
+    },
+    setup(props) {
         const projects = ref([]);
         const isLoading = ref(true);
 
@@ -56,7 +59,14 @@ export default {
             }
         };
 
-        onMounted(fetchProjectStats);
+        onMounted(() => {
+            if (props.localProjectsData !== null) {
+                projects.value = props.localProjectsData;
+                isLoading.value = false;
+            } else {
+                fetchProjectStats();
+            }
+        });
 
         return { projects, isLoading, formatHours };
     },

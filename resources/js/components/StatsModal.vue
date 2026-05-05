@@ -51,7 +51,7 @@
                     <ActivitySummary v-else :stats="stats" />
 
                     <h3 class="text-lg font-semibold font-oswald text-white mt-8 mb-4">Monthly Activity</h3>
-                    <Calendar />
+                    <Calendar :localData="localCalendarData" :localStreak="localStreak" />
                 </div>
 
                 <div
@@ -60,7 +60,7 @@
                     role="tabpanel"
                 >
                     <h3 class="text-lg font-semibold font-oswald text-white mb-4">Detailed Activity</h3>
-                    <ActivityDetail />
+                    <ActivityDetail :localProjectsData="localProjectStats" />
                 </div>
             </div>
         </div>
@@ -73,6 +73,7 @@ import axios from 'axios';
 import ActivitySummary from './ActivitySummary.vue';
 import Calendar from './Calendar.vue';
 import ActivityDetail from './ActivityDetail.vue';
+import { getLocalSessions, computeStats, computeCalendarData, computeProjectStats } from '../composables/localStats.js';
 
 export default {
     components: {
@@ -81,7 +82,10 @@ export default {
         Calendar,
     },
     emits: ['close'],
-    setup() {
+    props: {
+        isAuthenticated: { type: [Boolean, Number], default: false },
+    },
+    setup(props) {
         const activeTab = ref('Summary');
         const modalRef = ref(null);
         const isLoadingStats = ref(true);
@@ -90,6 +94,9 @@ export default {
             days_accessed: 0,
             day_streak: 0,
         });
+        const localCalendarData = ref(null);
+        const localStreak = ref(0);
+        const localProjectStats = ref(null);
 
         const fetchStats = async () => {
             isLoadingStats.value = true;
@@ -103,8 +110,26 @@ export default {
             }
         };
 
+        const loadLocalStats = () => {
+            const sessions = getLocalSessions();
+            const computed = computeStats(sessions);
+            stats.value = computed;
+            localCalendarData.value = computeCalendarData(sessions);
+            localStreak.value = computed.day_streak;
+            const storedProjects = (() => {
+                try { return JSON.parse(localStorage.getItem('localProjects') || '[]'); }
+                catch { return []; }
+            })();
+            localProjectStats.value = computeProjectStats(sessions, storedProjects);
+            isLoadingStats.value = false;
+        };
+
         onMounted(async () => {
-            await fetchStats();
+            if (props.isAuthenticated) {
+                await fetchStats();
+            } else {
+                loadLocalStats();
+            }
             await nextTick();
             modalRef.value?.focus();
         });
@@ -114,6 +139,9 @@ export default {
             modalRef,
             isLoadingStats,
             stats,
+            localCalendarData,
+            localStreak,
+            localProjectStats,
         };
     },
 };

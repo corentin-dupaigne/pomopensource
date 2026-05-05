@@ -22,7 +22,7 @@
             <span v-if="!zenMode" class="text-sm font-inter">zen</span>
         </button>
 
-        <StatsModal v-if="showStatsModal" @close="toggleStatsModal" />
+        <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
         <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
         <Toast />
     </div>

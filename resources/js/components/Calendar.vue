@@ -107,7 +107,11 @@ const MONTH_INTENSITY_CLASSES = [
 ];
 
 export default {
-    setup() {
+    props: {
+        localData: { type: Array, default: null },
+        localStreak: { type: Number, default: null },
+    },
+    setup(props) {
         const currentDate = ref(new Date());
         const currentView = ref('month');
         const calendarData = ref([]);
@@ -264,8 +268,18 @@ export default {
             return new Date(d.setDate(diff));
         };
 
-        onMounted(fetchCalendarData);
-        watch([currentDate, currentView], fetchCalendarData);
+        onMounted(() => {
+            if (props.localData !== null) {
+                calendarData.value = props.localData;
+                currentStreak.value = props.localStreak ?? 0;
+            } else {
+                fetchCalendarData();
+            }
+        });
+
+        watch([currentDate, currentView], () => {
+            if (props.localData === null) fetchCalendarData();
+        });
 
         return {
             currentDate,

@@ -88,6 +88,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
+import { addLocalSession } from '../composables/localStats.js';
 import ProjectSelect from './ProjectSelect.vue';
 
 const requestNotificationPermission = async () => {
@@ -212,6 +213,7 @@ export default {
     };
 
     const startTimer = () => {
+      if (time.value <= 0) return;
       isRunning.value = true;
       sessionStartTime.value = new Date();
       requestNotificationPermission();
@@ -281,16 +283,19 @@ export default {
     };
 
     const endSession = () => {
-      const payload = {
-        ended_at: new Date(),
-        time_focused: initialTime.value - time.value
-      };
+      const duration = initialTime.value - time.value;
 
-      axios
-        .patch('/focused-sessions/current', payload)
-        .catch((err) => {
-          console.error('Error ending session', err);
+      if (props.isAuthenticated) {
+        axios
+          .patch('/focused-sessions/current', { ended_at: new Date(), time_focused: duration })
+          .catch((err) => { console.error('Error ending session', err); });
+      } else if (duration > 0) {
+        addLocalSession({
+          date: new Date().toISOString().split('T')[0],
+          duration_seconds: duration,
+          selectedId: selectedId.value,
         });
+      }
 
       sessionStartTime.value = null;
       selectedTaskId.value = '';
