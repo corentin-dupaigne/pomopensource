@@ -11,7 +11,15 @@
             aria-haspopup="listbox"
             :id="triggerId"
         >
-            <span class="truncate">{{ modelValue || placeholder }}</span>
+            <div class="flex items-center gap-2 min-w-0">
+                <img
+                    v-if="imageUrlFn && modelValue"
+                    :src="imageUrlFn(modelValue)"
+                    class="w-10 h-7 object-cover rounded shrink-0"
+                    aria-hidden="true"
+                />
+                <span class="truncate">{{ modelValue || placeholder }}</span>
+            </div>
             <i
                 class="fas fa-chevron-down text-white/50 text-xs transition-transform duration-200 shrink-0 ml-2"
                 :class="{ 'rotate-180': isOpen }"
@@ -37,14 +45,23 @@
                         :key="option"
                         @click="select(option)"
                         type="button"
-                        class="w-full text-left py-2 text-sm font-inter transition border-l-2"
-                        :class="isSelected(option)
-                            ? 'border-white/70 pl-3 pr-3 text-white font-semibold'
-                            : 'border-transparent pl-3 pr-3 text-white/80 hover:text-white hover:bg-white/10'"
+                        class="w-full text-left text-sm font-inter transition border-l-2 flex items-center gap-3"
+                        :class="[
+                            imageUrlFn ? 'py-1.5 px-3' : 'py-2 px-3',
+                            isSelected(option)
+                                ? 'border-white/70 text-white font-semibold'
+                                : 'border-transparent text-white/80 hover:text-white hover:bg-white/10'
+                        ]"
                         role="option"
                         :aria-selected="isSelected(option)"
                     >
-                        {{ option }}
+                        <img
+                            v-if="imageUrlFn"
+                            :src="imageUrlFn(option)"
+                            class="w-14 h-9 object-cover rounded shrink-0"
+                            aria-hidden="true"
+                        />
+                        <span>{{ option }}</span>
                     </button>
                 </div>
             </transition>
@@ -60,6 +77,7 @@ export default {
         modelValue: { type: String, default: '' },
         options: { type: Array, default: () => [] },
         placeholder: { type: String, default: 'Select...' },
+        imageUrlFn: { type: Function, default: null },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {

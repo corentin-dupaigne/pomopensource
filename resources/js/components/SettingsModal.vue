@@ -13,7 +13,10 @@
             @keydown.esc="$emit('close')"
         >
             <div class="flex justify-between items-center pb-4 border-b border-white/20">
-                <h2 id="settings-title" class="text-2xl font-bold font-oswald text-white">Settings</h2>
+                <div class="flex items-center gap-3">
+                    <h2 id="settings-title" class="text-2xl font-bold font-oswald text-white">Settings</h2>
+                    <i v-if="isSaving" class="fas fa-circle-notch fa-spin text-white/40 text-sm" aria-label="Saving..."></i>
+                </div>
                 <button
                     @click="$emit('close')"
                     aria-label="Close settings"
@@ -54,6 +57,7 @@
                                 type="text"
                                 v-model="setting.value"
                                 :id="setting.key"
+                                @input="debouncedSave(setting)"
                                 class="mt-1 block w-full bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
                             >
 
@@ -61,13 +65,15 @@
                                 v-else-if="setting.type === 'select'"
                                 v-model="setting.value"
                                 :options="setting.options"
+                                :imageUrlFn="setting.key === 'theme' ? themeImageUrl : null"
+                                @update:modelValue="saveSetting(setting)"
                             />
 
                             <div v-else-if="setting.type === 'checkbox'" class="mt-1 flex items-center">
                                 <input
                                     type="checkbox"
                                     :checked="setting.value === '1' || setting.value === 1 || setting.value === true"
-                                    @change="setting.value = $event.target.checked ? 1 : 0"
+                                    @change="setting.value = $event.target.checked ? 1 : 0; saveSetting(setting)"
                                     :id="setting.key"
                                     class="toggle-input"
                                 >
@@ -79,6 +85,7 @@
                                     type="number"
                                     v-model="setting.value"
                                     :id="setting.key"
+                                    @change="saveSetting(setting)"
                                     class="block w-1/4 bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
                                 >
                             </div>
@@ -93,33 +100,16 @@
                                         v-model="setting.value"
                                         :id="setting.key"
                                         :aria-label="`${setting.name}: ${setting.value}`"
+                                        @input="debouncedSave(setting)"
                                         class="range-slider ml-2 w-full cursor-pointer focus:outline-none"
                                         :style="{ '--pct': setting.value + '%' }"
                                     />
                                 </div>
-
                             </div>
 
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="modal-footer pt-4 border-t border-white/20 flex justify-end gap-2">
-                <button
-                    @click="saveSettings"
-                    :disabled="isSaving"
-                    class="px-4 py-2 bg-blue-800/50 text-white rounded-lg hover:bg-blue-900/50 transition disabled:opacity-50 flex items-center gap-2"
-                >
-                    <i v-if="isSaving" class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                    <span>{{ isSaving ? 'Saving...' : 'Save' }}</span>
-                </button>
-                <button
-                    @click="$emit('close')"
-                    class="px-4 py-2 bg-red-800/50 text-white rounded-lg hover:bg-red-900/50 transition"
-                >
-                    Cancel
-                </button>
             </div>
         </div>
     </div>
@@ -131,11 +121,19 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
 
+const debounce = (fn, delay) => {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+};
+
 export default {
     components: { CustomSelect },
     emits: ['close', 'saved'],
     setup(_, { emit }) {
-        const { success, error } = useToast();
+        const { error } = useToast();
         const settingsCategories = ref([]);
         const activeCategory = ref('');
         const isSaving = ref(false);
@@ -158,27 +156,21 @@ export default {
             return category ? category.settings : [];
         };
 
-        const saveSettings = async () => {
+        const saveSetting = async (setting) => {
             isSaving.value = true;
             try {
-                const payload = {
-                    settings: settingsCategories.value.flatMap(category =>
-                        category.settings.map(setting => ({
-                            id: setting.id,
-                            value: setting.value,
-                        }))
-                    ),
-                };
-                await axios.patch('/user-settings', payload);
-                success('Settings saved');
+                await axios.patch('/user-settings', {
+                    settings: [{ id: setting.id, value: setting.value }],
+                });
                 emit('saved');
-                emit('close');
             } catch (err) {
-                error('Failed to save settings');
+                error('Failed to save setting');
             } finally {
                 isSaving.value = false;
             }
         };
+
+        const debouncedSave = debounce(saveSetting, 500);
 
         onMounted(async () => {
             await fetchSettings();
@@ -186,13 +178,18 @@ export default {
             modalRef.value?.focus();
         });
 
+        const themeImageUrl = (theme) =>
+            `images/backgrounds/${theme.toLowerCase().replace(/ /g, '_')}.webp`;
+
         return {
             settingsCategories,
             activeCategory,
             isSaving,
             modalRef,
             getActiveCategorySettings,
-            saveSettings,
+            saveSetting,
+            debouncedSave,
+            themeImageUrl,
         };
     },
 };
@@ -205,7 +202,7 @@ export default {
 }
 
 .modal-body {
-    max-height: calc(90vh - 12rem);
+    max-height: calc(90vh - 10rem);
     overflow-y: auto;
 }
 
@@ -237,7 +234,7 @@ export default {
 }
 
 .toggle-input:checked {
-    background: rgba(37, 99, 235, 0.5);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .toggle-input::after {

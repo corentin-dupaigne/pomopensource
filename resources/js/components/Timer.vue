@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="flex space-x-4 mb-8" role="tablist" aria-label="Timer type">
+        <div class="zen-fade flex space-x-4 mb-8" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro', settings.timers.settings.pomodoro_duration)"
                 id="default-timer"
@@ -120,6 +120,10 @@ export default {
     },
     isAuthenticated: {
       type: [Boolean, Number],
+      default: false
+    },
+    zenMode: {
+      type: Boolean,
       default: false
     }
   },

@@ -13,7 +13,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">Stats</span>
+                <span class="hidden md:inline-block text-sm font-inter">stats</span>
             </button>
             <button
                 @click="$emit('toggleSettings')"
@@ -21,7 +21,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-cog w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">Settings</span>
+                <span class="hidden md:inline-block text-sm font-inter">settings</span>
             </button>
             <a
                 v-if="!auth"
@@ -30,7 +30,7 @@
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-user w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">Login</span>
+                <span class="hidden md:inline-block text-sm font-inter">login</span>
             </a>
             <a
                 v-if="auth"
@@ -39,7 +39,7 @@
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition cursor-pointer"
             >
                 <i class="fas fa-sign-out-alt w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">Logout</span>
+                <span class="hidden md:inline-block text-sm font-inter">logout</span>
             </a>
         </nav>
     </header>
@@ -52,9 +52,7 @@ export default {
     name: 'Header',
     emits: ['toggleStats', 'toggleSettings'],
     props: {
-        auth: {
-            default: false
-        }
+        auth: { default: false },
     },
     methods: {
         async logout() {

@@ -8,9 +8,9 @@
         @cancel="handleCancel"
     />
 
-    <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated"/>
+    <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
 
-    <div class="w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg" :class="localProjects.length === 0 ? 'py-5' : 'py-8'">
+    <div class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg" :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode }]">
         <h2 class="text-3xl font-bold mb-6 font-oswald text-white">Projects</h2>
 
         <!-- Auth prompt -->
@@ -157,6 +157,10 @@ export default {
         },
         isAuthenticated: {
             type: [Number, Boolean],
+            default: false
+        },
+        zenMode: {
+            type: Boolean,
             default: false
         }
     },

@@ -2,13 +2,26 @@
     <div class="app min-h-screen flex flex-col">
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
-        <div class="background-overlay"></div>
-        <div class="header">
+        <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
+
+        <div class="header zen-fade" :class="{ 'zen-hidden': zenMode }">
             <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" />
         </div>
-        <main class="flex flex-col items-center justify-center text-white main-content">
-            <ProjectsAndTasks :projects="projects" :settings="settings" :isAuthenticated="isAuthenticated"/>
+
+        <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
+            <ProjectsAndTasks :projects="projects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
         </main>
+
+        <!-- Zen toggle: always bottom-right -->
+        <button
+            @click="toggleZen"
+            :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
+            class="fixed bottom-6 right-6 z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+        >
+            <i :class="zenMode ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
+            <span v-if="!zenMode" class="text-sm font-inter">zen</span>
+        </button>
+
         <StatsModal v-if="showStatsModal" @close="toggleStatsModal" />
         <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
         <Toast />
@@ -16,7 +29,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import Header from '../components/Header.vue';
 import ProjectsAndTasks from '../components/ProjectsAndTasks.vue';
 import Footer from '../components/Footer.vue';
@@ -43,6 +56,9 @@ export default {
     setup() {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
+        const zenMode = ref(false);
+
+        const toggleZen = () => { zenMode.value = !zenMode.value; };
         const backgroundImage = ref(localStorage.getItem('userBackground') || '');
         const isAuthenticated = ref(false);
         const settings = ref({});
@@ -135,10 +151,18 @@ export default {
             }
         });
 
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape' && zenMode.value && !showStatsModal.value && !showSettingsModal.value) {
+                zenMode.value = false;
+            }
+        };
+
         loadSettingsFromStorage();
 
         onMounted(fetchSettings);
         onMounted(fetchBackgroundImage);
+        onMounted(() => document.addEventListener('keydown', handleKeydown));
+        onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         checkAuthentication();
 
         return {
@@ -151,7 +175,9 @@ export default {
             bgB,
             activeLayer,
             settings,
-            isAuthenticated
+            isAuthenticated,
+            zenMode,
+            toggleZen,
         };
     },
 };
@@ -183,11 +209,27 @@ export default {
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1;
+    transition: background 0.8s ease;
+}
+
+.overlay-zen {
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.zen-fade {
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.zen-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .main-content {
     position: relative;
     z-index: 2;
+    min-height: 0;
 }
 
 .header, .footer {

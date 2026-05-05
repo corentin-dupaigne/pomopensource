@@ -121,11 +121,13 @@ export default {
 
 <style scoped>
 .modal-content {
+    min-height: 500px;
     max-height: 90vh;
     overflow: hidden;
 }
 
 .modal-body {
+    min-height: 380px;
     max-height: calc(90vh - 5rem);
     overflow-y: auto;
 }

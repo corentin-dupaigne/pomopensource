@@ -53,7 +53,7 @@ class SettingsSeeder extends Seeder
                 'name' => 'Theme',
                 'type' => 'select',
                 'options' => json_encode($themeOptions),
-                'default_value' => $themeOptions[0] ?? 'Lofi Cafe',
+                'default_value' => 'Lofi Cafe',
                 'display_order' => 1,
             ],
             // Timer settings
