@@ -26,6 +26,21 @@ app:
   existingSecret: ""
   existingSecretKey: APP_KEY
 
+# Use a database the chart does not deploy, such as a CloudNativePG Cluster,
+# instead of the bundled MySQL (set mysql.enabled=false alongside). Every
+# connection setting is read from one Secret; the default keys match the
+# `<cluster>-app` Secret that CloudNativePG generates.
+externalDatabase:
+  enabled: false
+  # Laravel connection name: pgsql, mysql or mariadb.
+  connection: pgsql
+  existingSecret: ""
+  hostKey: host
+  portKey: port
+  databaseKey: dbname
+  usernameKey: username
+  passwordKey: password
+
 mysql:
   enabled: true
   auth:

@@ -169,6 +169,15 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
    | `gateway.name` | Name of the Gateway resource | `gateway` |
    | `gateway.namespace` | Namespace of the Gateway resource | `default` |
 
+   **Using your own database** (for example PostgreSQL from [CloudNativePG](https://cloudnative-pg.io)) instead of the bundled MySQL: set `mysql.enabled=false` and `externalDatabase.enabled=true`. Host, port, database name, username and password are all read from one Secret, whose default keys match the `<cluster>-app` Secret CloudNativePG generates.
+
+   | Parameter | Description | Default |
+   |-----------|-------------|---------|
+   | `externalDatabase.enabled` | Use an external database | `false` |
+   | `externalDatabase.connection` | Laravel connection: `pgsql`, `mysql` or `mariadb` | `pgsql` |
+   | `externalDatabase.existingSecret` | Secret holding the connection settings (**required**) | — |
+   | `externalDatabase.hostKey` / `portKey` / `databaseKey` / `usernameKey` / `passwordKey` | Keys in that Secret | `host` / `port` / `dbname` / `username` / `password` |
+
 5. **Upgrade**
    ```bash
    helm upgrade pomopensource ./pomopensource \

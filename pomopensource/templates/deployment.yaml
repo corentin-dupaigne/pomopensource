@@ -32,11 +32,22 @@ spec:
             secretKeyRef:
               name: {{ include "pomopensource.appSecretName" . }}
               key: {{ include "pomopensource.appSecretKey" . }}
+        {{- if .Values.externalDatabase.enabled }}
+        {{- $secret := required "externalDatabase.existingSecret is required when externalDatabase.enabled" .Values.externalDatabase.existingSecret }}
+        {{- range $env, $key := dict "DB_HOST" .Values.externalDatabase.hostKey "DB_PORT" .Values.externalDatabase.portKey "DB_DATABASE" .Values.externalDatabase.databaseKey "DB_USERNAME" .Values.externalDatabase.usernameKey "DB_PASSWORD" .Values.externalDatabase.passwordKey }}
+        - name: {{ $env }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $secret }}
+              key: {{ $key }}
+        {{- end }}
+        {{- else }}
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: {{ include "pomopensource.dbSecretName" . }}
               key: {{ include "pomopensource.dbSecretPasswordKey" . }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /
