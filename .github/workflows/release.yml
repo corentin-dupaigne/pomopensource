@@ -1,0 +1,78 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Argo CD renders pomopensource/ straight from this repo's master branch, so a release
+# is a commit to master that points the chart at the new image. No packaged
+# chart is published.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  # Must match image.repository in pomopensource/values.yaml.
+  IMAGE: ghcr.io/corentin-dupaigne/pomopensource/pomopensource
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to commit the new version to master
+      packages: write # to push to GHCR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The tag's own checkout is detached; the version has to land on master.
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Record release in the chart
+        run: |
+          # sed rather than yq: it rewrites single lines in place and keeps the
+          # files' comments. The tag rewrite is scoped to the image: block.
+          sed -i -E \
+            -e "s|^version: .*|version: ${VERSION}|" \
+            -e "s|^appVersion: .*|appVersion: \"${VERSION}\"|" \
+            pomopensource/Chart.yaml
+          sed -i -E "/^image:/,/^[^ ]/ s|^(  tag: ).*|\1\"${VERSION}\"|" \
+            pomopensource/values.yaml
+
+          grep -q "^appVersion: \"${VERSION}\"$" pomopensource/Chart.yaml \
+            || { echo "::error::failed to write version into Chart.yaml"; exit 1; }
+          grep -q "^  tag: \"${VERSION}\"$" pomopensource/values.yaml \
+            || { echo "::error::failed to write image tag into values.yaml"; exit 1; }
+
+          if git diff --quiet -- pomopensource; then
+            echo "chart already at ${VERSION}; nothing to commit"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pomopensource/Chart.yaml pomopensource/values.yaml
+          git commit -m "chore(release): deploy v${VERSION} [skip ci]"
+          git push origin HEAD:master
