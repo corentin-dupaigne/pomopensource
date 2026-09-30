@@ -24,7 +24,8 @@ RUN apk add --no-cache \
         netcat-openbsd \
         libpng-dev \
         libzip-dev \
-    && docker-php-ext-install -j$(nproc) pdo_mysql zip gd opcache \
+        libpq-dev \
+    && docker-php-ext-install -j$(nproc) pdo_mysql pdo_pgsql zip gd opcache \
     && rm -rf /tmp/*
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
