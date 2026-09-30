@@ -2,6 +2,9 @@ replicaCount: 1
 
 image:
   repository: "ghcr.io/corentin-dupaigne/pomopensource/pomopensource"
+  # Managed by .github/workflows/release.yml: pushing a vX.Y.Z tag rewrites
+  # this to X.Y.Z on master, which is what triggers the Argo CD sync.
+  # Do not set this back to a mutable tag.
   tag: "prod"
 
 hostname: "pomopensource.corentindupaigne.com"
