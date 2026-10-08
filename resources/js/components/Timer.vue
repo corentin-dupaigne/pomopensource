@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade hide-when-minimal flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade hide-when-minimal flex flex-wrap justify-center gap-2 sm:gap-4 px-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -512,7 +512,7 @@ export default {
 
 <style scoped>
 .timer-button {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.875rem;
     border: 1px solid white;
     color: white;
     border-radius: 9999px;
@@ -526,10 +526,24 @@ export default {
     outline-offset: 2px;
 }
 
+.timer-button:disabled {
+    cursor: not-allowed;
+}
+
+.timer-button:disabled:not(.active-button) {
+    opacity: 0.4;
+}
+
 @media (hover: hover) {
-    .timer-button:hover {
+    .timer-button:not(:disabled):hover {
         background-color: white;
         color: black;
+    }
+}
+
+@media (min-width: 640px) {
+    .timer-button {
+        padding: 0.5rem 1rem;
     }
 }
 
