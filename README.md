@@ -117,7 +117,9 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
 
 - **Discord Activity:**
   - Run the timer inside a Discord voice channel, signed in with your Discord account
-  - Your Discord status shows whether you're focusing or on a break, with a countdown
+  - Everyone in the call shares one timer: anyone can start, pause or switch it, and each person's focus time is saved to their own account
+  - See who else is in the session, and show it in your Discord status along with whether you're focusing or on a break, with a countdown
+  - Picture-in-picture and grid views show the timer's name and progress
 
 
 ### Built With
@@ -240,6 +242,8 @@ Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/d
    SESSION_PARTITIONED_COOKIE=true
    ```
 6. **Launch it** from a voice channel: open the Activities (rocket) menu and pick your application. Until the app is verified, only you and the users listed under **App Testers** can launch it.
+
+The shared timer of each call is kept for a day after its last change; `php artisan schedule:run` (e.g. from cron) prunes older ones. If the browser blocks the session cookie anyway, the Activity still works on the device and shows **not synced** in its header.
 
 For local development, expose the app over HTTPS with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8080`) and use the tunnel's host as the URL mapping.
 
