@@ -2,6 +2,20 @@ const LOCAL_SESSIONS_KEY = 'localSessions';
 const PROJECT_PREFIX = 'project:rbNiqBehszLPVzMmR_';
 const TASK_PREFIX = 'task:rbNiqBehszLPVzMmR_';
 
+// Dates are stored as local 'YYYY-MM-DD' strings. toISOString() and
+// new Date('YYYY-MM-DD') both use UTC, which shifts days near midnight.
+export function toLocalDateString(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+export function parseLocalDate(str) {
+    const [y, m = 1, d = 1] = String(str).split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
 export function getLocalSessions() {
     try { return JSON.parse(localStorage.getItem(LOCAL_SESSIONS_KEY) || '[]'); }
     catch { return []; }
@@ -22,7 +36,7 @@ export function computeStats(sessions) {
     for (let i = 0; i < 365; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = toLocalDateString(d);
         if (uniqueDates.has(dateStr)) {
             streak++;
         } else if (i > 0) {

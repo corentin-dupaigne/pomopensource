@@ -91,6 +91,7 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
+import { parseLocalDate } from '../composables/localStats.js';
 
 const DAY_INTENSITY_CLASSES = [
     'bg-blue-200/50',
@@ -137,7 +138,7 @@ export default {
             return [...Array(7)].map((_, i) => {
                 const date = new Date(weekStart);
                 date.setDate(date.getDate() + i);
-                const dayData = calendarData.value.find(d => new Date(d.date).toDateString() === date.toDateString()) || {};
+                const dayData = calendarData.value.find(d => parseLocalDate(d.date).toDateString() === date.toDateString()) || {};
                 return {
                     date,
                     hasSession: dayData.has_session || false,
@@ -163,7 +164,7 @@ export default {
 
             for (let i = 1; i <= daysInMonth; i++) {
                 const date = new Date(year, month, i);
-                const dayData = calendarData.value.find(d => new Date(d.date).toDateString() === date.toDateString()) || {};
+                const dayData = calendarData.value.find(d => parseLocalDate(d.date).toDateString() === date.toDateString()) || {};
                 days.push({
                     date,
                     hasSession: dayData.has_session || false,
@@ -176,7 +177,11 @@ export default {
 
         const yearCalendarMonths = computed(() => {
             return [...Array(12)].map((_, i) => {
-                const monthData = calendarData.value.filter(d => new Date(d.date).getMonth() === i);
+                const year = currentDate.value.getFullYear();
+                const monthData = calendarData.value.filter(d => {
+                    const date = parseLocalDate(d.date);
+                    return date.getFullYear() === year && date.getMonth() === i;
+                });
                 return {
                     name: new Date(currentDate.value.getFullYear(), i, 1).toLocaleString('default', { month: 'short' }),
                     minutesFocused: monthData.reduce((sum, day) => sum + day.minutes_focused, 0)

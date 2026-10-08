@@ -88,7 +88,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
-import { addLocalSession } from '../composables/localStats.js';
+import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
 import ProjectSelect from './ProjectSelect.vue';
 
@@ -300,7 +300,7 @@ export default {
           .catch((err) => { console.error('Error ending session', err); });
       } else if (duration > 0) {
         addLocalSession({
-          date: endedAt.toISOString().split('T')[0],
+          date: toLocalDateString(endedAt),
           duration_seconds: duration,
           selectedId: selectedId.value,
         });
