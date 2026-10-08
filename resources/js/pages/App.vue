@@ -208,7 +208,6 @@ export default {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
     opacity: 0;
     transition: opacity 0.8s ease-in-out;
     z-index: 0;
