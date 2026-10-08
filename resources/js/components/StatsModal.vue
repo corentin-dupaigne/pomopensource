@@ -9,10 +9,10 @@
         <div
             ref="modalRef"
             tabindex="-1"
-            class="modal-content w-full max-w-2xl p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
+            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
             @keydown.esc="$emit('close')"
         >
-            <div class="flex justify-between items-center pb-4 border-b border-white/20">
+            <div class="shrink-0 flex justify-between items-center pb-4 border-b border-white/20">
                 <h2 id="stats-title" class="text-2xl font-bold font-oswald text-white">Report</h2>
                 <button
                     @click="$emit('close')"
@@ -22,7 +22,7 @@
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
-            <div class="modal-body pt-6 overflow-y-auto">
+            <div class="modal-body flex-1 min-h-0 pt-6 overflow-y-auto">
                 <div class="flex space-x-2 mb-6" role="tablist" aria-label="Report sections">
                     <button
                         v-for="tab in ['Summary', 'Detail']"
@@ -149,14 +149,13 @@ export default {
 
 <style scoped>
 .modal-content {
-    min-height: 500px;
-    max-height: 90vh;
+    /* Fit the frame, however short: a Discord Activity can be under 400px tall. */
+    min-height: min(500px, calc(100% - 2rem));
+    max-height: min(90vh, calc(100% - 2rem));
     overflow: hidden;
 }
 
 .modal-body {
-    min-height: 380px;
-    max-height: calc(90vh - 5rem);
     overflow-y: auto;
 }
 
