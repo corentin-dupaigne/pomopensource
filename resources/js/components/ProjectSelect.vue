@@ -6,7 +6,7 @@
             @click="toggle"
             @keydown="handleTriggerKeydown"
             type="button"
-            class="w-full flex items-center justify-between px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg text-white hover:bg-white/20 transition duration-200 focus:outline-none focus:ring-1 focus:ring-white"
+            class="w-full flex items-center justify-between px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg text-white hover:bg-white/20 transition duration-200 focus:outline-none focus:ring-1 focus:ring-white"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
             aria-label="Select project or task for this session"

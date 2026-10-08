@@ -17,7 +17,12 @@
             <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" :notSynced="notSynced" />
         </div>
 
-        <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
+        <!-- In the Activity, scroll rather than cut off when the frame is too
+             short; "safe" keeps the top reachable while centred. -->
+        <main
+            class="flex-1 flex flex-col items-center text-white main-content"
+            :class="isDiscordActivity ? '[justify-content:safe_center] overflow-y-auto py-2' : 'justify-center'"
+        >
             <ProjectsAndTasks
                 :projects="accountProjects"
                 :settings="settings"

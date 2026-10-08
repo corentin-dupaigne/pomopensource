@@ -123,6 +123,14 @@ export default {
     justify-content: center;
 }
 
+/* Short frames with a mouse (Discord on desktop) don't need touch sizes. */
+@media (max-height: 500px) and (pointer: fine) {
+    .activity-nav > button {
+        min-width: 2.25rem;
+        min-height: 2.25rem;
+    }
+}
+
 .activity-nav > button.not-synced {
     min-width: 0;
 }

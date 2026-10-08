@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade hide-when-minimal flex flex-wrap justify-center gap-2 sm:gap-4 px-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade hide-when-minimal flex flex-wrap justify-center gap-2 sm:gap-4 px-4 mb-8 short:mb-2" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -44,7 +44,7 @@
 
         <div
             id="timerDisplay"
-            class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
+            class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-2"
             :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
@@ -62,7 +62,7 @@
         </div>
 
         <!-- Tiles often don't take clicks reliably, so they only show the time. -->
-        <div class="hide-when-minimal flex items-center space-x-4 mb-8 short:mb-3">
+        <div class="hide-when-minimal flex items-center space-x-4 mb-8 short:mb-2">
             <button
                 @click="toggleTimer"
                 id="stop-start-button"
@@ -754,6 +754,18 @@ export default {
     padding: 0.5rem 2rem;
     border-radius: 9999px;
     font-weight: 600;
+}
+
+/* Landscape phones and Discord's call view: every pixel of height counts. */
+@media (max-height: 500px) {
+    .timer-button {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .control-button {
+        padding: 0.375rem 1.75rem;
+    }
 }
 
 .reset-button {
