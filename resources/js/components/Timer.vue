@@ -83,7 +83,9 @@
         <ConfirmModal
             :visible="confirmReset"
             title="Reset timer"
-            message="The time spent so far is saved, and the timer starts over."
+            :message="shared
+                ? 'This resets the timer for everyone in the call. Your time so far is saved.'
+                : 'The time spent so far is saved, and the timer starts over.'"
             confirmLabel="Reset"
             @confirm="confirmReset = false; resetTimer()"
             @cancel="confirmReset = false"
@@ -110,11 +112,12 @@
 </template>
 
 <script>
-import { ref, computed, watch, watchEffect, onMounted } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
+import { useSharedTimer } from '../composables/sharedTimer.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
@@ -220,6 +223,10 @@ export default {
 
     let isRestoring = false;
 
+    // In a Discord call, everyone signed in shares one timer: actions go to
+    // the server, and its state drives this one (see applySharedState).
+    const shared = Boolean(isDiscordActivity && discordInstanceId && props.isAuthenticated);
+
     watch(
       () => props.settings?.sound?.settings?.alert_volume,
       (newVolume) => {
@@ -239,7 +246,7 @@ export default {
     watch(
       () => props.settings?.timers?.settings?.[`${currentTimerType.value}_duration`],
       () => {
-        if (!isRestoring && !isRunning.value && time.value === initialTime.value) {
+        if (!shared && !isRestoring && !isRunning.value && time.value === initialTime.value) {
           updateTimerFromSettings();
         }
       }
@@ -297,7 +304,19 @@ export default {
       initialTime.value = time.value;
     };
 
+    // Minutes per timer type from this user's settings, sent with shared
+    // actions so the room uses them.
+    const durationsFromSettings = () => Object.fromEntries(
+      ['pomodoro', 'short_break', 'long_break']
+        .map((type) => [type, parseInt(props.settings?.timers?.settings?.[`${type}_duration`])])
+        .filter(([, minutes]) => minutes > 0)
+    );
+
     const setTimer = (timerType) => {
+      if (shared) {
+        sharedTimer.send('switch', { timer_type: timerType, durations: durationsFromSettings() });
+        return;
+      }
       justFinished.value = null;
       if (sessionStartTime.value) endSession();
       currentTimerType.value = timerType;
@@ -308,9 +327,12 @@ export default {
     };
 
     const toggleTimer = () => {
-      if (isRunning.value) pauseTimer();
-      else {
-        if (isEnabled(playSound.value)) unlockAlarmSound();
+      if (!isRunning.value && isEnabled(playSound.value)) unlockAlarmSound();
+      if (shared) {
+        sharedTimer.send(isRunning.value ? 'pause' : 'start', { durations: durationsFromSettings() });
+      } else if (isRunning.value) {
+        pauseTimer();
+      } else {
         startTimer();
       }
     };
@@ -321,7 +343,9 @@ export default {
 
     const tick = () => {
       time.value = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-      if (time.value <= 0) completeTimer(new Date(endTime));
+      if (time.value > 0) return;
+      if (shared) completeSharedTimer();
+      else completeTimer(new Date(endTime));
     };
 
     const runInterval = () => {
@@ -330,18 +354,20 @@ export default {
       timerInterval.value = setInterval(tick, 250);
     };
 
+    const announceDone = (timerType) => {
+      if (isEnabled(playSound.value)) playAlarmSound();
+      notifyTimerDone(timerType);
+      const { title, body } = doneMessage(timerType);
+      justFinished.value = timerType;
+      announcement.value = `${title} ${body}`;
+    };
+
     const completeTimer = (endedAt = new Date(), { silent = false } = {}) => {
       clearInterval(timerInterval.value);
       isRunning.value = false;
       time.value = 0;
 
-      if (!silent) {
-        if (isEnabled(playSound.value)) playAlarmSound();
-        notifyTimerDone(currentTimerType.value);
-        const { title, body } = doneMessage(currentTimerType.value);
-        justFinished.value = currentTimerType.value;
-        announcement.value = `${title} ${body}`;
-      }
+      if (!silent) announceDone(currentTimerType.value);
       if (sessionStartTime.value) endSession(endedAt);
       localStorage.removeItem(TIMER_KEY);
       const finishedType = currentTimerType.value;
@@ -372,8 +398,12 @@ export default {
     };
 
     // A pomodoro is one focus session, however many times it is paused.
+    // Time left when it started: in a shared timer, someone joining halfway
+    // through only counts the part they were there for.
+    let sessionStartRemaining = null;
     const startSession = () => {
       sessionStartTime.value = new Date();
+      sessionStartRemaining = time.value;
       if (!props.isAuthenticated) return;
 
       const payload = {
@@ -420,6 +450,10 @@ export default {
     };
 
     const resetTimer = () => {
+      if (shared) {
+        sharedTimer.send('reset', { durations: durationsFromSettings() });
+        return;
+      }
       justFinished.value = null;
       clearInterval(timerInterval.value);
       isRunning.value = false;
@@ -436,7 +470,8 @@ export default {
     };
 
     const endSession = (endedAt = new Date()) => {
-      const duration = initialTime.value - time.value;
+      const duration = (sessionStartRemaining ?? initialTime.value) - time.value;
+      sessionStartRemaining = null;
 
       const selected = selectedId.value;
       const saveLocally = () => {
@@ -503,7 +538,9 @@ export default {
     }
 
     // Persist running and paused timers so a reload resumes the same session.
+    // A shared timer lives on the server instead.
     const saveTimerStateToLocalStorage = () => {
+      if (shared) return;
       if (!isRunning.value && !sessionStartTime.value && time.value === initialTime.value) {
         // Untouched timer: only remember a lined-up break across reloads.
         if (currentTimerType.value === 'pomodoro') localStorage.removeItem(TIMER_KEY);
@@ -558,7 +595,85 @@ export default {
       }
     };
 
+    // The shared timer ran out here first: tell everyone now rather than
+    // waiting for the server to notice, and skip the effects when the
+    // server's "complete" comes back.
+    let completedHere = false;
+    const completeSharedTimer = () => {
+      clearInterval(timerInterval.value);
+      isRunning.value = false;
+      time.value = 0;
+      // The server may answer that it is not over yet (clock skew): then this
+      // runs again a moment later, without repeating the effects.
+      if (!completedHere) {
+        completedHere = true;
+        announceDone(currentTimerType.value);
+        if (sessionStartTime.value) endSession(new Date(endTime));
+      }
+      sharedTimer.send('complete');
+    };
+
+    let firstSharedState = true;
+    const applySharedState = (state, { isNew, offset }) => {
+      const joining = firstSharedState;
+      firstSharedState = false;
+
+      if (isNew) {
+        if (state.event === 'complete') {
+          // Someone else's device saw it end first.
+          if (!completedHere && !joining) {
+            time.value = 0;
+            announceDone(state.completed_type);
+            if (sessionStartTime.value) endSession(new Date(state.completed_at - offset));
+          }
+        } else if (!joining && state.status !== 'running') {
+          justFinished.value = null;
+        }
+        completedHere = false;
+      }
+
+      // This user's focus session follows the shared pomodoro: it starts when
+      // the pomodoro runs, and ends when it is reset or switched away.
+      const pomodoroOn = state.timer_type === 'pomodoro' && state.status !== 'idle';
+      if (sessionStartTime.value && !pomodoroOn) endSession();
+
+      clearInterval(timerInterval.value);
+      currentTimerType.value = state.timer_type;
+      initialTime.value = state.duration;
+      if (state.status === 'running') {
+        endTime = state.ends_at - offset;
+        time.value = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        isRunning.value = true;
+        timerInterval.value = setInterval(tick, 250);
+        if (justFinished.value && isNew) justFinished.value = null;
+      } else {
+        time.value = state.remaining;
+        isRunning.value = false;
+      }
+
+      if (state.status === 'running' && state.timer_type === 'pomodoro' && !sessionStartTime.value && !completedHere) {
+        startSession();
+      }
+
+      // Nobody has touched this call's timer yet: line it up with the
+      // durations of whoever opens it first.
+      const durations = durationsFromSettings();
+      if (joining && state.version === 0 && Object.keys(durations).length > 0) {
+        sharedTimer.send('reset', { durations });
+      }
+    };
+
+    const sharedTimer = shared ? useSharedTimer(discordInstanceId, applySharedState) : null;
+    onUnmounted(() => {
+      sharedTimer?.stop();
+      clearInterval(timerInterval.value);
+    });
+
     onMounted(() => {
+      if (shared) {
+        sharedTimer.start();
+        return;
+      }
       isRestoring = true;
       try {
         const storedData = JSON.parse(localStorage.getItem(TIMER_KEY));
@@ -584,6 +699,7 @@ export default {
       resetTimer,
       confirmReset,
       requestReset,
+      shared,
       selectedLabel,
       justFinished,
       announcement,
