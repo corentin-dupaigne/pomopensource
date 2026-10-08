@@ -29,6 +29,16 @@ app:
   existingSecret: ""
   existingSecretKey: APP_KEY
 
+# Discord Activity (Embedded App SDK). Leave clientId empty to disable.
+# When enabled, session cookies are sent as SameSite=None; Secure; Partitioned
+# so they work inside Discord's iframe.
+discord:
+  clientId: ""
+  # Secret holding the application's OAuth2 client secret. Required when
+  # clientId is set.
+  existingSecret: ""
+  existingSecretKey: DISCORD_CLIENT_SECRET
+
 mysql:
   enabled: true
   auth:

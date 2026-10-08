@@ -11,3 +11,10 @@ data:
   DB_PORT: "3306"
   DB_DATABASE: {{ .Values.mysql.auth.database | quote }}
   DB_USERNAME: {{ .Values.mysql.auth.username | quote }}
+{{- if .Values.discord.clientId }}
+  DISCORD_CLIENT_ID: {{ .Values.discord.clientId | quote }}
+  # Discord serves the Activity in a cross-site iframe.
+  SESSION_SAME_SITE: "none"
+  SESSION_SECURE_COOKIE: "true"
+  SESSION_PARTITIONED_COOKIE: "true"
+{{- end }}

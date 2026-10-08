@@ -1,10 +1,10 @@
 <template>
-    <header class="flex justify-between items-center py-6 px-6 md:px-24 mb-16">
+    <header class="flex justify-between items-center py-6 px-6 md:px-24 mb-16 short:py-2 short:mb-2">
         <div class="flex items-center space-x-2">
             <img
                 src="/images/logo.webp"
                 alt="Pomopensource Logo"
-                class="h-16 md:h-20" />
+                class="h-16 md:h-20 short:h-10" />
         </div>
         <nav class="flex space-x-3" aria-label="Main navigation">
             <button
@@ -23,8 +23,9 @@
                 <i class="fas fa-cog w-4 h-4" aria-hidden="true"></i>
                 <span class="hidden md:inline-block text-sm font-inter">settings</span>
             </button>
+            <!-- Inside a Discord Activity, Discord handles sign-in. -->
             <a
-                v-if="!auth"
+                v-if="!auth && !isDiscordActivity"
                 href="/login"
                 aria-label="Sign in or create account"
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -33,7 +34,7 @@
                 <span class="hidden md:inline-block text-sm font-inter">login</span>
             </a>
             <a
-                v-if="auth"
+                v-if="auth && !isDiscordActivity"
                 @click.prevent="logout"
                 aria-label="Sign out"
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition cursor-pointer"
@@ -47,9 +48,11 @@
 
 <script>
 import axios from 'axios';
+import { isDiscordActivity } from '../discord.js';
 
 export default {
     name: 'Header',
+    data: () => ({ isDiscordActivity }),
     emits: ['toggleStats', 'toggleSettings'],
     props: {
         auth: { default: false },

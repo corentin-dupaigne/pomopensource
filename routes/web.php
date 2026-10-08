@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DiscordActivityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -10,6 +11,10 @@ use App\Http\Controllers\FocusedSessionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+
+Route::post('/discord/token', [DiscordActivityController::class, 'token'])
+    ->middleware('throttle:20,1')
+    ->name('discord.token');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

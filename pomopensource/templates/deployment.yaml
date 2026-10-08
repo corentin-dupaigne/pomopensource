@@ -37,6 +37,13 @@ spec:
             secretKeyRef:
               name: {{ include "pomopensource.dbSecretName" . }}
               key: {{ include "pomopensource.dbSecretPasswordKey" . }}
+        {{- if .Values.discord.clientId }}
+        - name: DISCORD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ required "discord.existingSecret is required when discord.clientId is set" .Values.discord.existingSecret }}
+              key: {{ .Values.discord.existingSecretKey | default "DISCORD_CLIENT_SECRET" }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /
