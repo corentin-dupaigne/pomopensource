@@ -14,8 +14,8 @@
         <div class="flex items-baseline justify-between mb-6">
             <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
             <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
-                saved locally ·
-                <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a>
+                saved locally<template v-if="!isDiscordActivity"> ·
+                <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a></template>
             </span>
         </div>
 
@@ -139,6 +139,7 @@ import axios from 'axios';
 import Timer from './Timer.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useToast } from '../composables/toast.js';
+import { isDiscordActivity } from '../discord.js';
 
 const LOCAL_KEY = 'localProjects';
 let localIdCounter = Date.now();
@@ -290,6 +291,7 @@ export default {
             handleConfirm, handleCancel,
             addProject, updateProject, openDeleteProject,
             toggleTasksVisibility, addTask, updateTask, openDeleteTask,
+            isDiscordActivity,
         };
     }
 };
