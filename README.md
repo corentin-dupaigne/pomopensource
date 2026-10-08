@@ -118,6 +118,8 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
 - **Discord Activity:**
   - Run the timer inside a Discord voice channel, signed in with your Discord account
   - Your Discord status shows whether you're focusing or on a break, with a countdown
+  - A progress ring coloured by timer type, which shrinks to the time and a progress bar in picture-in-picture and grid tiles
+  - Press Space to start or pause the timer
 
 
 ### Built With
