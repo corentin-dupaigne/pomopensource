@@ -261,6 +261,28 @@ export default {
     font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
 }
 
+.app.activity.minimal .timer-bar {
+    display: block;
+}
+
+.app.activity.minimal .timer-controls {
+    margin-bottom: 0;
+}
+
+.app.activity.minimal .control-icon-button,
+.app.activity.minimal .control-primary-button {
+    height: 2.5rem;
+}
+
+.app.activity.minimal .control-icon-button {
+    width: 2.5rem;
+}
+
+.app.activity.minimal .control-primary-button {
+    min-width: 7rem;
+    padding: 0 1.25rem;
+}
+
 @media (max-height: 300px) {
     .app.activity .hide-when-minimal {
         display: none;
@@ -274,6 +296,28 @@ export default {
 
     .app.activity .timer-fluid {
         font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
+    }
+
+    .app.activity .timer-bar {
+        display: block;
+    }
+
+    .app.activity .timer-controls {
+        margin-bottom: 0;
+    }
+
+    .app.activity .control-icon-button,
+    .app.activity .control-primary-button {
+        height: 2.5rem;
+    }
+
+    .app.activity .control-icon-button {
+        width: 2.5rem;
+    }
+
+    .app.activity .control-primary-button {
+        min-width: 7rem;
+        padding: 0 1.25rem;
     }
 }
 

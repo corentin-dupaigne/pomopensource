@@ -55,6 +55,9 @@
                     <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[6px]'" aria-hidden="true"></i>
                     <span class="truncate">{{ selectedLabel }}</span>
                 </p>
+                <div v-if="isDiscordActivity" class="timer-bar" aria-hidden="true">
+                    <div class="timer-bar-fill" :style="{ transform: `scaleX(${1 - progress})` }"></div>
+                </div>
 
             </div>
         </div>
@@ -827,7 +830,28 @@ export default {
     }
 }
 
+/* Picture-in-picture and grid tiles have no room for the ring: a bar
+   under the time shows the progress instead (see the global rules below). */
+.timer-bar {
+    display: none;
+    width: 100%;
+    height: 4px;
+    margin-top: 0.5rem;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.2);
+    overflow: hidden;
+}
+
+.timer-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: rgb(var(--accent));
+    transform-origin: left;
+    transition: transform 1s linear;
+}
+
 @media (prefers-reduced-motion: reduce) {
+    .timer-bar-fill,
     .timer-ring-progress {
         transition: none;
     }
