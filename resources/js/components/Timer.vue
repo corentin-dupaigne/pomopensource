@@ -89,6 +89,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession } from '../composables/localStats.js';
+import { isEnabled } from '../composables/settings.js';
 import ProjectSelect from './ProjectSelect.vue';
 
 const requestNotificationPermission = async () => {
@@ -133,7 +134,7 @@ export default {
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
     const initialTime = ref(time.value);
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
-    const playSound = ref(props.settings?.sound?.settings?.play_sound ?? '0');
+    const playSound = ref(props.settings?.sound?.settings?.play_sound ?? 'true');
     const isRunning = ref(false);
     const timerInterval = ref(null);
     const selectedTaskId = ref('');
@@ -224,7 +225,7 @@ export default {
           clearInterval(timerInterval.value);
           isRunning.value = false;
 
-          if (playSound.value === '1') playAlarmSound();
+          if (isEnabled(playSound.value)) playAlarmSound();
           notifyTimerDone(currentTimerType.value);
           if (currentTimerType.value === 'pomodoro') endSession();
         }
