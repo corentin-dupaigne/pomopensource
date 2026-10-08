@@ -117,7 +117,7 @@ export default {
         const calendarData = ref([]);
         const currentStreak = ref(0);
 
-        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
         const currentPeriodLabel = computed(() => {
             if (currentView.value === 'week') {
@@ -155,7 +155,9 @@ export default {
 
             let days = [];
 
-            for (let i = 0; i < firstDay.getDay(); i++) {
+            // Weeks start on Monday, like the server's Carbon::startOfWeek().
+            const leadingBlanks = (firstDay.getDay() + 6) % 7;
+            for (let i = 0; i < leadingBlanks; i++) {
                 days.push({ date: null, hasSession: false, minutesFocused: 0 });
             }
 
