@@ -9,7 +9,7 @@
         <div
             ref="modalRef"
             tabindex="-1"
-            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 short:p-3 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
+            class="modal-content modal-surface flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 short:p-3 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
             @keydown.esc="$emit('close')"
         >
             <!-- Title, tabs and close share one row: short frames need the height. -->

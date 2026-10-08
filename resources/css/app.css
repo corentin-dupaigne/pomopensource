@@ -32,3 +32,11 @@
     outline: 2px solid var(--discord-blurple);
     outline-offset: 2px;
 }
+
+/*
+ * In the Activity the background shows through less: Discord's frame is
+ * small, and white text over a light, blurred image was hard to read.
+ */
+.activity .modal-surface {
+    background-color: rgb(23 23 23 / 0.85);
+}

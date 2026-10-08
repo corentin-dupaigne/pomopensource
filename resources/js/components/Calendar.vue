@@ -96,18 +96,20 @@ import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { parseLocalDate } from '../composables/localStats.js';
 
+// Mid to dark blues: the day and its time are white, and lighter blues
+// left them hard to read.
 const DAY_INTENSITY_CLASSES = [
-    'bg-blue-200/50',
-    'bg-blue-400/50',
-    'bg-blue-600/50',
-    'bg-blue-800/50',
+    'bg-blue-500/40',
+    'bg-blue-500/60',
+    'bg-blue-600/75',
+    'bg-blue-700/90',
 ];
 
 const MONTH_INTENSITY_CLASSES = [
-    'bg-blue-200/50',
-    'bg-blue-400/50',
-    'bg-blue-600/50',
-    'bg-blue-800/50',
+    'bg-blue-500/40',
+    'bg-blue-500/60',
+    'bg-blue-600/75',
+    'bg-blue-700/90',
 ];
 
 export default {
