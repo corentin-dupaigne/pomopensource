@@ -100,7 +100,7 @@ class SettingsSeeder extends Seeder
                 'name' => 'Alert Sound',
                 'type' => 'select',
                 'options' => json_encode($soundOptions),
-                'default_value' => 'Birds',
+                'default_value' => 'Waves',
                 'display_order' => 1,
             ],
             [

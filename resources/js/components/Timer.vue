@@ -305,7 +305,7 @@ export default {
     const playAlarmSound = () => {
       const soundFile = props.settings?.sound?.settings?.alert_sound
         ? `${props.settings.sound.settings.alert_sound.toLowerCase()}.mp3`
-        : 'alarm.mp3';
+        : 'waves.mp3';
 
       audio.value = new Audio(`/sounds/${soundFile}`);
       const volume = Math.min(Math.max(parseInt(alertVolume.value) / 100, 0), 1);
