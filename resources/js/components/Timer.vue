@@ -226,13 +226,12 @@ export default {
     });
 
     // Mirror the timer in the user's Discord status (no-op outside Discord).
-    watch([isRunning, currentTimerType, completedPomodoros], () => {
+    watch([isRunning, currentTimerType], () => {
       setPresence(timerPresence({
         timerType: currentTimerType.value,
         isRunning: isRunning.value,
         isPaused: !isRunning.value && time.value > 0 && time.value !== initialTime.value,
         secondsLeft: time.value,
-        completedToday: completedPomodoros.value,
       }));
     }, { immediate: true });
 

@@ -82,20 +82,16 @@ const PRESENCE_DETAILS = {
 
 // Project and task names are deliberately left out: presence is visible to
 // the user's friends.
-export function timerPresence({ timerType, isRunning, isPaused, secondsLeft, completedToday }) {
-    const today = `${completedToday} pomodoro${completedToday === 1 ? '' : 's'} today`;
-
+export function timerPresence({ timerType, isRunning, isPaused, secondsLeft }) {
     if (isRunning) {
         return {
             type: 0,
             details: PRESENCE_DETAILS[timerType],
-            state: timerType === 'pomodoro' ? `Pomodoro #${completedToday + 1}` : today,
             timestamps: { end: Date.now() + secondsLeft * 1000 },
         };
     }
     return {
         type: 0,
         details: isPaused ? `Paused · ${PRESENCE_DETAILS[timerType]}` : 'Ready to focus',
-        state: today,
     };
 }
