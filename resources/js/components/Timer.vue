@@ -107,6 +107,7 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
+import { setPresence, timerPresence } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -247,6 +248,17 @@ export default {
       const prefix = isRunning.value ? '' : '⏸ ';
       document.title = `${prefix}${formattedTime.value} · ${TIMER_LABELS[currentTimerType.value]} — ${BASE_TITLE}`;
     });
+
+    // Mirror the timer in the user's Discord status (no-op outside Discord).
+    watch([isRunning, currentTimerType, completedPomodoros], () => {
+      setPresence(timerPresence({
+        timerType: currentTimerType.value,
+        isRunning: isRunning.value,
+        isPaused: !isRunning.value && time.value > 0 && time.value !== initialTime.value,
+        secondsLeft: time.value,
+        completedToday: completedPomodoros.value,
+      }));
+    }, { immediate: true });
 
     const selectedLabel = computed(() => {
       if (!selectedId.value) return '';
