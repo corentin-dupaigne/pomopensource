@@ -5,13 +5,21 @@
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
 
+        <!-- Rendered only once the Activity knows who is signed in, so guest
+             data never flashes before the account's. -->
+        <div v-if="!ready" class="main-content flex-1 flex flex-col items-center justify-center gap-4 text-white font-inter" role="status">
+            <i class="fas fa-circle-notch fa-spin text-3xl text-white/70" aria-hidden="true"></i>
+            <p class="text-sm text-white/70">Connecting to Discord…</p>
+        </div>
+
+        <template v-else>
         <div class="header zen-fade hide-when-minimal" :class="{ 'zen-hidden': zenMode }">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" :notSynced="notSynced" />
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
             <ProjectsAndTasks
-                :projects="projects"
+                :projects="accountProjects"
                 :settings="settings"
                 :isAuthenticated="isAuthenticated"
                 :zenMode="zenMode"
@@ -33,12 +41,13 @@
 
         <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
         <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
+        </template>
         <Toast />
     </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import Header from '../components/Header.vue';
 import ProjectsAndTasks from '../components/ProjectsAndTasks.vue';
 import Footer from '../components/Footer.vue';
@@ -46,7 +55,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { startDiscordActivity, isDiscordActivity, discordLayoutMode, isSmallLayout } from '../discord.js';
+import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
 export default {
     components: {
@@ -79,7 +88,12 @@ export default {
 
         const toggleZen = () => { zenMode.value = !zenMode.value; };
         const backgroundImage = ref(localStorage.getItem('userBackground') || '');
-        const isAuthenticated = ref(props.isAuthenticated);
+        // In the Activity, the Discord sign-in decides which account is used.
+        const ready = computed(() => discordSession.status !== 'connecting');
+        const signedInWithDiscord = computed(() => discordSession.status === 'signed-in');
+        const isAuthenticated = computed(() => props.isAuthenticated || signedInWithDiscord.value);
+        const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
+        const notSynced = computed(() => discordSession.status === 'guest' && !props.isAuthenticated);
         const settings = ref({});
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
@@ -169,9 +183,12 @@ export default {
 
         loadSettingsFromStorage();
 
-        onMounted(() => startDiscordActivity(props.discordClientId, { isAuthenticated: props.isAuthenticated }));
-        onMounted(fetchSettings);
-        onMounted(fetchBackgroundImage);
+        // Settings depend on the account, so the Activity loads them after sign-in.
+        const loadAccountData = () => Promise.all([fetchSettings(), fetchBackgroundImage()]);
+        onMounted(async () => {
+            await startDiscordActivity(props.discordClientId);
+            loadAccountData();
+        });
         onMounted(() => document.addEventListener('keydown', handleKeydown));
         onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 
@@ -186,6 +203,9 @@ export default {
             activeLayer,
             settings,
             isAuthenticated,
+            accountProjects,
+            ready,
+            notSynced,
             zenMode,
             toggleZen,
             showProjectsPanel,

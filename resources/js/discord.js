@@ -1,12 +1,13 @@
 import axios from 'axios';
-import { ref } from 'vue';
+import { reactive, ref } from 'vue';
 
 // Discord launches Activities with these query parameters, and the SDK
 // refuses to start without them.
 const params = new URLSearchParams(window.location.search);
 export const isDiscordActivity = ['frame_id', 'instance_id', 'platform'].every((key) => params.has(key));
 
-const RELOAD_FLAG = 'discordSignInReload';
+// Give up waiting for Discord after this long and continue as a guest.
+const SIGN_IN_TIMEOUT_MS = 20000;
 
 let sdk = null;
 
@@ -24,52 +25,80 @@ let authenticated = false;
 let pendingPresence = null;
 
 /**
+ * Sign-in state of the Activity:
+ * - connecting: talking to Discord, the app shows a loading screen
+ * - signed-in: the session cookie works, data is saved to the account
+ * - guest: sign-in failed or the browser dropped the session cookie, so
+ *   data only lives on this device
+ * Outside Discord it stays 'off'.
+ */
+export const discordSession = reactive({
+    status: isDiscordActivity ? 'connecting' : 'off',
+    projects: [],
+});
+
+/**
  * Connect to the Discord client and sign the user in with their Discord
  * account. Outside Discord, or if anything fails, the app keeps working in
  * guest mode.
  */
-export async function startDiscordActivity(clientId, { isAuthenticated }) {
-    if (!isDiscordActivity || !clientId) return;
+export async function startDiscordActivity(clientId) {
+    if (!isDiscordActivity) return;
+    if (!clientId) {
+        discordSession.status = 'guest';
+        return;
+    }
+
+    const timeout = setTimeout(() => {
+        if (discordSession.status !== 'connecting') return;
+        console.warn('Discord sign-in timed out; continuing as a guest.');
+        discordSession.status = 'guest';
+    }, SIGN_IN_TIMEOUT_MS);
 
     try {
-        // Loaded on demand so regular visitors don't download the SDK.
-        const { DiscordSDK } = await import('@discord/embedded-app-sdk');
-        sdk = new DiscordSDK(clientId);
-        await sdk.ready();
-        // Not awaited: sign-in must not wait on it. Some clients only allow
-        // it after authentication, so it is retried below if it failed.
-        let layoutWatched = false;
-        watchLayoutMode().then(() => { layoutWatched = true; }, () => {});
-
-        const { code } = await sdk.commands.authorize({
-            client_id: clientId,
-            response_type: 'code',
-            state: '',
-            prompt: 'none',
-            scope: ['identify', 'rpc.activities.write'],
-        });
-
-        const { data } = await axios.post('/discord/token', { code });
-        await sdk.commands.authenticate({ access_token: data.access_token });
-        authenticated = true;
-        if (!layoutWatched) await watchLayoutMode().catch(() => {});
-
-        // The page was rendered for a guest: reload once to load the account's
-        // projects and settings. The flag stops a loop if the session cookie
-        // does not stick (e.g. the browser blocks third-party cookies).
-        if (data.logged_in && !isAuthenticated) {
-            if (!sessionStorage.getItem(RELOAD_FLAG)) {
-                sessionStorage.setItem(RELOAD_FLAG, '1');
-                window.location.reload();
-                return;
-            }
-            console.warn('Discord sign-in did not persist; continuing as a guest.');
-        }
-        sessionStorage.removeItem(RELOAD_FLAG);
-        flushPresence();
+        discordSession.status = await signIn(clientId);
     } catch (error) {
         console.warn('Discord Activity setup failed; continuing as a guest.', error);
+        discordSession.status = 'guest';
+    } finally {
+        clearTimeout(timeout);
     }
+    flushPresence();
+}
+
+async function signIn(clientId) {
+    // Loaded on demand so regular visitors don't download the SDK.
+    const { DiscordSDK } = await import('@discord/embedded-app-sdk');
+    sdk = new DiscordSDK(clientId);
+    await sdk.ready();
+    // Not awaited: sign-in must not wait on it. Some clients only allow
+    // it after authentication, so it is retried below if it failed.
+    let layoutWatched = false;
+    watchLayoutMode().then(() => { layoutWatched = true; }, () => {});
+
+    const { code } = await sdk.commands.authorize({
+        client_id: clientId,
+        response_type: 'code',
+        state: '',
+        prompt: 'none',
+        scope: ['identify', 'rpc.activities.write'],
+    });
+
+    const { data } = await axios.post('/discord/token', { code });
+    await sdk.commands.authenticate({ access_token: data.access_token });
+    authenticated = true;
+    if (!layoutWatched) await watchLayoutMode().catch(() => {});
+
+    // The response set the session cookie, and the next requests use it
+    // without a page reload. Check it came back: browsers may block cookies
+    // in Discord's iframe, and the user must then know nothing is synced.
+    const { data: session } = await axios.get('/discord/session');
+    if (!session.authenticated) {
+        console.warn('Discord sign-in did not persist; continuing as a guest.');
+        return 'guest';
+    }
+    discordSession.projects = data.projects;
+    return 'signed-in';
 }
 
 const flushPresence = () => {

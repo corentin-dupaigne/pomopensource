@@ -15,6 +15,7 @@ Route::get('/', HomeController::class)->name('home');
 Route::post('/discord/token', [DiscordActivityController::class, 'token'])
     ->middleware('throttle:20,1')
     ->name('discord.token');
+Route::get('/discord/session', [DiscordActivityController::class, 'session'])->name('discord.session');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

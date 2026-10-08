@@ -48,6 +48,25 @@ test('signing in again reuses the account and does not log in twice', function (
         ->and($user->fresh()->name)->toBe('Pomo Fan');
 });
 
+test('the token response includes the account\'s projects', function () {
+    $user = User::create(['discord_id' => '1234', 'name' => 'Pomo Fan']);
+    $user->projects()->create(['name' => 'Thesis']);
+    fakeDiscord();
+
+    $this->postJson('/discord/token', ['code' => 'abc'])
+        ->assertOk()
+        ->assertJsonPath('user.name', 'Pomo Fan')
+        ->assertJsonPath('projects.0.name', 'Thesis')
+        ->assertJsonPath('projects.0.tasks', []);
+});
+
+test('the session endpoint reports whether the sign-in cookie came back', function () {
+    $this->getJson('/discord/session')->assertOk()->assertJson(['authenticated' => false]);
+
+    $user = User::create(['discord_id' => '1234', 'name' => 'Pomo Fan']);
+    $this->actingAs($user)->getJson('/discord/session')->assertJson(['authenticated' => true]);
+});
+
 test('a rejected code returns 401 and signs nobody in', function () {
     Http::fake(['discord.com/api/oauth2/token' => Http::response(['error' => 'invalid_grant'], 400)]);
 

@@ -14,6 +14,8 @@ class DiscordActivityController extends Controller
      * for an access token, and sign the Discord user in.
      *
      * The client returns the access token to the SDK's authenticate command.
+     * The account's projects come back too, so the Activity can show them
+     * without reloading the page.
      */
     public function token(Request $request)
     {
@@ -62,6 +64,18 @@ class DiscordActivityController extends Controller
         return response()->json([
             'access_token' => $accessToken,
             'logged_in' => $loggedIn,
+            'user' => ['name' => $user->name],
+            'projects' => $user->projects()->with('tasks')->get(),
         ]);
+    }
+
+    /**
+     * Whether the session cookie set by token() came back. Inside Discord's
+     * iframe the browser may block it, and the Activity then tells the user
+     * that nothing is saved to their account.
+     */
+    public function session()
+    {
+        return response()->json(['authenticated' => Auth::check()]);
     }
 }

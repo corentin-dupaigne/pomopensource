@@ -9,7 +9,16 @@
                 alt="Pomopensource Logo"
                 :class="isDiscordActivity ? 'h-10' : 'h-16 md:h-20 short:h-10'" />
         </div>
-        <nav class="flex space-x-3" aria-label="Main navigation">
+        <nav class="flex items-center space-x-3" aria-label="Main navigation">
+            <button
+                v-if="notSynced"
+                @click="explainNotSynced"
+                class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-amber-500/25 text-amber-100 text-xs font-inter"
+                aria-label="Not synced: why?"
+            >
+                <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>not synced</span>
+            </button>
             <!-- The Activity has no room for the projects list under the timer. -->
             <button
                 v-if="isDiscordActivity"
@@ -62,6 +71,7 @@
 <script>
 import axios from 'axios';
 import { isDiscordActivity } from '../discord.js';
+import { useToast } from '../composables/toast.js';
 
 export default {
     name: 'Header',
@@ -69,8 +79,13 @@ export default {
     emits: ['toggleStats', 'toggleSettings', 'toggleProjects'],
     props: {
         auth: { default: false },
+        // Inside Discord, when sign-in failed and nothing reaches the account.
+        notSynced: { type: Boolean, default: false },
     },
     methods: {
+        explainNotSynced() {
+            useToast().error('Discord sign-in did not work: your sessions and projects are only saved on this device. Reopen the Activity to try again.');
+        },
         async logout() {
             try {
                 await axios.post('/logout');
