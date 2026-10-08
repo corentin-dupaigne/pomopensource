@@ -1,6 +1,6 @@
 <template>
     <div
-        class="toast-stack fixed z-[100] flex flex-col gap-2 pointer-events-none"
+        class="toast-stack hide-when-minimal fixed z-[100] flex flex-col gap-2 pointer-events-none"
         aria-live="polite"
         aria-atomic="false"
     >

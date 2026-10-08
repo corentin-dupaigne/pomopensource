@@ -264,8 +264,16 @@ export default {
  * and its controls. The height query is a fallback for clients that don't
  * report the layout mode.
  */
+.show-when-minimal {
+    display: none;
+}
+
 .app.activity.minimal .hide-when-minimal {
     display: none;
+}
+
+.app.activity.minimal .show-when-minimal {
+    display: block;
 }
 
 .app.activity.minimal .timer-fluid {
@@ -275,6 +283,10 @@ export default {
 @media (max-height: 300px) {
     .app.activity .hide-when-minimal {
         display: none;
+    }
+
+    .app.activity .show-when-minimal {
+        display: block;
     }
 
     .app.activity .timer-fluid {

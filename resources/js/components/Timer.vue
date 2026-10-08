@@ -37,6 +37,11 @@
             </button>
         </div>
 
+        <!-- Picture-in-picture and grid tiles hide the tabs: name the timer. -->
+        <p class="show-when-minimal text-sm uppercase tracking-widest font-inter font-semibold text-white/80 mb-1">
+            {{ TIMER_LABELS[currentTimerType] }}<template v-if="!isRunning && time !== initialTime && time > 0"> · paused</template>
+        </p>
+
         <div
             id="timerDisplay"
             class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
@@ -48,7 +53,16 @@
         </div>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
-        <div class="flex space-x-4 mb-8 short:mb-3">
+        <div class="show-when-minimal w-40 h-1.5 mt-2 rounded-full bg-white/20 overflow-hidden" aria-hidden="true">
+            <div
+                class="h-full rounded-full transition-[width] duration-300"
+                :class="currentTimerType === 'pomodoro' ? 'bg-white' : 'bg-emerald-400'"
+                :style="{ width: `${progress * 100}%` }"
+            ></div>
+        </div>
+
+        <!-- Tiles often don't take clicks reliably, so they only show the time. -->
+        <div class="hide-when-minimal flex items-center space-x-4 mb-8 short:mb-3">
             <button
                 @click="toggleTimer"
                 id="stop-start-button"
@@ -261,6 +275,8 @@ export default {
         secondsLeft: time.value,
       }));
     }, { immediate: true });
+
+    const progress = computed(() => initialTime.value > 0 ? 1 - time.value / initialTime.value : 0);
 
     const selectedLabel = computed(() => {
       if (!selectedId.value) return '';
@@ -571,6 +587,8 @@ export default {
       selectedLabel,
       justFinished,
       announcement,
+      progress,
+      TIMER_LABELS,
       isDiscordActivity,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
