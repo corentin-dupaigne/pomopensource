@@ -10,6 +10,7 @@
                 :class="isDiscordActivity ? 'h-10' : 'h-16 md:h-20 short:h-10'" />
         </div>
         <nav class="flex items-center space-x-3" aria-label="Main navigation">
+            <DiscordAvatar v-if="discordSession.user" :user="discordSession.user" :size="32" />
             <button
                 v-if="notSynced"
                 @click="explainNotSynced"
@@ -70,12 +71,14 @@
 
 <script>
 import axios from 'axios';
-import { isDiscordActivity } from '../discord.js';
+import { isDiscordActivity, discordSession } from '../discord.js';
+import DiscordAvatar from './DiscordAvatar.vue';
 import { useToast } from '../composables/toast.js';
 
 export default {
     name: 'Header',
-    data: () => ({ isDiscordActivity }),
+    components: { DiscordAvatar },
+    data: () => ({ isDiscordActivity, discordSession }),
     emits: ['toggleStats', 'toggleSettings', 'toggleProjects'],
     props: {
         auth: { default: false },

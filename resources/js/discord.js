@@ -34,8 +34,23 @@ let pendingPresence = null;
  */
 export const discordSession = reactive({
     status: isDiscordActivity ? 'connecting' : 'off',
+    // The Discord user (id, username, global_name, avatar) once authenticated.
+    user: null,
     projects: [],
 });
+
+// Discord's CDN is another origin, which the Activity's proxy only reaches
+// through a URL mapping: /discord-cdn -> cdn.discordapp.com (see README).
+const DISCORD_CDN = '/discord-cdn';
+
+export function discordAvatarUrl(user, size = 64) {
+    if (user.avatar) return `${DISCORD_CDN}/avatars/${user.id}/${user.avatar}.png?size=${size}`;
+    // Default avatars, as Discord picks them for accounts without discriminators.
+    const index = Number((BigInt(user.id) >> 22n) % 6n);
+    return `${DISCORD_CDN}/embed/avatars/${index}.png`;
+}
+
+export const discordDisplayName = (user) => user.global_name || user.username;
 
 /**
  * Connect to the Discord client and sign the user in with their Discord
@@ -85,8 +100,9 @@ async function signIn(clientId) {
     });
 
     const { data } = await axios.post('/discord/token', { code });
-    await sdk.commands.authenticate({ access_token: data.access_token });
+    const auth = await sdk.commands.authenticate({ access_token: data.access_token });
     authenticated = true;
+    discordSession.user = auth.user;
     if (!layoutWatched) await watchLayoutMode().catch(() => {});
 
     // The response set the session cookie, and the next requests use it

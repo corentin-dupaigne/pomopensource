@@ -220,7 +220,7 @@ Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/d
 
 1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
 2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://127.0.0.1` as a redirect URI. Discord requires one, but Activities don't use it.
-3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`. The app loads nothing from other origins, so no other mapping is needed.
+3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`, and the prefix `/discord-cdn` to `cdn.discordapp.com` for avatars. Without the second mapping, avatars fall back to initials.
 4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.
 5. **Configure the deployment.** Store the client secret in a Kubernetes Secret and point the chart at it:
    ```bash
