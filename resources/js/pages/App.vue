@@ -37,6 +37,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
+import { startDiscordActivity } from '../discord.js';
 
 export default {
     components: {
@@ -55,6 +56,10 @@ export default {
         isAuthenticated: {
             type: Boolean,
             default: false
+        },
+        discordClientId: {
+            type: String,
+            default: null
         },
     },
     setup(props) {
@@ -154,6 +159,7 @@ export default {
 
         loadSettingsFromStorage();
 
+        onMounted(() => startDiscordActivity(props.discordClientId, { isAuthenticated: props.isAuthenticated }));
         onMounted(fetchSettings);
         onMounted(fetchBackgroundImage);
         onMounted(() => document.addEventListener('keydown', handleKeydown));
