@@ -13,25 +13,21 @@
     <!-- On the website the list sits under the timer; in a Discord Activity it
          opens as a panel from the header. -->
     <teleport to="body" :disabled="!asPanel">
-    <transition :name="asPanel ? 'sheet' : ''">
     <div
         v-if="!asPanel || panelOpen"
-        :class="asPanel ? 'safe-area fixed inset-0 z-50 bg-black/60' : 'contents'"
+        :class="asPanel ? 'safe-area fixed inset-0 z-50 bg-black/70' : 'contents'"
         :role="asPanel ? 'dialog' : null"
         :aria-modal="asPanel ? 'true' : null"
         :aria-label="asPanel ? 'Projects' : null"
         @keydown.esc="$emit('closePanel')"
     >
-    <!-- In the Activity: a sheet from the right, or from the bottom on a phone. -->
-    <div :class="asPanel ? 'w-full h-full flex items-end sm:items-stretch sm:justify-end sm:p-3' : 'contents'" @click.self="$emit('closePanel')">
+    <div :class="asPanel ? 'w-full h-full flex items-center justify-center p-4' : 'contents'" @click.self="$emit('closePanel')">
     <div
-        class="zen-fade w-full px-6"
-        :class="asPanel
-            ? 'sheet-panel max-h-[85%] sm:max-h-none sm:max-w-md py-6 overflow-y-auto overscroll-contain text-white bg-neutral-900/75 backdrop-blur-xl border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl'
-            : ['max-w-3xl bg-white/10 rounded-lg shadow-lg', localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode }]"
+        class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg"
+        :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode && !asPanel }, asPanel ? 'max-h-full overflow-y-auto backdrop-blur-lg text-white' : '']"
     >
-        <div class="flex items-baseline justify-between" :class="asPanel ? 'mb-5' : 'mb-6'">
-            <h2 class="font-bold font-oswald text-white" :class="asPanel ? 'text-2xl' : 'text-3xl'">Projects</h2>
+        <div class="flex items-baseline justify-between mb-6">
+            <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
             <div class="flex items-baseline gap-4">
                 <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
                     saved locally<template v-if="!isDiscordActivity"> ·
@@ -42,42 +38,15 @@
                     ref="closePanelRef"
                     @click="$emit('closePanel')"
                     aria-label="Close projects"
-                    class="w-8 h-8 grid place-items-center self-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition"
+                    class="text-white hover:text-gray-300 transition"
                 >
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
 
-        <!-- In the panel: name and button share one row. -->
-        <form v-if="asPanel" @submit.prevent="addProject" class="flex gap-2 mb-5">
-            <input
-                v-model="newProjectName"
-                type="text"
-                placeholder="New project"
-                required
-                aria-label="New project name"
-                class="flex-1 min-w-0 py-2.5 px-4 bg-white/10 border border-white/15 rounded-lg text-sm font-inter text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:ring-1 focus:ring-white/60 transition"
-            >
-            <button
-                type="submit"
-                :disabled="isAddingProject"
-                aria-label="Add new project"
-                class="shrink-0 px-4 bg-white text-black rounded-lg text-sm font-inter font-semibold hover:bg-white/85 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-                <i :class="isAddingProject ? 'fas fa-spinner fa-spin' : 'fas fa-plus'" aria-hidden="true"></i>
-                <span>Add</span>
-            </button>
-        </form>
-
-        <div v-if="asPanel && localProjects.length === 0" class="py-10 text-center font-inter">
-            <i class="fas fa-folder-open text-3xl text-white/25 mb-3" aria-hidden="true"></i>
-            <p class="text-sm text-white/70">No projects yet.</p>
-            <p class="text-xs text-white/40 mt-1">Create one, then pick it under the timer to track where your focus goes.</p>
-        </div>
-
         <!-- Add project form -->
-        <form v-if="!asPanel" @submit.prevent="addProject" class="mb-6">
+        <form @submit.prevent="addProject" class="mb-6">
             <div class="mb-4">
                 <input
                     v-model="newProjectName"
@@ -100,15 +69,15 @@
         </form>
 
         <!-- Projects list -->
-        <ul :class="asPanel ? 'space-y-2' : 'space-y-4'" aria-label="Projects">
-            <li v-for="project in localProjects" :key="project.id" class="rounded-lg" :class="asPanel ? 'bg-white/5 border border-white/10 p-3' : 'bg-white/5 p-4'">
+        <ul class="space-y-4" aria-label="Projects">
+            <li v-for="project in localProjects" :key="project.id" class="bg-white/5 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-2 gap-2">
                     <div class="flex-1 group relative flex items-center gap-2 min-w-0">
                         <input
                             v-model="project.name"
                             @blur="updateProject(project)"
                             :aria-label="`Project name: ${project.name}`"
-                            class="flex-1 bg-transparent border-0 border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors min-w-0"
+                            class="flex-1 bg-transparent border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors min-w-0"
                         >
                         <i class="fas fa-pencil-alt text-white/30 text-xs group-hover:text-white/60 transition-colors shrink-0" aria-hidden="true"></i>
                     </div>
@@ -120,8 +89,7 @@
                             :aria-expanded="project.showTasks"
                         >
                             <i :class="project.showTasks ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" class="mr-1" aria-hidden="true"></i>
-                            <template v-if="asPanel">{{ taskCount(project) }}</template>
-                            <template v-else>{{ project.showTasks ? 'Hide tasks' : 'Show tasks' }}</template>
+                            {{ project.showTasks ? 'Hide tasks' : 'Show tasks' }}
                         </button>
                         <button
                             @click="openDeleteProject(project.id, project.name)"
@@ -143,16 +111,16 @@
                                 placeholder="New task name"
                                 required
                                 :aria-label="`New task for ${project.name}`"
-                                class="flex-grow min-w-0 py-2 px-3 bg-white/10 border border-white/30 rounded-l-lg text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200"
+                                class="flex-grow py-2 px-3 bg-white/10 border border-white/30 rounded-l-lg text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200"
                             >
                             <button
                                 type="submit"
                                 :disabled="isAddingTask[project.id]"
                                 :aria-label="`Add task to ${project.name}`"
-                                class="py-2 px-4 bg-white/20 border border-white/30 rounded-r-lg text-sm font-inter font-semibold text-white hover:bg-white/30 transition duration-200 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                                class="py-2 px-4 bg-white/20 border border-white/30 rounded-r-lg text-sm font-inter font-semibold text-white hover:bg-white/30 transition duration-200 disabled:opacity-50 flex items-center gap-1"
                             >
                                 <i v-if="isAddingTask[project.id]" class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                <span>{{ isAddingTask[project.id] ? '' : (asPanel ? 'Add' : 'Add task') }}</span>
+                                <span>{{ isAddingTask[project.id] ? '' : 'Add task' }}</span>
                             </button>
                         </div>
                     </form>
@@ -172,7 +140,7 @@
                                     v-model="task.name"
                                     @blur="updateTask(project, task)"
                                     :aria-label="`Task name: ${task.name}`"
-                                    class="flex-1 bg-transparent text-white font-inter focus:outline-none border-0 border-b border-transparent hover:border-white/30 focus:border-white transition-colors min-w-0"
+                                    class="flex-1 bg-transparent text-white font-inter focus:outline-none border-b border-transparent hover:border-white/30 focus:border-white transition-colors min-w-0"
                                 >
                                 <i class="fas fa-pencil-alt text-white/20 text-xs group-hover:text-white/50 transition-colors shrink-0" aria-hidden="true"></i>
                             </div>
@@ -191,7 +159,6 @@
     </div>
     </div>
     </div>
-    </transition>
     </teleport>
 </template>
 
@@ -307,11 +274,6 @@ export default {
             }
         };
 
-        const taskCount = (project) => {
-            const count = project.tasks?.length ?? 0;
-            return `${count} ${count === 1 ? 'task' : 'tasks'}`;
-        };
-
         const toggleTasksVisibility = (project) => {
             project.showTasks = !project.showTasks;
             persistLocal();
@@ -367,45 +329,9 @@ export default {
             isAddingProject, isAddingTask, confirmDialog,
             handleConfirm, handleCancel,
             addProject, updateProject, openDeleteProject,
-            toggleTasksVisibility, taskCount, addTask, updateTask, openDeleteTask,
+            toggleTasksVisibility, addTask, updateTask, openDeleteTask,
             isDiscordActivity, closePanelRef,
         };
     }
 };
 </script>
-
-<style scoped>
-.sheet-enter-active,
-.sheet-leave-active {
-    transition: opacity 0.25s ease;
-}
-
-.sheet-enter-active .sheet-panel,
-.sheet-leave-active .sheet-panel {
-    transition: transform 0.25s ease;
-}
-
-.sheet-enter-from,
-.sheet-leave-to {
-    opacity: 0;
-}
-
-.sheet-enter-from .sheet-panel,
-.sheet-leave-to .sheet-panel {
-    transform: translateY(2rem);
-}
-
-@media (min-width: 640px) {
-    .sheet-enter-from .sheet-panel,
-    .sheet-leave-to .sheet-panel {
-        transform: translateX(2rem);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .sheet-enter-active .sheet-panel,
-    .sheet-leave-active .sheet-panel {
-        transition: none;
-    }
-}
-</style>

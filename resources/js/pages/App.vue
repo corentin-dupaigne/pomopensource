@@ -6,7 +6,7 @@
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
 
         <div class="header zen-fade hide-when-minimal" :class="{ 'zen-hidden': zenMode }">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" @toggle-zen="toggleZen" :auth="isAuthenticated" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" />
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
@@ -21,10 +21,8 @@
             />
         </main>
 
-        <!-- Zen toggle: bottom-right on the website. The Activity has it in the
-             header, and shows this one top-right only to leave zen mode. -->
+        <!-- Zen toggle: always bottom-right -->
         <button
-            v-if="!isDiscordActivity || zenMode"
             @click="toggleZen"
             :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
             class="zen-toggle hide-when-minimal fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -251,36 +249,8 @@ export default {
     display: none;
 }
 
-.app.activity.minimal .timer-face {
-    width: auto;
-    height: auto;
-    margin-bottom: 0.75rem;
-}
-
 .app.activity.minimal .timer-fluid {
     font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
-}
-
-.app.activity.minimal .timer-bar {
-    display: block;
-}
-
-.app.activity.minimal .timer-controls {
-    margin-bottom: 0;
-}
-
-.app.activity.minimal .control-icon-button,
-.app.activity.minimal .control-primary-button {
-    height: 2.5rem;
-}
-
-.app.activity.minimal .control-icon-button {
-    width: 2.5rem;
-}
-
-.app.activity.minimal .control-primary-button {
-    min-width: 7rem;
-    padding: 0 1.25rem;
 }
 
 @media (max-height: 300px) {
@@ -288,56 +258,14 @@ export default {
         display: none;
     }
 
-    .app.activity .timer-face {
-        width: auto;
-        height: auto;
-        margin-bottom: 0.75rem;
-    }
-
     .app.activity .timer-fluid {
         font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
-    }
-
-    .app.activity .timer-bar {
-        display: block;
-    }
-
-    .app.activity .timer-controls {
-        margin-bottom: 0;
-    }
-
-    .app.activity .control-icon-button,
-    .app.activity .control-primary-button {
-        height: 2.5rem;
-    }
-
-    .app.activity .control-icon-button {
-        width: 2.5rem;
-    }
-
-    .app.activity .control-primary-button {
-        min-width: 7rem;
-        padding: 0 1.25rem;
     }
 }
 
 .zen-toggle {
     bottom: calc(1.5rem + var(--saib));
     right: calc(1.5rem + var(--sair));
-}
-
-.app.activity .zen-toggle {
-    top: calc(0.75rem + var(--sait));
-    bottom: auto;
-    right: calc(1rem + var(--sair));
-    background: rgb(0 0 0 / 0.35);
-    opacity: 0.7;
-    transition: opacity 0.2s, background-color 0.2s;
-}
-
-.app.activity .zen-toggle:hover,
-.app.activity .zen-toggle:focus-visible {
-    opacity: 1;
 }
 
 .main-content {
