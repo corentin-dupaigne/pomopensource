@@ -58,13 +58,22 @@
                 {{ isRunning ? 'pause' : 'start' }}
             </button>
             <button
-                @click="resetTimer"
-                class="text-3xl"
+                @click="requestReset"
+                class="reset-button text-2xl"
                 aria-label="Reset timer"
             >
                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
             </button>
         </div>
+
+        <ConfirmModal
+            :visible="confirmReset"
+            title="Reset timer"
+            message="The time spent so far is saved, and the timer starts over."
+            confirmLabel="Reset"
+            @confirm="confirmReset = false; resetTimer()"
+            @cancel="confirmReset = false"
+        />
 
         <!-- Project / task selector -->
         <ProjectSelect
@@ -94,6 +103,7 @@ import { addLocalSession, toLocalDateString } from '../composables/localStats.js
 import { isEnabled } from '../composables/settings.js';
 import { setPresence, timerPresence, isDiscordActivity } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
+import ConfirmModal from './ConfirmModal.vue';
 
 const BASE_TITLE = 'Pomopensource';
 const TIMER_LABELS = {
@@ -139,7 +149,7 @@ const notifyTimerDone = (timerType) => {
 };
 
 export default {
-  components: { ProjectSelect },
+  components: { ProjectSelect, ConfirmModal },
   props: {
     projects: {
       type: Array,
@@ -382,6 +392,13 @@ export default {
       saveTimerStateToLocalStorage();
     };
 
+    // Reset sits next to start: ask first once there is progress to lose.
+    const confirmReset = ref(false);
+    const requestReset = () => {
+      if (isRunning.value || time.value !== initialTime.value) confirmReset.value = true;
+      else resetTimer();
+    };
+
     const endSession = (endedAt = new Date()) => {
       const duration = initialTime.value - time.value;
 
@@ -499,6 +516,8 @@ export default {
       setTimer,
       toggleTimer,
       resetTimer,
+      confirmReset,
+      requestReset,
       selectedLabel,
       justFinished,
       announcement,
@@ -551,6 +570,15 @@ export default {
     padding: 0.5rem 2rem;
     border-radius: 9999px;
     font-weight: 600;
+}
+
+.reset-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border-radius: 9999px;
 }
 
 .active-button {
