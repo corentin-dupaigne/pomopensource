@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityRoomController;
 use App\Http\Controllers\DiscordActivityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
@@ -46,6 +47,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/user-stats/calendar/{year}/{month}', [UserStatsController::class, 'getCalendarData']);
     Route::get('/user-stats/calendar/{year}/{month}/{day}', [UserStatsController::class, 'getCalendarData']);
     Route::get('/projects-stats', [UserStatsController::class, 'getProjectStats'])->name('projects-stats');
+
+    // The timer shared by everyone in a Discord Activity instance
+    Route::get('/activity-rooms/{instance}', [ActivityRoomController::class, 'show'])
+        ->where('instance', '[A-Za-z0-9_-]{1,100}')
+        ->name('activity-rooms.show');
+    Route::post('/activity-rooms/{instance}', [ActivityRoomController::class, 'update'])
+        ->where('instance', '[A-Za-z0-9_-]{1,100}')
+        ->middleware('throttle:120,1')
+        ->name('activity-rooms.update');
 
 });
 
