@@ -2,7 +2,7 @@
     <div class="flex flex-col items-center">
         <div class="zen-fade flex space-x-4 mb-8" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
-                @click="setTimer('pomodoro', settings.timers.settings.pomodoro_duration)"
+                @click="setTimer('pomodoro')"
                 id="default-timer"
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'pomodoro' }"
@@ -14,7 +14,7 @@
                 pomodoro
             </button>
             <button
-                @click="setTimer('short_break', settings.timers.settings.short_break_duration)"
+                @click="setTimer('short_break')"
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'short_break' }"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
@@ -25,7 +25,7 @@
                 short break
             </button>
             <button
-                @click="setTimer('long_break', settings.timers.settings.long_break_duration)"
+                @click="setTimer('long_break')"
                 class="timer-button"
                 :class="{ 'active-button': currentTimerType === 'long_break' }"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
@@ -159,14 +159,15 @@ export default {
       }
     );
 
+    // Only react to the current timer's duration actually changing, and never
+    // overwrite a timer that has already been started (running or paused).
     watch(
-      () => props.settings.timers.settings,
+      () => props.settings?.timers?.settings?.[`${currentTimerType.value}_duration`],
       () => {
-        if (!isRestoring && !isRunning.value) {
+        if (!isRestoring && !isRunning.value && time.value === initialTime.value) {
           updateTimerFromSettings();
         }
-      },
-      { deep: true }
+      }
     );
 
     watch(time, () => {
