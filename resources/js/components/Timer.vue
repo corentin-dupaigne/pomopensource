@@ -311,11 +311,18 @@ export default {
       }
       if (sessionStartTime.value) endSession(endedAt);
       localStorage.removeItem('pomodoroTimer');
+      const finishedType = currentTimerType.value;
       advanceCycle();
+
+      if (!silent && finishedType !== 'pomodoro'
+          && isEnabled(props.settings?.timers?.settings?.auto_start_pomodoros)) {
+        startTimer();
+        announcement.value = 'Break over! Next pomodoro started.';
+      }
     };
 
     // After a pomodoro, line up a break (long every LONG_BREAK_INTERVAL);
-    // after a break, line up the next pomodoro. The user still presses start.
+    // after a break, line up the next pomodoro.
     const advanceCycle = () => {
       let next = 'pomodoro';
       if (currentTimerType.value === 'pomodoro') {
