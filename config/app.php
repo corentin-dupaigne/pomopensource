@@ -54,6 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Root-relative by default, so assets load from whatever origin served
+    // the page (e.g. Discord's Activity proxy) rather than from the Host
+    // header the app sees.
+    'asset_url' => env('ASSET_URL', '/'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
