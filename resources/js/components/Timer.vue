@@ -145,14 +145,17 @@ const DONE_MESSAGES = {
 };
 const doneMessage = (timerType) => DONE_MESSAGES[timerType === 'pomodoro' ? 'pomodoro' : 'break'];
 
+// Browsers block notifications in cross-origin iframes such as Discord's.
+const canNotify = () => !isDiscordActivity && 'Notification' in window;
+
 const requestNotificationPermission = async () => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if (canNotify() && Notification.permission === 'default') {
         await Notification.requestPermission();
     }
 };
 
 const notifyTimerDone = (timerType) => {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!canNotify() || Notification.permission !== 'granted') return;
     if (document.visibilityState === 'visible') return;
     const { title, body } = doneMessage(timerType);
     new Notification(title, {
@@ -290,7 +293,10 @@ export default {
 
     const toggleTimer = () => {
       if (isRunning.value) pauseTimer();
-      else startTimer();
+      else {
+        if (isEnabled(playSound.value)) unlockAlarmSound();
+        startTimer();
+      }
     };
 
     // Derive the remaining time from a fixed end timestamp: browsers throttle
@@ -438,15 +444,39 @@ export default {
       selectedTaskId.value = '';
     };
 
-    const playAlarmSound = () => {
+    const alarmSoundUrl = () => {
       const soundFile = props.settings?.sound?.settings?.alert_sound
         ? `${props.settings.sound.settings.alert_sound.toLowerCase()}.mp3`
         : 'waves.mp3';
+      return `/sounds/${soundFile}`;
+    };
 
-      audio.value = new Audio(`/sounds/${soundFile}`);
-      const volume = Math.min(Math.max(parseInt(alertVolume.value) / 100, 0), 1);
-      audio.value.volume = volume;
-      audio.value.play().catch((err) => {
+    // Mobile webviews, Discord's included, only let an audio element play
+    // after it has played during a tap. The alarm fires later, from a timer,
+    // so the element is unlocked silently when start is tapped and reused.
+    const unlockAlarmSound = () => {
+      if (!audio.value) audio.value = new Audio();
+      const element = audio.value;
+      element.src = alarmSoundUrl();
+      element.muted = true;
+      element.play()
+        .then(() => {
+          element.pause();
+          element.currentTime = 0;
+          element.muted = false;
+        })
+        .catch(() => { element.muted = false; });
+    };
+
+    const playAlarmSound = () => {
+      if (!audio.value) audio.value = new Audio();
+      const element = audio.value;
+      const url = alarmSoundUrl();
+      if (!element.src.endsWith(url)) element.src = url;
+      element.muted = false;
+      element.currentTime = 0;
+      element.volume = Math.min(Math.max(parseInt(alertVolume.value) / 100, 0), 1);
+      element.play().catch((err) => {
         console.error('Error playing sound:', err);
       });
     };
