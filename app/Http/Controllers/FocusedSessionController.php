@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\FocusedSession;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -39,7 +38,7 @@ class FocusedSessionController extends Controller
     {
         $validated = $request->validate([
             'ended_at' => 'required|date',
-            'time_focused' => 'required|integer',
+            'time_focused' => 'required|integer|min:0',
         ]);
 
         $focusedSession = $request->user()->focusedSessions()
@@ -47,15 +46,11 @@ class FocusedSessionController extends Controller
             ->latest()
             ->firstOrFail();
 
-        $startTime = Carbon::parse($focusedSession->started_at);
-        $endTime = Carbon::parse($validated['ended_at']);
-
-        $minutesFocused = $startTime->diffInMinutes($endTime);
-
+        // A session can span pauses, so count the time actually focused rather
+        // than the wall-clock time between start and end.
         $focusedSession->update([
             'ended_at' => $validated['ended_at'],
-            'time_focused' => $validated['time_focused'],
-            'minute_focused' => $minutesFocused,
+            'minute_focused' => intdiv($validated['time_focused'] + 30, 60),
         ]);
     }
 }
