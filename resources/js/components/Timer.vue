@@ -125,7 +125,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, watchEffect, onMounted } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
@@ -528,6 +528,21 @@ export default {
         completeTimer(new Date(stored.endTime), { silent: true });
       }
     };
+
+    // Space starts and pauses the timer in the Activity, unless the user is
+    // typing, on a button (where Space already clicks it) or in a dialog.
+    const handleShortcut = (e) => {
+      if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest('input, textarea, select, button, a, [contenteditable], [role="listbox"]')) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      e.preventDefault();
+      toggleTimer();
+    };
+
+    if (isDiscordActivity) {
+      onMounted(() => document.addEventListener('keydown', handleShortcut));
+      onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
+    }
 
     onMounted(() => {
       isRestoring = true;
