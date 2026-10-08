@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ref } from 'vue';
 
 // Discord launches Activities with these query parameters, and the SDK
 // refuses to start without them.
@@ -8,6 +9,17 @@ export const isDiscordActivity = ['frame_id', 'instance_id', 'platform'].every((
 const RELOAD_FLAG = 'discordSignInReload';
 
 let sdk = null;
+
+// Discord's layout for the Activity: 0 focused, 1 picture-in-picture,
+// 2 grid tile in the call. The app shows only the timer in the small ones.
+export const discordLayoutMode = ref(0);
+const SMALL_LAYOUTS = [1, 2];
+export const isSmallLayout = (mode) => SMALL_LAYOUTS.includes(mode);
+
+// async so that even a synchronous throw becomes a rejection the caller ignores.
+const watchLayoutMode = async () => sdk.subscribe('ACTIVITY_LAYOUT_MODE_UPDATE', ({ layout_mode }) => {
+    discordLayoutMode.value = layout_mode;
+});
 let authenticated = false;
 let pendingPresence = null;
 
@@ -24,6 +36,10 @@ export async function startDiscordActivity(clientId, { isAuthenticated }) {
         const { DiscordSDK } = await import('@discord/embedded-app-sdk');
         sdk = new DiscordSDK(clientId);
         await sdk.ready();
+        // Not awaited: sign-in must not wait on it. Some clients only allow
+        // it after authentication, so it is retried below if it failed.
+        let layoutWatched = false;
+        watchLayoutMode().then(() => { layoutWatched = true; }, () => {});
 
         const { code } = await sdk.commands.authorize({
             client_id: clientId,
@@ -36,6 +52,7 @@ export async function startDiscordActivity(clientId, { isAuthenticated }) {
         const { data } = await axios.post('/discord/token', { code });
         await sdk.commands.authenticate({ access_token: data.access_token });
         authenticated = true;
+        if (!layoutWatched) await watchLayoutMode().catch(() => {});
 
         // The page was rendered for a guest: reload once to load the account's
         // projects and settings. The flag stops a loop if the session cookie

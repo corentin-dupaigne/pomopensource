@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade hide-when-minimal flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -71,13 +71,13 @@
             v-if="!isRunning && currentTimerType === 'pomodoro'"
             v-model="selectedId"
             :projects="projects"
-            class="mb-4"
+            class="hide-when-minimal mb-4"
         />
 
         <!-- Selected context label while running -->
         <div
             v-if="isRunning && currentTimerType === 'pomodoro' && selectedId"
-            class="mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
+            class="hide-when-minimal mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
             aria-live="polite"
         >
             <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[10px]'" class="text-white/35" aria-hidden="true"></i>
