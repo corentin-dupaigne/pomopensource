@@ -11,6 +11,10 @@ export default {
 
     theme: {
         extend: {
+            fontFamily: {
+                oswald: ['"Oswald Variable"', 'Oswald', 'sans-serif'],
+                inter: ['"Inter Variable"', 'Inter', 'sans-serif'],
+            },
             screens: {
                 // Landscape phones and the Discord Activity picture-in-picture
                 // view: keep the timer and its controls on screen.
