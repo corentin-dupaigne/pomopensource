@@ -1,6 +1,8 @@
 <template>
     <div class="calendar bg-white/10 backdrop-blur-lg rounded-lg p-6 shadow-lg">
-        <div class="flex justify-between items-center mb-4">
+        <!-- One row in short frames: period navigation, then the view tabs. -->
+        <div class="short:flex short:items-center short:gap-4 short:mb-2">
+        <div class="flex justify-between items-center mb-4 short:mb-0 short:flex-1">
             <button
                 @click="previousPeriod"
                 :aria-label="`Previous ${currentView}`"
@@ -18,11 +20,11 @@
             </button>
         </div>
 
-        <div class="flex space-x-2 mb-4" role="tablist" aria-label="Calendar view">
+        <div class="flex space-x-2 mb-4 short:mb-0" role="tablist" aria-label="Calendar view">
             <button
                 v-for="view in ['Week', 'Month', 'Year']"
                 :key="view"
-                :class="['px-4 py-2 rounded-lg text-sm font-semibold transition',
+                :class="['px-4 py-2 short:px-3 short:py-1 rounded-lg text-sm font-semibold transition',
                     currentView === view.toLowerCase() ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
                 @click="changeView(view.toLowerCase())"
                 role="tab"
@@ -30,6 +32,7 @@
             >
                 {{ view }}
             </button>
+        </div>
         </div>
 
         <div v-if="currentView === 'week'" class="grid grid-cols-7 gap-1" id="weekly-view" role="grid" aria-label="Weekly calendar">
@@ -39,7 +42,7 @@
             <div
                 v-for="(day, index) in weekCalendarDays"
                 :key="index"
-                class="day-cell aspect-square flex flex-col items-center justify-center text-sm rounded-lg p-2 transition hover:bg-white/10"
+                class="day-cell aspect-square short:aspect-auto short:h-11 flex flex-col items-center justify-center text-sm rounded-lg p-2 transition hover:bg-white/10"
                 :class="getDayClasses(day)"
                 role="gridcell"
                 :aria-label="day.date ? `${day.date.toLocaleDateString()}: ${day.minutesFocused} minutes focused` : ''"
@@ -58,7 +61,7 @@
             <div
                 v-for="(day, index) in monthCalendarDays"
                 :key="index"
-                class="day-cell aspect-square flex flex-col items-center justify-center text-sm rounded-lg p-2 transition hover:bg-white/10"
+                class="day-cell aspect-square short:aspect-auto short:h-11 flex flex-col items-center justify-center text-sm rounded-lg p-2 transition hover:bg-white/10"
                 :class="getDayClasses(day)"
                 role="gridcell"
                 :aria-label="day.date ? `${day.date.toLocaleDateString()}: ${day.minutesFocused} minutes focused` : ''"
@@ -319,6 +322,28 @@ export default {
 .day-cell {
     position: relative;
     cursor: pointer;
+}
+
+/* Short frames: slim rows, the time beside the day number. */
+@media (max-height: 500px) {
+    .calendar {
+        padding: 0.75rem;
+    }
+
+    .day-cell {
+        flex-direction: row;
+        gap: 0.375rem;
+        padding: 0.25rem;
+    }
+
+    .day-cell span:first-child {
+        font-size: 1rem;
+    }
+
+    .day-cell span:last-child {
+        margin-top: 0;
+        font-size: 0.75rem;
+    }
 }
 
 .day-cell span:first-child {

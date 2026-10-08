@@ -9,25 +9,17 @@
         <div
             ref="modalRef"
             tabindex="-1"
-            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
+            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 short:p-3 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
             @keydown.esc="$emit('close')"
         >
-            <div class="shrink-0 flex justify-between items-center pb-4 border-b border-white/20">
-                <h2 id="stats-title" class="text-2xl font-bold font-oswald text-white">Report</h2>
-                <button
-                    @click="$emit('close')"
-                    aria-label="Close report"
-                    class="text-white hover:text-gray-300 transition duration-150 ease-in-out"
-                >
-                    <i class="fas fa-times" aria-hidden="true"></i>
-                </button>
-            </div>
-            <div class="modal-body flex-1 min-h-0 pt-6 overflow-y-auto">
-                <div class="flex space-x-2 mb-6" role="tablist" aria-label="Report sections">
+            <!-- Title, tabs and close share one row: short frames need the height. -->
+            <div class="shrink-0 flex items-center gap-4 pb-4 short:pb-2 border-b border-white/20">
+                <h2 id="stats-title" class="text-2xl short:text-xl font-bold font-oswald text-white">Report</h2>
+                <div class="flex gap-2 mr-auto" role="tablist" aria-label="Report sections">
                     <button
                         v-for="tab in ['Summary', 'Detail']"
                         :key="tab"
-                        :class="['px-4 py-2 rounded-lg text-sm font-semibold transition',
+                        :class="['px-3 py-1.5 rounded-lg text-sm font-semibold transition',
                                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
                         @click="activeTab = tab"
                         role="tab"
@@ -37,20 +29,29 @@
                         {{ tab }}
                     </button>
                 </div>
+                <button
+                    @click="$emit('close')"
+                    aria-label="Close report"
+                    class="text-white hover:text-gray-300 transition duration-150 ease-in-out"
+                >
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="modal-body flex-1 min-h-0 pt-6 short:pt-3 overflow-y-auto">
 
                 <div
                     v-if="activeTab === 'Summary'"
                     id="tab-panel-summary"
                     role="tabpanel"
                 >
-                    <h3 class="text-lg font-semibold font-oswald text-white mb-4">Activity Summary</h3>
+                    <h3 class="text-lg font-semibold font-oswald text-white mb-4 short:sr-only">Activity Summary</h3>
 
                     <div v-if="isLoadingStats" class="flex justify-center py-8">
                         <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading stats"></i>
                     </div>
-                    <ActivitySummary v-else :stats="stats" />
+                    <ActivitySummary v-else :stats="stats" class="short:mb-3" />
 
-                    <h3 class="text-lg font-semibold font-oswald text-white mt-8 mb-4">Monthly Activity</h3>
+                    <h3 class="text-lg font-semibold font-oswald text-white mt-8 mb-4 short:sr-only">Monthly Activity</h3>
                     <Calendar :localData="localCalendarData" :localStreak="localStreak" />
                 </div>
 
@@ -59,7 +60,7 @@
                     id="tab-panel-detail"
                     role="tabpanel"
                 >
-                    <h3 class="text-lg font-semibold font-oswald text-white mb-4">Detailed Activity</h3>
+                    <h3 class="text-lg font-semibold font-oswald text-white mb-4 short:sr-only">Detailed Activity</h3>
                     <ActivityDetail :localProjectsData="localProjectStats" />
                 </div>
             </div>
