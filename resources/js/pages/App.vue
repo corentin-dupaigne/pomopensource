@@ -6,7 +6,7 @@
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
 
         <div class="header zen-fade hide-when-minimal" :class="{ 'zen-hidden': zenMode }">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" @toggle-zen="toggleZen" :auth="isAuthenticated" />
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
@@ -21,8 +21,10 @@
             />
         </main>
 
-        <!-- Zen toggle: always bottom-right -->
+        <!-- Zen toggle: bottom-right on the website. The Activity has it in the
+             header, and shows this one top-right only to leave zen mode. -->
         <button
+            v-if="!isDiscordActivity || zenMode"
             @click="toggleZen"
             :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
             class="zen-toggle hide-when-minimal fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -278,6 +280,20 @@ export default {
 .zen-toggle {
     bottom: calc(1.5rem + var(--saib));
     right: calc(1.5rem + var(--sair));
+}
+
+.app.activity .zen-toggle {
+    top: calc(0.75rem + var(--sait));
+    bottom: auto;
+    right: calc(1rem + var(--sair));
+    background: rgb(0 0 0 / 0.35);
+    opacity: 0.7;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+.app.activity .zen-toggle:hover,
+.app.activity .zen-toggle:focus-visible {
+    opacity: 1;
 }
 
 .main-content {
