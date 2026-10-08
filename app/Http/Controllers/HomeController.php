@@ -19,6 +19,7 @@ class HomeController extends Controller
         return Inertia::render('App', [
             'projects' => $projects,
             'isAuthenticated' => Auth::check(),
+            'discordClientId' => config('services.discord.client_id'),
         ]);
     }
 }
