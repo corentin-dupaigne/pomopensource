@@ -622,7 +622,7 @@ export default {
  * the ring takes whatever room the controls leave, and the time scales with it.
  */
 .activity-timer {
-    --ring: clamp(11rem, min(80vw, calc(100dvh - 20rem)), 24rem);
+    --ring: clamp(8rem, min(80vw, calc(100dvh - 20rem)), 24rem);
     /* Each timer type has its colour, so a glance at a small tile is enough. */
     --accent: 255 112 102;
 }
