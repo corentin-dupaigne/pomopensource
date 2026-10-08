@@ -40,7 +40,7 @@
         <div
             id="timerDisplay"
             class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
-            :class="{ 'timer-done': justFinished }"
+            :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
         >
@@ -92,7 +92,7 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
-import { setPresence, timerPresence } from '../discord.js';
+import { setPresence, timerPresence, isDiscordActivity } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -502,6 +502,7 @@ export default {
       selectedLabel,
       justFinished,
       announcement,
+      isDiscordActivity,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
@@ -537,6 +538,12 @@ export default {
 .active-button {
     background-color: white;
     color: black;
+}
+
+/* Inside Discord the frame can be anything from a phone to a large window. */
+.timer-fluid {
+    font-size: clamp(3rem, min(26vw, 24vh), 8rem);
+    line-height: 1;
 }
 
 .timer-done {

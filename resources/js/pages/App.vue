@@ -1,15 +1,24 @@
 <template>
-    <div class="app safe-area min-h-screen flex flex-col">
+    <!-- Inside Discord the app fills the frame exactly: no page scroll. -->
+    <div class="app safe-area flex flex-col" :class="isDiscordActivity ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'">
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
 
         <div class="header zen-fade" :class="{ 'zen-hidden': zenMode }">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" />
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
-            <ProjectsAndTasks :projects="projects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
+            <ProjectsAndTasks
+                :projects="projects"
+                :settings="settings"
+                :isAuthenticated="isAuthenticated"
+                :zenMode="zenMode"
+                :asPanel="isDiscordActivity"
+                :panelOpen="showProjectsPanel"
+                @closePanel="showProjectsPanel = false"
+            />
         </main>
 
         <!-- Zen toggle: always bottom-right -->
@@ -37,7 +46,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { startDiscordActivity } from '../discord.js';
+import { startDiscordActivity, isDiscordActivity } from '../discord.js';
 
 export default {
     components: {
@@ -65,6 +74,7 @@ export default {
     setup(props) {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
+        const showProjectsPanel = ref(false);
         const zenMode = ref(false);
 
         const toggleZen = () => { zenMode.value = !zenMode.value; };
@@ -178,6 +188,8 @@ export default {
             isAuthenticated,
             zenMode,
             toggleZen,
+            showProjectsPanel,
+            isDiscordActivity,
         };
     },
 };

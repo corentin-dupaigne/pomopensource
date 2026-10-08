@@ -1,12 +1,25 @@
 <template>
-    <header class="flex justify-between items-center py-6 px-6 md:px-24 mb-16 short:py-2 short:mb-2">
+    <header
+        class="flex justify-between items-center px-6 md:px-24"
+        :class="isDiscordActivity ? 'py-3 mb-2' : 'py-6 mb-16 short:py-2 short:mb-2'"
+    >
         <div class="flex items-center space-x-2">
             <img
                 src="/images/logo.webp"
                 alt="Pomopensource Logo"
-                class="h-16 md:h-20 short:h-10" />
+                :class="isDiscordActivity ? 'h-10' : 'h-16 md:h-20 short:h-10'" />
         </div>
         <nav class="flex space-x-3" aria-label="Main navigation">
+            <!-- The Activity has no room for the projects list under the timer. -->
+            <button
+                v-if="isDiscordActivity"
+                @click="$emit('toggleProjects')"
+                aria-label="Open projects"
+                class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            >
+                <i class="fas fa-folder w-4 h-4" aria-hidden="true"></i>
+                <span class="hidden md:inline-block text-sm font-inter">projects</span>
+            </button>
             <button
                 @click="$emit('toggleStats')"
                 aria-label="Open statistics"
@@ -53,7 +66,7 @@ import { isDiscordActivity } from '../discord.js';
 export default {
     name: 'Header',
     data: () => ({ isDiscordActivity }),
-    emits: ['toggleStats', 'toggleSettings'],
+    emits: ['toggleStats', 'toggleSettings', 'toggleProjects'],
     props: {
         auth: { default: false },
     },

@@ -10,13 +10,39 @@
 
     <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
 
-    <div class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg" :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode }]">
+    <!-- On the website the list sits under the timer; in a Discord Activity it
+         opens as a panel from the header. -->
+    <teleport to="body" :disabled="!asPanel">
+    <div
+        v-if="!asPanel || panelOpen"
+        :class="asPanel ? 'safe-area fixed inset-0 z-50 bg-black/70' : 'contents'"
+        :role="asPanel ? 'dialog' : null"
+        :aria-modal="asPanel ? 'true' : null"
+        :aria-label="asPanel ? 'Projects' : null"
+        @keydown.esc="$emit('closePanel')"
+    >
+    <div :class="asPanel ? 'w-full h-full flex items-center justify-center p-4' : 'contents'" @click.self="$emit('closePanel')">
+    <div
+        class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg"
+        :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode && !asPanel }, asPanel ? 'max-h-full overflow-y-auto backdrop-blur-lg text-white' : '']"
+    >
         <div class="flex items-baseline justify-between mb-6">
             <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
-            <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
-                saved locally<template v-if="!isDiscordActivity"> ·
-                <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a></template>
-            </span>
+            <div class="flex items-baseline gap-4">
+                <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
+                    saved locally<template v-if="!isDiscordActivity"> ·
+                    <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a></template>
+                </span>
+                <button
+                    v-if="asPanel"
+                    ref="closePanelRef"
+                    @click="$emit('closePanel')"
+                    aria-label="Close projects"
+                    class="text-white hover:text-gray-300 transition"
+                >
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
         </div>
 
         <!-- Add project form -->
@@ -131,10 +157,13 @@
             </li>
         </ul>
     </div>
+    </div>
+    </div>
+    </teleport>
 </template>
 
 <script>
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch, nextTick } from 'vue';
 import axios from 'axios';
 import Timer from './Timer.vue';
 import ConfirmModal from './ConfirmModal.vue';
@@ -151,8 +180,11 @@ export default {
         projects: { type: Array, required: true },
         settings: { type: Object },
         isAuthenticated: { type: [Number, Boolean], default: false },
-        zenMode: { type: Boolean, default: false }
+        zenMode: { type: Boolean, default: false },
+        asPanel: { type: Boolean, default: false },
+        panelOpen: { type: Boolean, default: false },
     },
+    emits: ['closePanel'],
     setup(props) {
         const { success, error } = useToast();
 
@@ -170,6 +202,13 @@ export default {
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(localProjects.value));
             }
         };
+
+        const closePanelRef = ref(null);
+        watch(() => props.panelOpen, async (open) => {
+            if (!open) return;
+            await nextTick();
+            closePanelRef.value?.focus();
+        });
 
         const newProjectName = ref('');
         const newTaskNames = reactive({});
@@ -291,7 +330,7 @@ export default {
             handleConfirm, handleCancel,
             addProject, updateProject, openDeleteProject,
             toggleTasksVisibility, addTask, updateTask, openDeleteTask,
-            isDiscordActivity,
+            isDiscordActivity, closePanelRef,
         };
     }
 };
