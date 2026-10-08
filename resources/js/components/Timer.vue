@@ -98,13 +98,16 @@
             </button>
         </div>
 
-        <!-- Project / task selector -->
-        <ProjectSelect
-            v-if="!isRunning && currentTimerType === 'pomodoro'"
-            v-model="selectedId"
-            :projects="projects"
-            class="hide-when-minimal mb-4"
-        />
+        <!-- Project / task selector. The Activity keeps its room while it is
+             hidden, so the timer doesn't jump when a session starts. -->
+        <div :class="isDiscordActivity ? 'session-slot hide-when-minimal' : 'contents'">
+            <ProjectSelect
+                v-if="!isRunning && currentTimerType === 'pomodoro'"
+                v-model="selectedId"
+                :projects="projects"
+                class="hide-when-minimal mb-4"
+            />
+        </div>
 
         <!-- Selected context label while running -->
         <div
@@ -758,6 +761,10 @@ export default {
 
 .timer-paused {
     opacity: 0.6;
+}
+
+.session-slot {
+    min-height: 4rem;
 }
 
 .timer-controls {
