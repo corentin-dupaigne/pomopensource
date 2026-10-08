@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-4 short:mb-2" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -35,21 +35,6 @@
             >
                 long break
             </button>
-        </div>
-
-        <div
-            class="zen-fade flex items-center gap-2 mb-4 h-3 short:mb-1"
-            :class="{ 'zen-hidden': zenMode }"
-            role="img"
-            :aria-label="`${completedPomodoros} pomodoro${completedPomodoros === 1 ? '' : 's'} completed today`"
-            :title="`${completedPomodoros} completed today · long break every ${LONG_BREAK_INTERVAL}`"
-        >
-            <span
-                v-for="n in LONG_BREAK_INTERVAL"
-                :key="n"
-                class="w-2.5 h-2.5 rounded-full border border-white/70 transition-colors"
-                :class="n <= cycleProgress ? 'bg-white' : 'bg-transparent'"
-            ></span>
         </div>
 
         <div
@@ -189,15 +174,6 @@ export default {
 
     const completedPomodoros = ref(loadCompletedToday());
 
-    // Dots filled in the current cycle; the long break shows a full cycle.
-    const cycleProgress = computed(() => {
-      const inCycle = completedPomodoros.value % LONG_BREAK_INTERVAL;
-      if (inCycle === 0 && completedPomodoros.value > 0 && currentTimerType.value === 'long_break') {
-        return LONG_BREAK_INTERVAL;
-      }
-      return inCycle;
-    });
-
     const justFinished = ref(null); // timer type that just completed, until the next start
     const announcement = ref('');
 
@@ -250,13 +226,12 @@ export default {
     });
 
     // Mirror the timer in the user's Discord status (no-op outside Discord).
-    watch([isRunning, currentTimerType, completedPomodoros], () => {
+    watch([isRunning, currentTimerType], () => {
       setPresence(timerPresence({
         timerType: currentTimerType.value,
         isRunning: isRunning.value,
         isPaused: !isRunning.value && time.value > 0 && time.value !== initialTime.value,
         secondsLeft: time.value,
-        completedToday: completedPomodoros.value,
       }));
     }, { immediate: true });
 
@@ -527,9 +502,6 @@ export default {
       selectedLabel,
       justFinished,
       announcement,
-      completedPomodoros,
-      cycleProgress,
-      LONG_BREAK_INTERVAL,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
