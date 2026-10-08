@@ -1,6 +1,6 @@
 <template>
     <span
-        class="inline-flex items-center justify-center shrink-0 rounded-full overflow-hidden bg-[#5865F2] text-white font-inter font-semibold select-none"
+        class="inline-flex items-center justify-center shrink-0 rounded-full overflow-hidden bg-[var(--discord-blurple)] text-white font-inter font-semibold select-none"
         :style="{ width: `${size}px`, height: `${size}px`, fontSize: `${size * 0.42}px` }"
         :title="name"
     >

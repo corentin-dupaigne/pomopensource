@@ -56,7 +56,7 @@
         <div class="show-when-minimal w-40 h-1.5 mt-2 rounded-full bg-white/20 overflow-hidden" aria-hidden="true">
             <div
                 class="h-full rounded-full transition-[width] duration-300"
-                :class="currentTimerType === 'pomodoro' ? 'bg-white' : 'bg-emerald-400'"
+                :class="currentTimerType === 'pomodoro' ? 'bg-[var(--discord-blurple)]' : 'bg-emerald-400'"
                 :style="{ width: `${progress * 100}%` }"
             ></div>
         </div>
@@ -66,7 +66,7 @@
             <button
                 @click="toggleTimer"
                 id="stop-start-button"
-                class="control-button bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white"
+                class="control-button activity-primary bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white"
                 :aria-label="isRunning ? 'Pause timer' : 'Start timer'"
             >
                 {{ isRunning ? 'pause' : 'start' }}
