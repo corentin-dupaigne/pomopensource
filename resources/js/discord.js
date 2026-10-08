@@ -7,6 +7,9 @@ import { useToast } from './composables/toast.js';
 const params = new URLSearchParams(window.location.search);
 export const isDiscordActivity = ['frame_id', 'instance_id', 'platform'].every((key) => params.has(key));
 
+// Identifies this run of the Activity, shared by everyone in the call.
+export const discordInstanceId = isDiscordActivity ? params.get('instance_id') : null;
+
 // Give up waiting for Discord after this long and continue as a guest.
 const SIGN_IN_TIMEOUT_MS = 20000;
 

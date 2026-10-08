@@ -101,7 +101,7 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
-import { setPresence, timerPresence, isDiscordActivity } from '../discord.js';
+import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
 
@@ -111,6 +111,20 @@ const TIMER_LABELS = {
     short_break: 'Short break',
     long_break: 'Long break',
 };
+
+// In the Activity, one saved timer per call: joining another call must not
+// resume the previous call's timer. Timers of earlier calls are dropped.
+const TIMER_KEY_PREFIX = 'pomodoroTimer';
+const TIMER_KEY = discordInstanceId ? `${TIMER_KEY_PREFIX}:${discordInstanceId}` : TIMER_KEY_PREFIX;
+if (discordInstanceId) {
+    try {
+        Object.keys(localStorage)
+            .filter((key) => key.startsWith(`${TIMER_KEY_PREFIX}:`) && key !== TIMER_KEY)
+            .forEach((key) => localStorage.removeItem(key));
+    } catch {
+        // Storage unavailable: nothing to clean up.
+    }
+}
 
 const LONG_BREAK_INTERVAL = 4;
 const CYCLE_KEY = 'pomodoroCycle';
@@ -307,7 +321,7 @@ export default {
         announcement.value = `${title} ${body}`;
       }
       if (sessionStartTime.value) endSession(endedAt);
-      localStorage.removeItem('pomodoroTimer');
+      localStorage.removeItem(TIMER_KEY);
       const finishedType = currentTimerType.value;
       advanceCycle();
 
@@ -446,12 +460,12 @@ export default {
     const saveTimerStateToLocalStorage = () => {
       if (!isRunning.value && !sessionStartTime.value && time.value === initialTime.value) {
         // Untouched timer: only remember a lined-up break across reloads.
-        if (currentTimerType.value === 'pomodoro') localStorage.removeItem('pomodoroTimer');
-        else localStorage.setItem('pomodoroTimer', JSON.stringify({ currentTimerType: currentTimerType.value }));
+        if (currentTimerType.value === 'pomodoro') localStorage.removeItem(TIMER_KEY);
+        else localStorage.setItem(TIMER_KEY, JSON.stringify({ currentTimerType: currentTimerType.value }));
         return;
       }
       localStorage.setItem(
-        'pomodoroTimer',
+        TIMER_KEY,
         JSON.stringify({
           isRunning: isRunning.value,
           endTime: isRunning.value ? endTime : null,
@@ -501,11 +515,11 @@ export default {
     onMounted(() => {
       isRestoring = true;
       try {
-        const storedData = JSON.parse(localStorage.getItem('pomodoroTimer'));
+        const storedData = JSON.parse(localStorage.getItem(TIMER_KEY));
         if (storedData) restoreTimerState(storedData);
         else updateTimerFromSettings();
       } catch {
-        localStorage.removeItem('pomodoroTimer');
+        localStorage.removeItem(TIMER_KEY);
         updateTimerFromSettings();
       }
       isRestoring = false;
