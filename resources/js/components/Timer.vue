@@ -40,11 +40,13 @@
         <div
             id="timerDisplay"
             class="text-9xl font-oswald font-bold mb-8"
+            :class="{ 'timer-done': justFinished }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
         >
             {{ formattedTime }}
         </div>
+        <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
         <div class="flex space-x-4 mb-8 cent">
             <button
@@ -99,6 +101,12 @@ const TIMER_LABELS = {
     long_break: 'Long break',
 };
 
+const DONE_MESSAGES = {
+    pomodoro: { title: 'Pomodoro complete!', body: 'Time to take a break.' },
+    break: { title: 'Break over!', body: 'Ready to focus?' },
+};
+const doneMessage = (timerType) => DONE_MESSAGES[timerType === 'pomodoro' ? 'pomodoro' : 'break'];
+
 const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission();
@@ -108,9 +116,9 @@ const requestNotificationPermission = async () => {
 const notifyTimerDone = (timerType) => {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     if (document.visibilityState === 'visible') return;
-    const isPomodoro = timerType === 'pomodoro';
-    new Notification(isPomodoro ? 'Pomodoro complete!' : 'Break over!', {
-        body: isPomodoro ? 'Time to take a break.' : 'Ready to focus?',
+    const { title, body } = doneMessage(timerType);
+    new Notification(title, {
+        body,
         icon: '/images/logo.webp',
         silent: false,
     });
@@ -150,6 +158,9 @@ export default {
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
 
+    const justFinished = ref(null); // timer type that just completed, until the next start
+    const announcement = ref('');
+
     let isRestoring = false;
 
     watch(
@@ -185,6 +196,10 @@ export default {
 
     // Show the countdown in the tab title once a timer has been started.
     watchEffect(() => {
+      if (justFinished.value) {
+        document.title = `✓ ${doneMessage(justFinished.value).title} — ${BASE_TITLE}`;
+        return;
+      }
       const started = isRunning.value || time.value !== initialTime.value;
       if (!started) {
         document.title = BASE_TITLE;
@@ -214,6 +229,7 @@ export default {
     };
 
     const setTimer = (timerType) => {
+      justFinished.value = null;
       if (sessionStartTime.value) endSession();
       currentTimerType.value = timerType;
       updateTimerFromSettings();
@@ -250,6 +266,9 @@ export default {
       if (!silent) {
         if (isEnabled(playSound.value)) playAlarmSound();
         notifyTimerDone(currentTimerType.value);
+        const { title, body } = doneMessage(currentTimerType.value);
+        justFinished.value = currentTimerType.value;
+        announcement.value = `${title} ${body}`;
       }
       if (sessionStartTime.value) endSession(endedAt);
       localStorage.removeItem('pomodoroTimer');
@@ -288,6 +307,8 @@ export default {
 
     const startTimer = () => {
       if (time.value <= 0) return;
+      justFinished.value = null;
+      announcement.value = '';
       if (currentTimerType.value === 'pomodoro' && !sessionStartTime.value) startSession();
       isRunning.value = true;
       requestNotificationPermission();
@@ -302,6 +323,7 @@ export default {
     };
 
     const resetTimer = () => {
+      justFinished.value = null;
       clearInterval(timerInterval.value);
       isRunning.value = false;
       if (sessionStartTime.value) endSession();
@@ -426,6 +448,8 @@ export default {
       toggleTimer,
       resetTimer,
       selectedLabel,
+      justFinished,
+      announcement,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
@@ -461,5 +485,25 @@ export default {
 .active-button {
     background-color: white;
     color: black;
+}
+
+.timer-done {
+    animation: timer-done-pulse 1s ease-in-out 4;
+}
+
+@keyframes timer-done-pulse {
+    50% {
+        opacity: 0.35;
+        transform: scale(1.04);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .timer-done {
+        animation: none;
+        text-decoration: underline;
+        text-decoration-thickness: 4px;
+        text-underline-offset: 12px;
+    }
 }
 </style>
