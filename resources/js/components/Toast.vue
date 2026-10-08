@@ -1,6 +1,7 @@
 <template>
     <div
-        class="toast-stack fixed z-[100] flex flex-col gap-2 pointer-events-none"
+        class="toast-stack hide-when-minimal fixed z-[100] flex flex-col gap-2 pointer-events-none"
+        :class="{ 'toast-stack-centered': isDiscordActivity }"
         aria-live="polite"
         aria-atomic="false"
     >
@@ -25,11 +26,12 @@
 
 <script>
 import { useToast } from '../composables/toast.js';
+import { isDiscordActivity } from '../discord.js';
 
 export default {
     setup() {
         const { toasts } = useToast();
-        return { toasts };
+        return { toasts, isDiscordActivity };
     }
 };
 </script>
@@ -38,6 +40,14 @@ export default {
 .toast-stack {
     top: calc(1rem + var(--sait));
     right: calc(1rem + var(--sair));
+}
+
+/* In the Activity the top-right corner holds the header buttons. */
+.toast-stack-centered {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
 }
 
 .toast-enter-active,

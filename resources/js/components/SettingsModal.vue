@@ -9,10 +9,10 @@
         <div
             ref="modalRef"
             tabindex="-1"
-            class="modal-content w-full max-w-2xl p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
+            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
             @keydown.esc="$emit('close')"
         >
-            <div class="flex justify-between items-center pb-4 border-b border-white/20">
+            <div class="shrink-0 flex justify-between items-center pb-4 border-b border-white/20">
                 <div class="flex items-center gap-3">
                     <h2 id="settings-title" class="text-2xl font-bold font-oswald text-white">Settings</h2>
                     <i v-if="isSaving" class="fas fa-circle-notch fa-spin text-white/40 text-sm" aria-label="Saving..."></i>
@@ -26,9 +26,9 @@
                 </button>
             </div>
 
-            <div class="flex flex-col sm:flex-row mb-6 mt-6 gap-4">
+            <div class="flex-1 min-h-0 flex flex-col sm:flex-row mt-6 gap-4">
                 <!-- Category sidebar — horizontal scroll on mobile, vertical on sm+ -->
-                <div class="w-full sm:w-1/4 sm:pt-6">
+                <div class="shrink-0 w-full sm:w-1/4 sm:pt-6">
                     <div class="flex sm:flex-col flex-row gap-2 overflow-x-auto pb-2 sm:pb-0">
                         <button
                             v-for="category in settingsCategories"
@@ -44,7 +44,7 @@
                 </div>
 
                 <!-- Settings content -->
-                <div class="modal-body w-full sm:w-3/4 sm:pl-4">
+                <div class="modal-body flex-1 min-h-0 w-full sm:w-3/4 sm:pl-4 pb-2">
                     <div v-if="activeCategory">
                         <div v-for="setting in getActiveCategorySettings()" :key="setting.id" class="mb-6">
 
@@ -199,12 +199,12 @@ export default {
 
 <style scoped>
 .modal-content {
-    max-height: 90vh;
+    /* Fit the frame, however short: a Discord Activity can be under 400px tall. */
+    max-height: min(90vh, calc(100% - 2rem));
     overflow: hidden;
 }
 
 .modal-body {
-    max-height: calc(90vh - 10rem);
     overflow-y: auto;
 }
 

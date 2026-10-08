@@ -117,7 +117,9 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
 
 - **Discord Activity:**
   - Run the timer inside a Discord voice channel, signed in with your Discord account
-  - Your Discord status shows whether you're focusing or on a break, with a countdown
+  - Everyone in the call shares one timer: anyone can start, pause or switch it, and each person's focus time is saved to their own account
+  - See who else is in the session, and show it in your Discord status along with whether you're focusing or on a break, with a countdown
+  - Picture-in-picture and grid views show the timer's name and progress
 
 
 ### Built With
@@ -220,7 +222,7 @@ Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/d
 
 1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
 2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://127.0.0.1` as a redirect URI. Discord requires one, but Activities don't use it.
-3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`. The app loads nothing from other origins, so no other mapping is needed.
+3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`, and the prefix `/discord-cdn` to `cdn.discordapp.com` for avatars. Without the second mapping, avatars fall back to initials.
 4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.
 5. **Configure the deployment.** Store the client secret in a Kubernetes Secret and point the chart at it:
    ```bash
@@ -240,6 +242,8 @@ Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/d
    SESSION_PARTITIONED_COOKIE=true
    ```
 6. **Launch it** from a voice channel: open the Activities (rocket) menu and pick your application. Until the app is verified, only you and the users listed under **App Testers** can launch it.
+
+The shared timer of each call is kept for a day after its last change; `php artisan schedule:run` (e.g. from cron) prunes older ones. If the browser blocks the session cookie anyway, the Activity still works on the device and shows **not synced** in its header.
 
 For local development, expose the app over HTTPS with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8080`) and use the tunnel's host as the URL mapping.
 

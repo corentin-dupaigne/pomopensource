@@ -1,5 +1,5 @@
 <template>
-    <div class="relative w-72" ref="containerRef">
+    <div class="relative w-72 max-w-[calc(100vw-2rem)]" ref="containerRef">
         <!-- Trigger -->
         <button
             ref="triggerRef"
@@ -27,7 +27,9 @@
             <div
                 v-if="isOpen"
                 ref="listboxRef"
-                class="absolute top-full left-0 right-0 mt-2 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 max-h-64 overflow-y-auto"
+                class="absolute left-0 right-0 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
+                :class="openUpward ? 'bottom-full mb-2' : 'top-full mt-2'"
+                :style="{ maxHeight: `${maxHeight}px` }"
                 role="listbox"
                 aria-label="Select project or task"
                 @keydown="handleListKeydown"
@@ -93,6 +95,10 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
+const MAX_LIST_HEIGHT = 256;
+const MIN_LIST_HEIGHT = 160;
+const EDGE_MARGIN = 16;
+
 export default {
     props: {
         modelValue: { type: String, default: '' },
@@ -104,6 +110,8 @@ export default {
         const containerRef = ref(null);
         const triggerRef = ref(null);
         const listboxRef = ref(null);
+        const openUpward = ref(false);
+        const maxHeight = ref(MAX_LIST_HEIGHT);
 
         const selectedLabel = computed(() => {
             if (!props.modelValue) return 'General focus';
@@ -129,7 +137,19 @@ export default {
         const getListItems = () =>
             Array.from(listboxRef.value?.querySelectorAll('button') ?? []);
 
+        // The page does not scroll inside a Discord Activity, so a list that
+        // runs past the bottom of the frame could never be reached: open it
+        // upward when there is more room above, and never taller than the room.
+        const placeList = () => {
+            const rect = triggerRef.value.getBoundingClientRect();
+            const below = window.innerHeight - rect.bottom - EDGE_MARGIN;
+            const above = rect.top - EDGE_MARGIN;
+            openUpward.value = below < MIN_LIST_HEIGHT && above > below;
+            maxHeight.value = Math.max(0, Math.min(MAX_LIST_HEIGHT, openUpward.value ? above : below));
+        };
+
         const open = () => {
+            placeList();
             isOpen.value = true;
             nextTick(() => {
                 const items = getListItems();
@@ -194,7 +214,7 @@ export default {
         onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick));
 
         return {
-            isOpen, containerRef, triggerRef, listboxRef,
+            isOpen, containerRef, triggerRef, listboxRef, openUpward, maxHeight,
             selectedLabel, selectedIcon,
             toggle, close, select,
             handleTriggerKeydown, handleListKeydown,

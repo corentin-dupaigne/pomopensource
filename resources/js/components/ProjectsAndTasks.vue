@@ -21,14 +21,27 @@
         :aria-label="asPanel ? 'Projects' : null"
         @keydown.esc="$emit('closePanel')"
     >
-    <div :class="asPanel ? 'w-full h-full flex items-center justify-center p-4' : 'contents'" @click.self="$emit('closePanel')">
+    <!-- In the Activity: a sheet from the bottom on a phone, from the right otherwise. -->
+    <div :class="asPanel ? 'w-full h-full flex items-end justify-center sm:justify-end sm:items-stretch' : 'contents'" @click.self="$emit('closePanel')">
     <div
-        class="zen-fade w-full max-w-3xl px-6 bg-white/10 rounded-lg shadow-lg"
-        :class="[localProjects.length === 0 ? 'py-5' : 'py-8', { 'zen-hidden': zenMode && !asPanel }, asPanel ? 'max-h-full overflow-y-auto backdrop-blur-lg text-white' : '']"
+        class="zen-fade w-full shadow-lg"
+        :class="[{ 'zen-hidden': zenMode && !asPanel }, asPanel
+            ? 'max-h-[85%] sm:max-h-full sm:max-w-md px-4 py-5 overflow-y-auto bg-neutral-900/80 backdrop-blur-lg text-white rounded-t-2xl sm:rounded-none'
+            : ['max-w-3xl px-6 bg-white/10 rounded-lg', localProjects.length === 0 ? 'py-5' : 'py-8']]"
     >
-        <div class="flex items-baseline justify-between mb-6">
-            <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
-            <div class="flex items-baseline gap-4">
+        <div class="flex items-center justify-between" :class="asPanel ? 'mb-4' : 'mb-6'">
+            <h2 class="font-bold font-oswald text-white" :class="asPanel ? 'text-2xl' : 'text-3xl'">Projects</h2>
+            <div class="flex items-center gap-4">
+                <!-- Renaming and deleting stay out of the way until asked for. -->
+                <button
+                    v-if="asPanel && localProjects.length > 0"
+                    @click="editing = !editing"
+                    :aria-pressed="editing"
+                    class="px-3 py-1.5 rounded-full text-sm font-inter font-semibold transition"
+                    :class="editing ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'"
+                >
+                    {{ editing ? 'done' : 'edit' }}
+                </button>
                 <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
                     saved locally<template v-if="!isDiscordActivity"> ·
                     <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a></template>
@@ -38,15 +51,38 @@
                     ref="closePanelRef"
                     @click="$emit('closePanel')"
                     aria-label="Close projects"
-                    class="text-white hover:text-gray-300 transition"
+                    class="w-11 h-11 -mr-2 flex items-center justify-center text-white hover:text-gray-300 transition"
                 >
                     <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Add project form -->
-        <form @submit.prevent="addProject" class="mb-6">
+        <!-- Add project form: a single row in the Activity panel -->
+        <form v-if="asPanel" @submit.prevent="addProject" class="flex gap-2 mb-4">
+            <input
+                v-model="newProjectName"
+                type="text"
+                placeholder="New project"
+                required
+                aria-label="New project name"
+                class="flex-1 min-w-0 py-2.5 px-3 bg-white/10 border border-white/30 rounded-lg text-sm font-inter text-white placeholder-white/60 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition"
+            >
+            <button
+                type="submit"
+                :disabled="isAddingProject"
+                aria-label="Add project"
+                class="shrink-0 min-w-11 px-4 bg-white text-black rounded-lg text-sm font-inter font-semibold disabled:opacity-40 flex items-center justify-center"
+            >
+                <i class="fas" :class="isAddingProject ? 'fa-spinner fa-spin' : 'fa-plus'" aria-hidden="true"></i>
+            </button>
+        </form>
+
+        <p v-if="asPanel && localProjects.length === 0" class="text-white/50 text-sm font-inter text-center py-4">
+            Group your focus sessions by project, then pick one under the timer.
+        </p>
+
+        <form v-else-if="!asPanel" @submit.prevent="addProject" class="mb-6">
             <div class="mb-4">
                 <input
                     v-model="newProjectName"
@@ -72,7 +108,8 @@
         <ul class="space-y-4" aria-label="Projects">
             <li v-for="project in localProjects" :key="project.id" class="bg-white/5 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-2 gap-2">
-                    <div class="flex-1 group relative flex items-center gap-2 min-w-0">
+                    <h3 v-if="!editable" class="flex-1 min-w-0 truncate py-1 font-inter font-semibold text-white">{{ project.name }}</h3>
+                    <div v-else class="flex-1 group relative flex items-center gap-2 min-w-0">
                         <input
                             v-model="project.name"
                             @blur="updateProject(project)"
@@ -92,6 +129,7 @@
                             {{ project.showTasks ? 'Hide tasks' : 'Show tasks' }}
                         </button>
                         <button
+                            v-if="editable"
                             @click="openDeleteProject(project.id, project.name)"
                             class="text-red-400 hover:text-red-500 transition"
                             :aria-label="`Delete project ${project.name}`"
@@ -135,7 +173,8 @@
                             :key="task.id"
                             class="flex items-center justify-between bg-white/5 rounded p-2 group"
                         >
-                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <span v-if="!editable" class="flex-1 min-w-0 truncate text-white/90 font-inter">{{ task.name }}</span>
+                            <div v-else class="flex items-center gap-2 flex-1 min-w-0">
                                 <input
                                     v-model="task.name"
                                     @blur="updateTask(project, task)"
@@ -145,6 +184,7 @@
                                 <i class="fas fa-pencil-alt text-white/20 text-xs group-hover:text-white/50 transition-colors shrink-0" aria-hidden="true"></i>
                             </div>
                             <button
+                                v-if="editable"
                                 @click="openDeleteTask(project, task.id, task.name)"
                                 class="text-red-400 hover:text-red-500 transition ml-2 shrink-0"
                                 :aria-label="`Delete task ${task.name}`"
@@ -163,7 +203,7 @@
 </template>
 
 <script>
-import { ref, reactive, watch, nextTick } from 'vue';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import Timer from './Timer.vue';
 import ConfirmModal from './ConfirmModal.vue';
@@ -203,9 +243,16 @@ export default {
             }
         };
 
+        // In the Activity, names are plain text until the user asks to edit.
+        const editing = ref(false);
+        const editable = computed(() => !props.asPanel || editing.value);
+
         const closePanelRef = ref(null);
         watch(() => props.panelOpen, async (open) => {
-            if (!open) return;
+            if (!open) {
+                editing.value = false;
+                return;
+            }
             await nextTick();
             closePanelRef.value?.focus();
         });
@@ -330,7 +377,7 @@ export default {
             handleConfirm, handleCancel,
             addProject, updateProject, openDeleteProject,
             toggleTasksVisibility, addTask, updateTask, openDeleteTask,
-            isDiscordActivity, closePanelRef,
+            isDiscordActivity, closePanelRef, editing, editable,
         };
     }
 };
