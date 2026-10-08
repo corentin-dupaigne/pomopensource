@@ -115,6 +115,10 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
   - **Detailed Reports**:
     - See how much time you’ve spent working on each project and subproject.
 
+- **Discord Activity:**
+  - Run the timer inside a Discord voice channel, signed in with your Discord account
+  - Your Discord status shows whether you're focusing or on a break, with a countdown
+
 
 ### Built With
 
@@ -168,6 +172,9 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
    | `replicaCount` | Number of replicas | `1` |
    | `gateway.name` | Name of the Gateway resource | `gateway` |
    | `gateway.namespace` | Namespace of the Gateway resource | `default` |
+   | `discord.clientId` | Discord application ID; enables the [Discord Activity](#running-as-a-discord-activity) | — |
+   | `discord.existingSecret` | Secret holding the Discord client secret (required with `discord.clientId`) | — |
+   | `discord.existingSecretKey` | Key of the client secret in that Secret | `DISCORD_CLIENT_SECRET` |
 
 5. **Upgrade**
    ```bash
@@ -204,6 +211,37 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
    ```
 
    The app will be available at `http://localhost:8080`. Migrations and seeding run automatically on startup using SQLite.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Running as a Discord Activity
+
+Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/developers/activities/overview). Users are signed in with their Discord account automatically, and their Discord status shows the timer.
+
+1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
+2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://127.0.0.1` as a redirect URI. Discord requires one, but Activities don't use it.
+3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`. The app loads nothing from other origins, so no other mapping is needed.
+4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.
+5. **Configure the deployment.** Store the client secret in a Kubernetes Secret and point the chart at it:
+   ```bash
+   kubectl create secret generic pomopensource-discord \
+     --from-literal=DISCORD_CLIENT_SECRET=<client-secret>
+
+   helm upgrade pomopensource ./pomopensource \
+     --set discord.clientId=<client-id> \
+     --set discord.existingSecret=pomopensource-discord
+   ```
+   This also switches session cookies to `SameSite=None; Secure; Partitioned`, which Discord's iframe requires. Without the chart, set these environment variables:
+   ```dotenv
+   DISCORD_CLIENT_ID=<client-id>
+   DISCORD_CLIENT_SECRET=<client-secret>
+   SESSION_SAME_SITE=none
+   SESSION_SECURE_COOKIE=true
+   SESSION_PARTITIONED_COOKIE=true
+   ```
+6. **Launch it** from a voice channel: open the Activities (rocket) menu and pick your application. Until the app is verified, only you and the users listed under **App Testers** can launch it.
+
+For local development, expose the app over HTTPS with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8080`) and use the tunnel's host as the URL mapping.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
