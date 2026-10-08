@@ -116,9 +116,51 @@ async function signIn(clientId) {
         console.warn('Discord sign-in did not persist; continuing as a guest.');
         return 'guest';
     }
-    discordSession.projects = data.projects;
+    discordSession.projects = [...data.projects, ...await importGuestProjects()];
     watchForExpiredSession();
     return 'signed-in';
+}
+
+// Same key as ProjectsAndTasks uses for guests.
+const GUEST_PROJECTS_KEY = 'localProjects';
+
+/**
+ * Move projects made as a guest on this device (e.g. while sign-in failed
+ * on an earlier launch) into the account, one project at a time so a
+ * failure leaves the rest to import next time.
+ */
+async function importGuestProjects() {
+    let remaining;
+    try {
+        remaining = JSON.parse(localStorage.getItem(GUEST_PROJECTS_KEY) || '[]');
+    } catch {
+        return [];
+    }
+
+    const imported = [];
+    try {
+        while (remaining.length > 0) {
+            const guest = remaining[0];
+            const { data: project } = await axios.post('/projects', { name: guest.name });
+            project.tasks = [];
+            for (const task of guest.tasks ?? []) {
+                const { data: saved } = await axios.post(`/projects/${project.id}/tasks`, { name: task.name });
+                project.tasks.push(saved);
+            }
+            imported.push(project);
+            remaining.shift();
+            localStorage.setItem(GUEST_PROJECTS_KEY, JSON.stringify(remaining));
+        }
+        localStorage.removeItem(GUEST_PROJECTS_KEY);
+    } catch (error) {
+        console.warn('Could not import every guest project; the rest stay on this device.', error);
+    }
+
+    if (imported.length > 0) {
+        const count = imported.length === 1 ? '1 project' : `${imported.length} projects`;
+        useToast().success(`Moved ${count} from this device to your account`);
+    }
+    return imported;
 }
 
 // A session that expires during a long call would otherwise drop every
