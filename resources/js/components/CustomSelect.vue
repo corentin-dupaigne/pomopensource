@@ -70,7 +70,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 
 export default {
     props: {
@@ -175,17 +175,7 @@ export default {
             }
         };
 
-        const syncDefault = () => {
-            if (props.options.length === 0) return;
-            const hasMatch = props.options.some(o => isSelected(o));
-            if (!hasMatch) emit('update:modelValue', props.options[0]);
-        };
-
-        onMounted(() => {
-            document.addEventListener('mousedown', handleOutsideClick);
-            syncDefault();
-        });
-        watch(() => props.options, syncDefault);
+        onMounted(() => document.addEventListener('mousedown', handleOutsideClick));
         onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick));
 
         return {
