@@ -2,6 +2,11 @@ import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
 export default {
+    // A tap leaves hover styles stuck on touch screens (Discord mobile).
+    future: {
+        hoverOnlyWhenSupported: true,
+    },
+
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',

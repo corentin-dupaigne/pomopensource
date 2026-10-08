@@ -519,14 +519,18 @@ export default {
     transition: all 0.2s;
 }
 
-.timer-button:focus {
-    background-color: white;
-    color: black;
+/* Only the selected tab is filled: on touch screens focus stays on the
+   last tapped button, which then looked selected too. */
+.timer-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
 }
 
-.timer-button:hover {
-    background-color: white;
-    color: black;
+@media (hover: hover) {
+    .timer-button:hover {
+        background-color: white;
+        color: black;
+    }
 }
 
 .control-button {
