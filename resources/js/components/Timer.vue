@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col items-center" :class="{ 'activity-timer': isDiscordActivity }">
+    <div class="flex flex-col items-center" :class="{ 'activity-timer': isDiscordActivity }" :data-mode="currentTimerType">
         <div
             class="zen-fade hide-when-minimal flex mb-8 short:mb-3"
             :class="[isDiscordActivity ? 'mode-tabs' : 'space-x-4', { 'zen-hidden': zenMode }]"
@@ -602,6 +602,16 @@ export default {
  */
 .activity-timer {
     --ring: clamp(11rem, min(80vw, calc(100dvh - 20rem)), 24rem);
+    /* Each timer type has its colour, so a glance at a small tile is enough. */
+    --accent: 255 112 102;
+}
+
+.activity-timer[data-mode="short_break"] {
+    --accent: 72 214 160;
+}
+
+.activity-timer[data-mode="long_break"] {
+    --accent: 110 168 255;
 }
 
 .mode-tabs {
@@ -681,10 +691,20 @@ export default {
 }
 
 .timer-ring-progress {
-    stroke: white;
+    stroke: rgb(var(--accent));
     stroke-linecap: round;
     /* Ticks land every second: a linear one-second transition makes it glide. */
     transition: stroke-dashoffset 1s linear, stroke 0.6s ease;
+}
+
+/* A soft glow of the timer type's colour behind the time. */
+.timer-face::before {
+    content: '';
+    position: absolute;
+    inset: 12%;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgb(var(--accent) / 0.22), transparent 70%);
+    transition: background 0.6s ease;
 }
 
 .timer-face-content {
@@ -720,7 +740,9 @@ export default {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 9999px;
-    background: white;
+    background: rgb(var(--accent));
+    box-shadow: 0 0 8px rgb(var(--accent) / 0.8);
+    transition: background-color 0.6s ease, box-shadow 0.6s ease;
 }
 
 .timer-hint {
