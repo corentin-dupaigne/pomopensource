@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-8" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade flex space-x-4 mb-4" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -35,6 +35,21 @@
             >
                 long break
             </button>
+        </div>
+
+        <div
+            class="zen-fade flex items-center gap-2 mb-4 h-3"
+            :class="{ 'zen-hidden': zenMode }"
+            role="img"
+            :aria-label="`${completedPomodoros} pomodoro${completedPomodoros === 1 ? '' : 's'} completed today`"
+            :title="`${completedPomodoros} completed today · long break every ${LONG_BREAK_INTERVAL}`"
+        >
+            <span
+                v-for="n in LONG_BREAK_INTERVAL"
+                :key="n"
+                class="w-2.5 h-2.5 rounded-full border border-white/70 transition-colors"
+                :class="n <= cycleProgress ? 'bg-white' : 'bg-transparent'"
+            ></span>
         </div>
 
         <div
@@ -101,6 +116,19 @@ const TIMER_LABELS = {
     long_break: 'Long break',
 };
 
+const LONG_BREAK_INTERVAL = 4;
+const CYCLE_KEY = 'pomodoroCycle';
+
+// Completed pomodoros, counted per local day.
+const loadCompletedToday = () => {
+    try {
+        const { date, count } = JSON.parse(localStorage.getItem(CYCLE_KEY)) ?? {};
+        return date === toLocalDateString(new Date()) ? count : 0;
+    } catch {
+        return 0;
+    }
+};
+
 const DONE_MESSAGES = {
     pomodoro: { title: 'Pomodoro complete!', body: 'Time to take a break.' },
     break: { title: 'Break over!', body: 'Ready to focus?' },
@@ -157,6 +185,17 @@ export default {
     const sessionStartTime = ref(null);
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
+
+    const completedPomodoros = ref(loadCompletedToday());
+
+    // Dots filled in the current cycle; the long break shows a full cycle.
+    const cycleProgress = computed(() => {
+      const inCycle = completedPomodoros.value % LONG_BREAK_INTERVAL;
+      if (inCycle === 0 && completedPomodoros.value > 0 && currentTimerType.value === 'long_break') {
+        return LONG_BREAK_INTERVAL;
+      }
+      return inCycle;
+    });
 
     const justFinished = ref(null); // timer type that just completed, until the next start
     const announcement = ref('');
@@ -235,7 +274,7 @@ export default {
       updateTimerFromSettings();
       clearInterval(timerInterval.value);
       isRunning.value = false;
-      localStorage.removeItem('pomodoroTimer');
+      saveTimerStateToLocalStorage();
     };
 
     const toggleTimer = () => {
@@ -272,6 +311,24 @@ export default {
       }
       if (sessionStartTime.value) endSession(endedAt);
       localStorage.removeItem('pomodoroTimer');
+      advanceCycle();
+    };
+
+    // After a pomodoro, line up a break (long every LONG_BREAK_INTERVAL);
+    // after a break, line up the next pomodoro. The user still presses start.
+    const advanceCycle = () => {
+      let next = 'pomodoro';
+      if (currentTimerType.value === 'pomodoro') {
+        completedPomodoros.value = loadCompletedToday() + 1;
+        localStorage.setItem(CYCLE_KEY, JSON.stringify({
+          date: toLocalDateString(new Date()),
+          count: completedPomodoros.value,
+        }));
+        next = completedPomodoros.value % LONG_BREAK_INTERVAL === 0 ? 'long_break' : 'short_break';
+      }
+      currentTimerType.value = next;
+      updateTimerFromSettings();
+      saveTimerStateToLocalStorage();
     };
 
     // A pomodoro is one focus session, however many times it is paused.
@@ -328,7 +385,7 @@ export default {
       isRunning.value = false;
       if (sessionStartTime.value) endSession();
       updateTimerFromSettings();
-      localStorage.removeItem('pomodoroTimer');
+      saveTimerStateToLocalStorage();
     };
 
     const endSession = (endedAt = new Date()) => {
@@ -371,7 +428,9 @@ export default {
     // Persist running and paused timers so a reload resumes the same session.
     const saveTimerStateToLocalStorage = () => {
       if (!isRunning.value && !sessionStartTime.value && time.value === initialTime.value) {
-        localStorage.removeItem('pomodoroTimer');
+        // Untouched timer: only remember a lined-up break across reloads.
+        if (currentTimerType.value === 'pomodoro') localStorage.removeItem('pomodoroTimer');
+        else localStorage.setItem('pomodoroTimer', JSON.stringify({ currentTimerType: currentTimerType.value }));
         return;
       }
       localStorage.setItem(
@@ -417,9 +476,8 @@ export default {
         runInterval();
         endTime = stored.endTime;
       } else {
-        // Finished while the page was closed: record it, then start fresh.
+        // Finished while the page was closed: record it and line up the next timer.
         completeTimer(new Date(stored.endTime), { silent: true });
-        updateTimerFromSettings();
       }
     };
 
@@ -450,6 +508,9 @@ export default {
       selectedLabel,
       justFinished,
       announcement,
+      completedPomodoros,
+      cycleProgress,
+      LONG_BREAK_INTERVAL,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
