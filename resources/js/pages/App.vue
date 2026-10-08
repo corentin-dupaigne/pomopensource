@@ -29,8 +29,10 @@
             />
         </main>
 
-        <!-- Zen toggle: always bottom-right -->
+        <!-- Zen toggle: always bottom-right. Not in the Activity, where it sat
+             under Discord's call controls and Discord has its own focus view. -->
         <button
+            v-if="!isDiscordActivity"
             @click="toggleZen"
             :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
             class="zen-toggle hide-when-minimal fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"

@@ -1,20 +1,25 @@
 <template>
+    <!-- Discord already names the Activity: no logo, and a compact bar. -->
     <header
-        class="flex justify-between items-center px-6 md:px-24"
-        :class="isDiscordActivity ? 'py-3 mb-2' : 'py-6 mb-16 short:py-2 short:mb-2'"
+        class="flex justify-between items-center"
+        :class="isDiscordActivity ? 'px-3 py-2 gap-2' : 'px-6 md:px-24 py-6 mb-16 short:py-2 short:mb-2'"
     >
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-2 min-w-0">
             <img
+                v-if="!isDiscordActivity"
                 src="/images/logo.webp"
                 alt="Pomopensource Logo"
-                :class="isDiscordActivity ? 'h-10' : 'h-16 md:h-20 short:h-10'" />
+                class="h-16 md:h-20 short:h-10" />
+            <template v-else-if="discordSession.user">
+                <DiscordAvatar :user="discordSession.user" :size="32" />
+                <span class="hidden sm:inline truncate text-sm font-inter font-semibold text-white">{{ displayName }}</span>
+            </template>
         </div>
-        <nav class="flex items-center space-x-3" aria-label="Main navigation">
-            <DiscordAvatar v-if="discordSession.user" :user="discordSession.user" :size="32" />
+        <nav class="flex items-center space-x-2" :class="{ 'activity-nav': isDiscordActivity }" aria-label="Main navigation">
             <button
                 v-if="notSynced"
                 @click="explainNotSynced"
-                class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-amber-500/25 text-amber-100 text-xs font-inter"
+                class="not-synced flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-amber-500/25 text-amber-100 text-xs font-inter"
                 aria-label="Not synced: why?"
             >
                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
@@ -71,7 +76,7 @@
 
 <script>
 import axios from 'axios';
-import { isDiscordActivity, discordSession } from '../discord.js';
+import { isDiscordActivity, discordSession, discordDisplayName } from '../discord.js';
 import DiscordAvatar from './DiscordAvatar.vue';
 import { useToast } from '../composables/toast.js';
 
@@ -79,6 +84,11 @@ export default {
     name: 'Header',
     components: { DiscordAvatar },
     data: () => ({ isDiscordActivity, discordSession }),
+    computed: {
+        displayName() {
+            return discordDisplayName(this.discordSession.user);
+        },
+    },
     emits: ['toggleStats', 'toggleSettings', 'toggleProjects'],
     props: {
         auth: { default: false },
@@ -100,3 +110,16 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+/* Touch-sized buttons in the Activity, which is often used on a phone. */
+.activity-nav > button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    justify-content: center;
+}
+
+.activity-nav > button.not-synced {
+    min-width: 0;
+}
+</style>
