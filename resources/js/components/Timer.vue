@@ -80,7 +80,7 @@
                 :title="isRunning ? 'Pause (Space)' : 'Start (Space)'"
             >
                 <i :class="isRunning ? 'fas fa-pause' : 'fas fa-play'" aria-hidden="true"></i>
-                <span>{{ isRunning ? 'pause' : (isPaused ? 'resume' : 'start') }}</span>
+                <span>{{ primaryLabel }}</span>
             </button>
         </div>
         <div v-else class="flex space-x-4 mb-8 short:mb-3">
@@ -287,6 +287,14 @@ export default {
       if (justFinished.value) return doneMessage(justFinished.value).title;
       const label = TIMER_LABELS[currentTimerType.value];
       return isPaused.value ? `${label} · paused` : label;
+    });
+
+    // After a timer ends the next one is lined up: say which one starts.
+    const primaryLabel = computed(() => {
+      if (isRunning.value) return 'pause';
+      if (isPaused.value) return 'resume';
+      if (justFinished.value) return currentTimerType.value === 'pomodoro' ? 'start focus' : 'start break';
+      return 'start';
     });
 
     const selectedLabel = computed(() => {
@@ -575,6 +583,7 @@ export default {
       isPaused,
       progress,
       statusLabel,
+      primaryLabel,
       sessionStartTime,
       doneMessage,
       TAB_LABELS,
