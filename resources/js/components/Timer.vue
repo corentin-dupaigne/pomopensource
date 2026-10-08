@@ -85,12 +85,19 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
 import ProjectSelect from './ProjectSelect.vue';
+
+const BASE_TITLE = 'Pomopensource';
+const TIMER_LABELS = {
+    pomodoro: 'Focus',
+    short_break: 'Short break',
+    long_break: 'Long break',
+};
 
 const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -174,6 +181,17 @@ export default {
       const min = Math.floor(time.value / 60);
       const sec = time.value % 60;
       return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    });
+
+    // Show the countdown in the tab title once a timer has been started.
+    watchEffect(() => {
+      const started = isRunning.value || time.value !== initialTime.value;
+      if (!started) {
+        document.title = BASE_TITLE;
+        return;
+      }
+      const prefix = isRunning.value ? '' : '⏸ ';
+      document.title = `${prefix}${formattedTime.value} · ${TIMER_LABELS[currentTimerType.value]} — ${BASE_TITLE}`;
     });
 
     const selectedLabel = computed(() => {
