@@ -25,7 +25,7 @@
             </button>
             <a
                 v-if="!auth"
-                href="register"
+                href="/login"
                 aria-label="Sign in or create account"
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
