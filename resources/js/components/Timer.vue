@@ -100,7 +100,7 @@
 
         <!-- Project / task selector. The Activity keeps its room while it is
              hidden, so the timer doesn't jump when a session starts. -->
-        <div :class="isDiscordActivity ? 'session-slot hide-when-minimal' : 'contents'">
+        <div :class="isDiscordActivity ? ['session-slot zen-fade hide-when-minimal', { 'zen-hidden': zenMode }] : 'contents'">
             <ProjectSelect
                 v-if="!isRunning && currentTimerType === 'pomodoro'"
                 v-model="selectedId"
