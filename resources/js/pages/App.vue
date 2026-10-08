@@ -249,6 +249,12 @@ export default {
     display: none;
 }
 
+.app.activity.minimal .timer-face {
+    width: auto;
+    height: auto;
+    margin-bottom: 0.75rem;
+}
+
 .app.activity.minimal .timer-fluid {
     font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
 }
@@ -256,6 +262,12 @@ export default {
 @media (max-height: 300px) {
     .app.activity .hide-when-minimal {
         display: none;
+    }
+
+    .app.activity .timer-face {
+        width: auto;
+        height: auto;
+        margin-bottom: 0.75rem;
     }
 
     .app.activity .timer-fluid {

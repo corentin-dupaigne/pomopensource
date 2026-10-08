@@ -1,54 +1,86 @@
 <template>
-    <div class="flex flex-col items-center">
-        <div class="zen-fade hide-when-minimal flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+    <div class="flex flex-col items-center" :class="{ 'activity-timer': isDiscordActivity }">
+        <div
+            class="zen-fade hide-when-minimal flex mb-8 short:mb-3"
+            :class="[isDiscordActivity ? 'mode-tabs' : 'space-x-4', { 'zen-hidden': zenMode }]"
+            role="tablist"
+            aria-label="Timer type"
+        >
             <button
-                @click="setTimer('pomodoro')"
-                id="default-timer"
-                class="timer-button"
-                :class="{ 'active-button': currentTimerType === 'pomodoro' }"
+                v-for="(label, type) in TAB_LABELS"
+                :key="type"
+                @click="setTimer(type)"
+                :id="type === 'pomodoro' ? 'default-timer' : null"
+                :class="[isDiscordActivity ? 'mode-tab' : 'timer-button', { 'active-button': currentTimerType === type }]"
                 :disabled="isRunning && currentTimerType === 'pomodoro'"
+                :title="isRunning && currentTimerType === 'pomodoro' ? 'Pause or reset the pomodoro to switch' : null"
                 role="tab"
-                :aria-selected="currentTimerType === 'pomodoro'"
-                aria-label="Pomodoro timer"
+                :aria-selected="currentTimerType === type"
+                :aria-label="`${TIMER_LABELS[type]} timer`"
             >
-                pomodoro
-            </button>
-            <button
-                @click="setTimer('short_break')"
-                class="timer-button"
-                :class="{ 'active-button': currentTimerType === 'short_break' }"
-                :disabled="isRunning && currentTimerType === 'pomodoro'"
-                role="tab"
-                :aria-selected="currentTimerType === 'short_break'"
-                aria-label="Short break timer"
-            >
-                short break
-            </button>
-            <button
-                @click="setTimer('long_break')"
-                class="timer-button"
-                :class="{ 'active-button': currentTimerType === 'long_break' }"
-                :disabled="isRunning && currentTimerType === 'pomodoro'"
-                role="tab"
-                :aria-selected="currentTimerType === 'long_break'"
-                aria-label="Long break timer"
-            >
-                long break
+                {{ label }}
             </button>
         </div>
 
-        <div
-            id="timerDisplay"
-            class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
-            :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
-            :aria-label="`Timer: ${formattedTime}`"
-            aria-live="off"
-        >
-            {{ formattedTime }}
+        <!-- In the Activity the time sits in a ring that empties as it runs. -->
+        <div :class="{ 'timer-face mb-8 short:mb-3': isDiscordActivity }">
+            <svg v-if="isDiscordActivity" class="timer-ring hide-when-minimal" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="timer-ring-track" cx="50" cy="50" r="46" />
+                <circle
+                    class="timer-ring-progress"
+                    cx="50" cy="50" r="46"
+                    :stroke-dasharray="RING_LENGTH"
+                    :stroke-dashoffset="RING_LENGTH * progress"
+                />
+            </svg>
+
+            <div :class="{ 'timer-face-content': isDiscordActivity }">
+                <p v-if="isDiscordActivity" class="timer-status" :class="{ 'timer-status-done': justFinished }">
+                    <span class="timer-status-dot" aria-hidden="true"></span>
+                    <span>{{ statusLabel }}</span>
+                </p>
+
+                <div
+                    id="timerDisplay"
+                    class="text-9xl font-oswald font-bold"
+                    :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity, 'timer-paused': isPaused, 'mb-8 short:text-7xl short:mb-3': !isDiscordActivity }"
+                    :aria-label="`Timer: ${formattedTime}`"
+                    aria-live="off"
+                >
+                    {{ formattedTime }}
+                </div>
+
+                <p v-if="isDiscordActivity && justFinished" class="timer-hint hide-when-minimal">{{ doneMessage(justFinished).body }}</p>
+                <p v-else-if="isDiscordActivity && sessionStartTime && selectedLabel" class="timer-hint hide-when-minimal">
+                    <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[6px]'" aria-hidden="true"></i>
+                    <span class="truncate">{{ selectedLabel }}</span>
+                </p>
+
+            </div>
         </div>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
-        <div class="flex space-x-4 mb-8 short:mb-3">
+        <div v-if="isDiscordActivity" class="timer-controls mb-6 short:mb-3">
+            <button
+                @click="resetTimer"
+                class="control-icon-button"
+                aria-label="Reset timer"
+                title="Reset"
+            >
+                <i class="fas fa-rotate-left" aria-hidden="true"></i>
+            </button>
+            <button
+                @click="toggleTimer"
+                id="stop-start-button"
+                class="control-primary-button"
+                :aria-label="isRunning ? 'Pause timer' : 'Start timer'"
+                :title="isRunning ? 'Pause (Space)' : 'Start (Space)'"
+            >
+                <i :class="isRunning ? 'fas fa-pause' : 'fas fa-play'" aria-hidden="true"></i>
+                <span>{{ isRunning ? 'pause' : (isPaused ? 'resume' : 'start') }}</span>
+            </button>
+        </div>
+        <div v-else class="flex space-x-4 mb-8 short:mb-3">
             <button
                 @click="toggleTimer"
                 id="stop-start-button"
@@ -76,7 +108,7 @@
 
         <!-- Selected context label while running -->
         <div
-            v-if="isRunning && currentTimerType === 'pomodoro' && selectedId"
+            v-if="!isDiscordActivity && isRunning && currentTimerType === 'pomodoro' && selectedId"
             class="hide-when-minimal mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
             aria-live="polite"
         >
@@ -101,6 +133,13 @@ const TIMER_LABELS = {
     short_break: 'Short break',
     long_break: 'Long break',
 };
+
+const TAB_LABELS = {
+    pomodoro: 'pomodoro',
+    short_break: 'short break',
+    long_break: 'long break',
+};
+const RING_LENGTH = 2 * Math.PI * 46;
 
 const LONG_BREAK_INTERVAL = 4;
 const CYCLE_KEY = 'pomodoroCycle';
@@ -234,6 +273,15 @@ export default {
         secondsLeft: time.value,
       }));
     }, { immediate: true });
+
+    const isPaused = computed(() => !isRunning.value && time.value > 0 && time.value !== initialTime.value);
+    const progress = computed(() => (initialTime.value ? 1 - time.value / initialTime.value : 0));
+
+    const statusLabel = computed(() => {
+      if (justFinished.value) return doneMessage(justFinished.value).title;
+      const label = TIMER_LABELS[currentTimerType.value];
+      return isPaused.value ? `${label} · paused` : label;
+    });
 
     const selectedLabel = computed(() => {
       if (!selectedId.value) return '';
@@ -503,6 +551,14 @@ export default {
       justFinished,
       announcement,
       isDiscordActivity,
+      isPaused,
+      progress,
+      statusLabel,
+      sessionStartTime,
+      doneMessage,
+      TAB_LABELS,
+      TIMER_LABELS,
+      RING_LENGTH,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
@@ -540,10 +596,195 @@ export default {
     color: black;
 }
 
-/* Inside Discord the frame can be anything from a phone to a large window. */
+/*
+ * Inside Discord the frame can be anything from a phone to a large window:
+ * the ring takes whatever room the controls leave, and the time scales with it.
+ */
+.activity-timer {
+    --ring: clamp(11rem, min(80vw, calc(100dvh - 20rem)), 24rem);
+}
+
+.mode-tabs {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 9999px;
+    background: rgb(0 0 0 / 0.3);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    backdrop-filter: blur(12px);
+}
+
+.mode-tab {
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    font-family: 'Inter Variable', Inter, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: rgb(255 255 255 / 0.75);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.mode-tab:hover:not(:disabled) {
+    color: white;
+    background: rgb(255 255 255 / 0.1);
+}
+
+.mode-tab.active-button {
+    background: white;
+    color: black;
+}
+
+.mode-tab:disabled:not(.active-button) {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.mode-tab:focus-visible,
+.control-icon-button:focus-visible,
+.control-primary-button:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+@media (max-width: 400px) {
+    .mode-tab {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
+
+.timer-face {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--ring);
+    height: var(--ring);
+}
+
+.timer-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 0 12px rgb(0 0 0 / 0.35));
+}
+
+.timer-ring circle {
+    fill: none;
+    stroke-width: 2;
+}
+
+.timer-ring-track {
+    stroke: rgb(255 255 255 / 0.15);
+}
+
+.timer-ring-progress {
+    stroke: white;
+    stroke-linecap: round;
+    /* Ticks land every second: a linear one-second transition makes it glide. */
+    transition: stroke-dashoffset 1s linear, stroke 0.6s ease;
+}
+
+.timer-face-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 80%;
+}
+
 .timer-fluid {
-    font-size: clamp(3rem, min(26vw, 24vh), 8rem);
+    font-size: calc(var(--ring) * 0.27);
     line-height: 1;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 16px rgb(0 0 0 / 0.35);
+}
+
+.timer-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-family: 'Inter Variable', Inter, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.75);
+}
+
+.timer-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: white;
+}
+
+.timer-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 100%;
+    margin-top: 0.75rem;
+    font-family: 'Inter Variable', Inter, sans-serif;
+    font-size: 0.875rem;
+    color: rgb(255 255 255 / 0.6);
+}
+
+.timer-paused {
+    opacity: 0.6;
+}
+
+.timer-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.control-icon-button {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    color: white;
+    background: rgb(255 255 255 / 0.1);
+    border: 1px solid rgb(255 255 255 / 0.15);
+    backdrop-filter: blur(12px);
+    transition: background-color 0.2s;
+}
+
+.control-icon-button:hover {
+    background: rgb(255 255 255 / 0.2);
+}
+
+.control-primary-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    min-width: 9rem;
+    height: 3rem;
+    padding: 0 1.75rem;
+    border-radius: 9999px;
+    font-family: 'Inter Variable', Inter, sans-serif;
+    font-weight: 600;
+    color: black;
+    background: white;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
+    transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.control-primary-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.4);
+}
+
+.control-primary-button:active {
+    transform: translateY(0);
 }
 
 .timer-done {
@@ -558,6 +799,10 @@ export default {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .timer-ring-progress {
+        transition: none;
+    }
+
     .timer-done {
         animation: none;
         text-decoration: underline;
