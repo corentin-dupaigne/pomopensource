@@ -21,12 +21,4 @@ class HomeController extends Controller
             'isAuthenticated' => Auth::check(),
         ]);
     }
-
-    public function isAuthenticated()
-    {
-        if (Auth::check()) {
-            return true;
-        }
-        return false;
-    }
 }
