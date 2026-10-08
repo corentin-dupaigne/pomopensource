@@ -93,7 +93,7 @@ export default {
         const signedInWithDiscord = computed(() => discordSession.status === 'signed-in');
         const isAuthenticated = computed(() => props.isAuthenticated || signedInWithDiscord.value);
         const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
-        const notSynced = computed(() => discordSession.status === 'guest' && !props.isAuthenticated);
+        const notSynced = computed(() => discordSession.expired || (discordSession.status === 'guest' && !props.isAuthenticated));
         const settings = ref({});
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';

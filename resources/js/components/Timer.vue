@@ -402,16 +402,22 @@ export default {
     const endSession = (endedAt = new Date()) => {
       const duration = initialTime.value - time.value;
 
+      const selected = selectedId.value;
+      const saveLocally = () => {
+        if (duration <= 0) return;
+        addLocalSession({ date: toLocalDateString(endedAt), duration_seconds: duration, selectedId: selected });
+      };
+
       if (props.isAuthenticated) {
         axios
           .patch('/focused-sessions/current', { ended_at: endedAt, time_focused: duration })
-          .catch((err) => { console.error('Error ending session', err); });
-      } else if (duration > 0) {
-        addLocalSession({
-          date: toLocalDateString(endedAt),
-          duration_seconds: duration,
-          selectedId: selectedId.value,
-        });
+          .catch((err) => {
+            // Keep the time on this device rather than losing it.
+            console.error('Error ending session', err);
+            saveLocally();
+          });
+      } else {
+        saveLocally();
       }
 
       sessionStartTime.value = null;

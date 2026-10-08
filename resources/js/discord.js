@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { reactive, ref } from 'vue';
+import { useToast } from './composables/toast.js';
 
 // Discord launches Activities with these query parameters, and the SDK
 // refuses to start without them.
@@ -37,6 +38,8 @@ export const discordSession = reactive({
     // The Discord user (id, username, global_name, avatar) once authenticated.
     user: null,
     projects: [],
+    // Set when the account's session expires after signing in.
+    expired: false,
 });
 
 // Discord's CDN is another origin, which the Activity's proxy only reaches
@@ -114,7 +117,21 @@ async function signIn(clientId) {
         return 'guest';
     }
     discordSession.projects = data.projects;
+    watchForExpiredSession();
     return 'signed-in';
+}
+
+// A session that expires during a long call would otherwise drop every
+// focus session without a word: say so once, and mark the app not synced.
+function watchForExpiredSession() {
+    axios.interceptors.response.use(undefined, (error) => {
+        const status = error.response?.status;
+        if ((status === 401 || status === 419) && !discordSession.expired) {
+            discordSession.expired = true;
+            useToast().error('Your Discord sign-in expired, so new sessions are only saved on this device. Reopen the Activity to sign in again.');
+        }
+        return Promise.reject(error);
+    });
 }
 
 const flushPresence = () => {
