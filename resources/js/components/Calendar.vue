@@ -228,9 +228,9 @@ export default {
             }
         };
 
+        // Fetching is handled by the currentView watcher (accounts only).
         const changeView = (view) => {
             currentView.value = view;
-            fetchCalendarData();
         };
 
         const getDayClasses = (day) => {
