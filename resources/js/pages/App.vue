@@ -1,5 +1,5 @@
 <template>
-    <div class="app min-h-screen flex flex-col">
+    <div class="app safe-area min-h-screen flex flex-col">
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
@@ -16,7 +16,7 @@
         <button
             @click="toggleZen"
             :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
-            class="fixed bottom-6 right-6 z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            class="zen-toggle fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
         >
             <i :class="zenMode ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
             <span v-if="!zenMode" class="text-sm font-inter">zen</span>
@@ -224,6 +224,11 @@ export default {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+}
+
+.zen-toggle {
+    bottom: calc(1.5rem + var(--saib));
+    right: calc(1.5rem + var(--sair));
 }
 
 .main-content {
