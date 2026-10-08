@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { useToast } from './composables/toast.js';
 
 // Discord launches Activities with these query parameters, and the SDK
@@ -202,15 +202,32 @@ const flushPresence = () => {
     });
 };
 
+let timerActivity = null;
+
+// Friends see the session is a group one, and with how many others.
+const withParty = (activity) => {
+    const others = discordSession.participants.filter((p) => p.id !== discordSession.user?.id).length;
+    return {
+        ...activity,
+        ...(others > 0 && { state: others === 1 ? 'With 1 other' : `With ${others} others` }),
+        party: { id: discordInstanceId },
+    };
+};
+
 /**
  * Show the timer in the user's Discord status. Calls made before the SDK
  * is authenticated are kept, and the latest one is sent once it is.
  */
 export function setPresence(activity) {
     if (!isDiscordActivity) return;
-    pendingPresence = activity;
+    timerActivity = activity;
+    pendingPresence = withParty(activity);
     flushPresence();
 }
+
+watch(() => discordSession.participants.length, () => {
+    if (timerActivity) setPresence(timerActivity);
+});
 
 const PRESENCE_DETAILS = {
     pomodoro: 'Focusing',
