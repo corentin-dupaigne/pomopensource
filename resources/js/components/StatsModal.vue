@@ -124,12 +124,12 @@ export default {
             isLoadingStats.value = false;
         };
 
+        // Guest data must be ready before the child Calendar and ActivityDetail
+        // mount (children mount first), or they fall back to the account API.
+        if (!props.isAuthenticated) loadLocalStats();
+
         onMounted(async () => {
-            if (props.isAuthenticated) {
-                await fetchStats();
-            } else {
-                loadLocalStats();
-            }
+            if (props.isAuthenticated) await fetchStats();
             await nextTick();
             modalRef.value?.focus();
         });
