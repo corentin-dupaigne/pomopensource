@@ -108,7 +108,7 @@
                             v-model="project.name"
                             @blur="updateProject(project)"
                             :aria-label="`Project name: ${project.name}`"
-                            class="flex-1 bg-transparent border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors min-w-0"
+                            class="flex-1 bg-transparent border-0 border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors min-w-0"
                         >
                         <i class="fas fa-pencil-alt text-white/30 text-xs group-hover:text-white/60 transition-colors shrink-0" aria-hidden="true"></i>
                     </div>
@@ -172,7 +172,7 @@
                                     v-model="task.name"
                                     @blur="updateTask(project, task)"
                                     :aria-label="`Task name: ${task.name}`"
-                                    class="flex-1 bg-transparent text-white font-inter focus:outline-none border-b border-transparent hover:border-white/30 focus:border-white transition-colors min-w-0"
+                                    class="flex-1 bg-transparent text-white font-inter focus:outline-none border-0 border-b border-transparent hover:border-white/30 focus:border-white transition-colors min-w-0"
                                 >
                                 <i class="fas fa-pencil-alt text-white/20 text-xs group-hover:text-white/50 transition-colors shrink-0" aria-hidden="true"></i>
                             </div>
