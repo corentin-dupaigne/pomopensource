@@ -21,6 +21,17 @@ export const discordLayoutMode = ref(0);
 const SMALL_LAYOUTS = [1, 2];
 export const isSmallLayout = (mode) => SMALL_LAYOUTS.includes(mode);
 
+// Not awaited by sign-in: the list is a nicety, never a reason to fail.
+async function watchParticipants() {
+    try {
+        const update = ({ participants }) => { discordSession.participants = participants; };
+        update(await sdk.commands.getInstanceConnectedParticipants());
+        await sdk.subscribe('ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', update);
+    } catch (error) {
+        console.warn('Could not list who is in the Activity.', error);
+    }
+}
+
 // async so that even a synchronous throw becomes a rejection the caller ignores.
 const watchLayoutMode = async () => sdk.subscribe('ACTIVITY_LAYOUT_MODE_UPDATE', ({ layout_mode }) => {
     discordLayoutMode.value = layout_mode;
@@ -40,6 +51,8 @@ export const discordSession = reactive({
     status: isDiscordActivity ? 'connecting' : 'off',
     // The Discord user (id, username, global_name, avatar) once authenticated.
     user: null,
+    // Everyone with the Activity open in this call, this user included.
+    participants: [],
     projects: [],
     // Set when the account's session expires after signing in.
     expired: false,
@@ -109,6 +122,7 @@ async function signIn(clientId) {
     const auth = await sdk.commands.authenticate({ access_token: data.access_token });
     authenticated = true;
     discordSession.user = auth.user;
+    watchParticipants();
     if (!layoutWatched) await watchLayoutMode().catch(() => {});
 
     // The response set the session cookie, and the next requests use it

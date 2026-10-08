@@ -18,6 +18,7 @@
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
+            <Participants v-if="isDiscordActivity" class="hide-when-minimal mb-4 short:mb-2" />
             <ProjectsAndTasks
                 :projects="accountProjects"
                 :settings="settings"
@@ -56,6 +57,7 @@ import Footer from '../components/Footer.vue';
 import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
+import Participants from '../components/Participants.vue';
 import axios from 'axios';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
@@ -67,6 +69,7 @@ export default {
         StatsModal,
         SettingsModal,
         Toast,
+        Participants,
     },
     props: {
         projects: {
