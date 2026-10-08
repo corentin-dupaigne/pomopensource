@@ -66,7 +66,7 @@
             <button
                 @click="toggleTimer"
                 id="stop-start-button"
-                class="control-button activity-primary bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white"
+                class="control-button bg-white text-black border-2 border-transparent hover:bg-transparent hover:text-white hover:border-2 hover:border-white"
                 :aria-label="isRunning ? 'Pause timer' : 'Start timer'"
             >
                 {{ isRunning ? 'pause' : 'start' }}
