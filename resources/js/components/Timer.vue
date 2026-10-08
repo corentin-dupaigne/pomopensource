@@ -209,12 +209,19 @@ export default {
       else startTimer();
     };
 
+    // Derive the remaining time from a fixed end timestamp: browsers throttle
+    // timers in background tabs, so counting ticks drifts.
+    let endTime = null;
+
+    const tick = () => {
+      time.value = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      if (time.value <= 0) completeTimer(new Date(endTime));
+    };
+
     const runInterval = () => {
       clearInterval(timerInterval.value);
-      timerInterval.value = setInterval(() => {
-        time.value--;
-        if (time.value <= 0) completeTimer();
-      }, 1000);
+      endTime = Date.now() + time.value * 1000;
+      timerInterval.value = setInterval(tick, 250);
     };
 
     const completeTimer = (endedAt = new Date(), { silent = false } = {}) => {
@@ -331,7 +338,7 @@ export default {
         'pomodoroTimer',
         JSON.stringify({
           isRunning: isRunning.value,
-          endTime: isRunning.value ? Date.now() + time.value * 1000 : null,
+          endTime: isRunning.value ? endTime : null,
           remaining: time.value,
           initialTime: initialTime.value,
           currentTimerType: currentTimerType.value,
@@ -368,6 +375,7 @@ export default {
         time.value = remainingSeconds;
         isRunning.value = true;
         runInterval();
+        endTime = stored.endTime;
       } else {
         // Finished while the page was closed: record it, then start fresh.
         completeTimer(new Date(stored.endTime), { silent: true });
