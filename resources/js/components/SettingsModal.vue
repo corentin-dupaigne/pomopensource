@@ -72,7 +72,7 @@
                             <div v-else-if="setting.type === 'checkbox'" class="mt-1 flex items-center">
                                 <input
                                     type="checkbox"
-                                    :checked="setting.value === '1' || setting.value === 1 || setting.value === true"
+                                    :checked="isEnabled(setting.value)"
                                     @change="setting.value = $event.target.checked ? 1 : 0; saveSetting(setting)"
                                     :id="setting.key"
                                     class="toggle-input"
@@ -120,6 +120,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
+import { isEnabled } from '../composables/settings.js';
 
 const debounce = (fn, delay) => {
     let timer;
@@ -190,6 +191,7 @@ export default {
             saveSetting,
             debouncedSave,
             themeImageUrl,
+            isEnabled,
         };
     },
 };

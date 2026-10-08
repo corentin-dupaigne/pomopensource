@@ -7,19 +7,23 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Fonts (same as the app) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
-    <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <!-- Fontawesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+          integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+    @vite('resources/css/app.css')
 </head>
-<body class="font-sans text-gray-900 antialiased">
+<body class="font-['Inter',sans-serif] text-gray-900 antialiased">
 <div class="relative min-h-screen flex flex-col items-center justify-center bg-cover bg-center" style="background-image: url('{{ asset('images/backgrounds/lofi_cafe.webp') }}');">
     <div class="absolute inset-0 bg-black/50"></div>
 
     <a href="/" class="z-10 mb-4 flex items-center gap-2 text-sm text-white/60 hover:text-white transition">
-        <i class="fas fa-arrow-left text-xs"></i>
+        <i class="fas fa-arrow-left text-xs" aria-hidden="true"></i>
         Back to app
     </a>
 

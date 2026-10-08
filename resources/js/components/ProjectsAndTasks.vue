@@ -15,7 +15,7 @@
             <h2 class="text-3xl font-bold font-oswald text-white">Projects</h2>
             <span v-if="!isAuthenticated" class="text-xs text-white/35 font-inter">
                 saved locally ·
-                <a href="/register" class="hover:text-white/60 transition underline">sign in to sync</a>
+                <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a>
             </span>
         </div>
 

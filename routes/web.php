@@ -11,8 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 
-Route::get('isAuthenticated', [HomeController::class, 'isAuthenticated'])->name('isAuthenticated');
-
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');

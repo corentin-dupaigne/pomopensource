@@ -52,15 +52,19 @@ export default {
             type: Array,
             default: () => []
         },
+        isAuthenticated: {
+            type: Boolean,
+            default: false
+        },
     },
-    setup() {
+    setup(props) {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
         const zenMode = ref(false);
 
         const toggleZen = () => { zenMode.value = !zenMode.value; };
         const backgroundImage = ref(localStorage.getItem('userBackground') || '');
-        const isAuthenticated = ref(false);
+        const isAuthenticated = ref(props.isAuthenticated);
         const settings = ref({});
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
@@ -98,15 +102,6 @@ export default {
                 localStorage.setItem('userBackground', backgroundImage.value);
             } catch (error) {
                 console.error('Error fetching background:', error);
-            }
-        };
-
-        const checkAuthentication = async () => {
-            try {
-                const response = await axios.get('/isAuthenticated');
-                isAuthenticated.value = !!response.data;
-            } catch (error) {
-                console.error('Error fetching auth status:', error);
             }
         };
 
@@ -163,7 +158,6 @@ export default {
         onMounted(fetchBackgroundImage);
         onMounted(() => document.addEventListener('keydown', handleKeydown));
         onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
-        checkAuthentication();
 
         return {
             showStatsModal,
