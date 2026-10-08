@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-8" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade flex space-x-4 mb-4" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -38,13 +38,30 @@
         </div>
 
         <div
+            class="zen-fade flex items-center gap-2 mb-4 h-3"
+            :class="{ 'zen-hidden': zenMode }"
+            role="img"
+            :aria-label="`${completedPomodoros} pomodoro${completedPomodoros === 1 ? '' : 's'} completed today`"
+            :title="`${completedPomodoros} completed today · long break every ${LONG_BREAK_INTERVAL}`"
+        >
+            <span
+                v-for="n in LONG_BREAK_INTERVAL"
+                :key="n"
+                class="w-2.5 h-2.5 rounded-full border border-white/70 transition-colors"
+                :class="n <= cycleProgress ? 'bg-white' : 'bg-transparent'"
+            ></span>
+        </div>
+
+        <div
             id="timerDisplay"
             class="text-9xl font-oswald font-bold mb-8"
+            :class="{ 'timer-done': justFinished }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
         >
             {{ formattedTime }}
         </div>
+        <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
         <div class="flex space-x-4 mb-8 cent">
             <button
@@ -85,12 +102,38 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, watchEffect, onMounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
 import ProjectSelect from './ProjectSelect.vue';
+
+const BASE_TITLE = 'Pomopensource';
+const TIMER_LABELS = {
+    pomodoro: 'Focus',
+    short_break: 'Short break',
+    long_break: 'Long break',
+};
+
+const LONG_BREAK_INTERVAL = 4;
+const CYCLE_KEY = 'pomodoroCycle';
+
+// Completed pomodoros, counted per local day.
+const loadCompletedToday = () => {
+    try {
+        const { date, count } = JSON.parse(localStorage.getItem(CYCLE_KEY)) ?? {};
+        return date === toLocalDateString(new Date()) ? count : 0;
+    } catch {
+        return 0;
+    }
+};
+
+const DONE_MESSAGES = {
+    pomodoro: { title: 'Pomodoro complete!', body: 'Time to take a break.' },
+    break: { title: 'Break over!', body: 'Ready to focus?' },
+};
+const doneMessage = (timerType) => DONE_MESSAGES[timerType === 'pomodoro' ? 'pomodoro' : 'break'];
 
 const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -101,9 +144,9 @@ const requestNotificationPermission = async () => {
 const notifyTimerDone = (timerType) => {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     if (document.visibilityState === 'visible') return;
-    const isPomodoro = timerType === 'pomodoro';
-    new Notification(isPomodoro ? 'Pomodoro complete!' : 'Break over!', {
-        body: isPomodoro ? 'Time to take a break.' : 'Ready to focus?',
+    const { title, body } = doneMessage(timerType);
+    new Notification(title, {
+        body,
         icon: '/images/logo.webp',
         silent: false,
     });
@@ -143,6 +186,20 @@ export default {
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
 
+    const completedPomodoros = ref(loadCompletedToday());
+
+    // Dots filled in the current cycle; the long break shows a full cycle.
+    const cycleProgress = computed(() => {
+      const inCycle = completedPomodoros.value % LONG_BREAK_INTERVAL;
+      if (inCycle === 0 && completedPomodoros.value > 0 && currentTimerType.value === 'long_break') {
+        return LONG_BREAK_INTERVAL;
+      }
+      return inCycle;
+    });
+
+    const justFinished = ref(null); // timer type that just completed, until the next start
+    const announcement = ref('');
+
     let isRestoring = false;
 
     watch(
@@ -176,6 +233,21 @@ export default {
       return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     });
 
+    // Show the countdown in the tab title once a timer has been started.
+    watchEffect(() => {
+      if (justFinished.value) {
+        document.title = `✓ ${doneMessage(justFinished.value).title} — ${BASE_TITLE}`;
+        return;
+      }
+      const started = isRunning.value || time.value !== initialTime.value;
+      if (!started) {
+        document.title = BASE_TITLE;
+        return;
+      }
+      const prefix = isRunning.value ? '' : '⏸ ';
+      document.title = `${prefix}${formattedTime.value} · ${TIMER_LABELS[currentTimerType.value]} — ${BASE_TITLE}`;
+    });
+
     const selectedLabel = computed(() => {
       if (!selectedId.value) return '';
       for (const project of props.projects) {
@@ -196,12 +268,13 @@ export default {
     };
 
     const setTimer = (timerType) => {
+      justFinished.value = null;
       if (sessionStartTime.value) endSession();
       currentTimerType.value = timerType;
       updateTimerFromSettings();
       clearInterval(timerInterval.value);
       isRunning.value = false;
-      localStorage.removeItem('pomodoroTimer');
+      saveTimerStateToLocalStorage();
     };
 
     const toggleTimer = () => {
@@ -232,9 +305,37 @@ export default {
       if (!silent) {
         if (isEnabled(playSound.value)) playAlarmSound();
         notifyTimerDone(currentTimerType.value);
+        const { title, body } = doneMessage(currentTimerType.value);
+        justFinished.value = currentTimerType.value;
+        announcement.value = `${title} ${body}`;
       }
       if (sessionStartTime.value) endSession(endedAt);
       localStorage.removeItem('pomodoroTimer');
+      const finishedType = currentTimerType.value;
+      advanceCycle();
+
+      if (!silent && finishedType !== 'pomodoro'
+          && isEnabled(props.settings?.timers?.settings?.auto_start_pomodoros)) {
+        startTimer();
+        announcement.value = 'Break over! Next pomodoro started.';
+      }
+    };
+
+    // After a pomodoro, line up a break (long every LONG_BREAK_INTERVAL);
+    // after a break, line up the next pomodoro.
+    const advanceCycle = () => {
+      let next = 'pomodoro';
+      if (currentTimerType.value === 'pomodoro') {
+        completedPomodoros.value = loadCompletedToday() + 1;
+        localStorage.setItem(CYCLE_KEY, JSON.stringify({
+          date: toLocalDateString(new Date()),
+          count: completedPomodoros.value,
+        }));
+        next = completedPomodoros.value % LONG_BREAK_INTERVAL === 0 ? 'long_break' : 'short_break';
+      }
+      currentTimerType.value = next;
+      updateTimerFromSettings();
+      saveTimerStateToLocalStorage();
     };
 
     // A pomodoro is one focus session, however many times it is paused.
@@ -270,6 +371,8 @@ export default {
 
     const startTimer = () => {
       if (time.value <= 0) return;
+      justFinished.value = null;
+      announcement.value = '';
       if (currentTimerType.value === 'pomodoro' && !sessionStartTime.value) startSession();
       isRunning.value = true;
       requestNotificationPermission();
@@ -284,11 +387,12 @@ export default {
     };
 
     const resetTimer = () => {
+      justFinished.value = null;
       clearInterval(timerInterval.value);
       isRunning.value = false;
       if (sessionStartTime.value) endSession();
       updateTimerFromSettings();
-      localStorage.removeItem('pomodoroTimer');
+      saveTimerStateToLocalStorage();
     };
 
     const endSession = (endedAt = new Date()) => {
@@ -331,7 +435,9 @@ export default {
     // Persist running and paused timers so a reload resumes the same session.
     const saveTimerStateToLocalStorage = () => {
       if (!isRunning.value && !sessionStartTime.value && time.value === initialTime.value) {
-        localStorage.removeItem('pomodoroTimer');
+        // Untouched timer: only remember a lined-up break across reloads.
+        if (currentTimerType.value === 'pomodoro') localStorage.removeItem('pomodoroTimer');
+        else localStorage.setItem('pomodoroTimer', JSON.stringify({ currentTimerType: currentTimerType.value }));
         return;
       }
       localStorage.setItem(
@@ -377,9 +483,8 @@ export default {
         runInterval();
         endTime = stored.endTime;
       } else {
-        // Finished while the page was closed: record it, then start fresh.
+        // Finished while the page was closed: record it and line up the next timer.
         completeTimer(new Date(stored.endTime), { silent: true });
-        updateTimerFromSettings();
       }
     };
 
@@ -408,6 +513,11 @@ export default {
       toggleTimer,
       resetTimer,
       selectedLabel,
+      justFinished,
+      announcement,
+      completedPomodoros,
+      cycleProgress,
+      LONG_BREAK_INTERVAL,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
@@ -443,5 +553,25 @@ export default {
 .active-button {
     background-color: white;
     color: black;
+}
+
+.timer-done {
+    animation: timer-done-pulse 1s ease-in-out 4;
+}
+
+@keyframes timer-done-pulse {
+    50% {
+        opacity: 0.35;
+        transform: scale(1.04);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .timer-done {
+        animation: none;
+        text-decoration: underline;
+        text-decoration-thickness: 4px;
+        text-underline-offset: 12px;
+    }
 }
 </style>
