@@ -10,7 +10,13 @@ export default {
     ],
 
     theme: {
-        extend: {},
+        extend: {
+            screens: {
+                // Landscape phones and the Discord Activity picture-in-picture
+                // view: keep the timer and its controls on screen.
+                short: { raw: '(max-height: 500px)' },
+            },
+        },
     },
 
     plugins: [forms],

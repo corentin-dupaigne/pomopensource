@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-4" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade flex space-x-4 mb-4 short:mb-2" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -38,7 +38,7 @@
         </div>
 
         <div
-            class="zen-fade flex items-center gap-2 mb-4 h-3"
+            class="zen-fade flex items-center gap-2 mb-4 h-3 short:mb-1"
             :class="{ 'zen-hidden': zenMode }"
             role="img"
             :aria-label="`${completedPomodoros} pomodoro${completedPomodoros === 1 ? '' : 's'} completed today`"
@@ -54,7 +54,7 @@
 
         <div
             id="timerDisplay"
-            class="text-9xl font-oswald font-bold mb-8"
+            class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
             :class="{ 'timer-done': justFinished }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
@@ -63,7 +63,7 @@
         </div>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
-        <div class="flex space-x-4 mb-8 cent">
+        <div class="flex space-x-4 mb-8 short:mb-3">
             <button
                 @click="toggleTimer"
                 id="stop-start-button"

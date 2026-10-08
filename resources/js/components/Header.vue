@@ -1,10 +1,10 @@
 <template>
-    <header class="flex justify-between items-center py-6 px-6 md:px-24 mb-16">
+    <header class="flex justify-between items-center py-6 px-6 md:px-24 mb-16 short:py-2 short:mb-2">
         <div class="flex items-center space-x-2">
             <img
                 src="/images/logo.webp"
                 alt="Pomopensource Logo"
-                class="h-16 md:h-20" />
+                class="h-16 md:h-20 short:h-10" />
         </div>
         <nav class="flex space-x-3" aria-label="Main navigation">
             <button
