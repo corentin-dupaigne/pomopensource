@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="zen-fade hide-when-minimal flex space-x-4 mb-8 short:mb-3" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -40,7 +40,7 @@
         <div
             id="timerDisplay"
             class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-3"
-            :class="{ 'timer-done': justFinished }"
+            :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
         >
@@ -71,13 +71,13 @@
             v-if="!isRunning && currentTimerType === 'pomodoro'"
             v-model="selectedId"
             :projects="projects"
-            class="mb-4"
+            class="hide-when-minimal mb-4"
         />
 
         <!-- Selected context label while running -->
         <div
             v-if="isRunning && currentTimerType === 'pomodoro' && selectedId"
-            class="mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
+            class="hide-when-minimal mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
             aria-live="polite"
         >
             <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[10px]'" class="text-white/35" aria-hidden="true"></i>
@@ -92,7 +92,7 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled } from '../composables/settings.js';
-import { setPresence, timerPresence } from '../discord.js';
+import { setPresence, timerPresence, isDiscordActivity } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -502,6 +502,7 @@ export default {
       selectedLabel,
       justFinished,
       announcement,
+      isDiscordActivity,
       projects: computed(() => props.projects),
       settings: computed(() => props.settings)
     };
@@ -537,6 +538,12 @@ export default {
 .active-button {
     background-color: white;
     color: black;
+}
+
+/* Inside Discord the frame can be anything from a phone to a large window. */
+.timer-fluid {
+    font-size: clamp(3rem, min(26vw, 24vh), 8rem);
+    line-height: 1;
 }
 
 .timer-done {

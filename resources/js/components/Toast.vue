@@ -1,6 +1,6 @@
 <template>
     <div
-        class="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"
+        class="toast-stack fixed z-[100] flex flex-col gap-2 pointer-events-none"
         aria-live="polite"
         aria-atomic="false"
     >
@@ -35,6 +35,11 @@ export default {
 </script>
 
 <style scoped>
+.toast-stack {
+    top: calc(1rem + var(--sait));
+    right: calc(1rem + var(--sair));
+}
+
 .toast-enter-active,
 .toast-leave-active {
     transition: all 0.3s ease;

@@ -3,3 +3,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Areas covered by Discord's own controls when running as an Activity on
+ * mobile, falling back to the device's safe areas. Both are 0 on a regular
+ * desktop browser.
+ */
+:root {
+    --sait: var(--discord-safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --saib: var(--discord-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --sail: var(--discord-safe-area-inset-left, env(safe-area-inset-left, 0px));
+    --sair: var(--discord-safe-area-inset-right, env(safe-area-inset-right, 0px));
+}
+
+.safe-area {
+    padding: var(--sait) var(--sair) var(--saib) var(--sail);
+}

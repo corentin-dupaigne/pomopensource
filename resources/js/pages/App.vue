@@ -1,22 +1,31 @@
 <template>
-    <div class="app min-h-screen flex flex-col">
+    <!-- Inside Discord the app fills the frame exactly: no page scroll. -->
+    <div class="app safe-area flex flex-col" :class="isDiscordActivity ? ['activity h-[100dvh] overflow-hidden', { minimal: isSmallLayout(discordLayoutMode) }] : 'min-h-screen'">
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
         <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
 
-        <div class="header zen-fade" :class="{ 'zen-hidden': zenMode }">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" />
+        <div class="header zen-fade hide-when-minimal" :class="{ 'zen-hidden': zenMode }">
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" />
         </div>
 
         <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
-            <ProjectsAndTasks :projects="projects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
+            <ProjectsAndTasks
+                :projects="projects"
+                :settings="settings"
+                :isAuthenticated="isAuthenticated"
+                :zenMode="zenMode"
+                :asPanel="isDiscordActivity"
+                :panelOpen="showProjectsPanel"
+                @closePanel="showProjectsPanel = false"
+            />
         </main>
 
         <!-- Zen toggle: always bottom-right -->
         <button
             @click="toggleZen"
             :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
-            class="fixed bottom-6 right-6 z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            class="zen-toggle hide-when-minimal fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
         >
             <i :class="zenMode ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
             <span v-if="!zenMode" class="text-sm font-inter">zen</span>
@@ -37,7 +46,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { startDiscordActivity } from '../discord.js';
+import { startDiscordActivity, isDiscordActivity, discordLayoutMode, isSmallLayout } from '../discord.js';
 
 export default {
     components: {
@@ -65,6 +74,7 @@ export default {
     setup(props) {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
+        const showProjectsPanel = ref(false);
         const zenMode = ref(false);
 
         const toggleZen = () => { zenMode.value = !zenMode.value; };
@@ -178,6 +188,10 @@ export default {
             isAuthenticated,
             zenMode,
             toggleZen,
+            showProjectsPanel,
+            isDiscordActivity,
+            discordLayoutMode,
+            isSmallLayout,
         };
     },
 };
@@ -224,6 +238,34 @@ export default {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+}
+
+/*
+ * Picture-in-picture and grid tiles in a Discord call: show only the timer
+ * and its controls. The height query is a fallback for clients that don't
+ * report the layout mode.
+ */
+.app.activity.minimal .hide-when-minimal {
+    display: none;
+}
+
+.app.activity.minimal .timer-fluid {
+    font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
+}
+
+@media (max-height: 300px) {
+    .app.activity .hide-when-minimal {
+        display: none;
+    }
+
+    .app.activity .timer-fluid {
+        font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
+    }
+}
+
+.zen-toggle {
+    bottom: calc(1.5rem + var(--saib));
+    right: calc(1.5rem + var(--sair));
 }
 
 .main-content {

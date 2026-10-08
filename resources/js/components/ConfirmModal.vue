@@ -2,7 +2,7 @@
     <teleport to="body">
         <div
             v-if="visible"
-            class="fixed inset-0 bg-black/70 flex items-center justify-center z-[60]"
+            class="safe-area fixed inset-0 bg-black/70 flex items-center justify-center z-[60]"
             role="dialog"
             aria-modal="true"
             :aria-labelledby="labelId"
