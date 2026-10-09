@@ -17,31 +17,26 @@
         @manageProjects="$emit('openPanel')"
     />
 
-    <!-- On the website the list sits under the timer; in a Discord Activity it
-         opens as a panel from the header. -->
-    <teleport to="body" :disabled="!asPanel">
+    <!-- Managing projects is occasional: it opens as a sheet, from the header or
+         from the picker, instead of sitting under the timer. -->
+    <teleport to="body">
     <div
-        v-if="!asPanel || panelOpen"
-        :class="asPanel ? 'safe-area fixed inset-0 z-50 bg-black/70' : 'contents'"
-        :role="asPanel ? 'dialog' : null"
-        :aria-modal="asPanel ? 'true' : null"
-        :aria-label="asPanel ? 'Projects' : null"
+        v-if="panelOpen"
+        class="safe-area fixed inset-0 z-50 bg-black/70"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Projects"
         @keydown.esc="$emit('closePanel')"
     >
-    <!-- In the Activity: a sheet from the bottom on a phone, from the right otherwise. -->
-    <div :class="asPanel ? 'w-full h-full flex items-end justify-center sm:justify-end sm:items-stretch' : 'contents'" @click.self="$emit('closePanel')">
-    <div
-        class="zen-fade w-full shadow-lg"
-        :class="[{ 'zen-hidden': zenMode && !asPanel }, asPanel
-            ? 'max-h-[85%] sm:max-h-full sm:max-w-md px-4 py-5 overflow-y-auto bg-neutral-900/80 backdrop-blur-lg text-white rounded-t-2xl sm:rounded-none'
-            : ['max-w-3xl px-6 bg-white/10 rounded-lg', localProjects.length === 0 ? 'py-5' : 'py-8']]"
-    >
-        <div class="flex items-center justify-between" :class="asPanel ? 'mb-4' : 'mb-6'">
-            <h2 class="font-bold font-oswald text-white" :class="asPanel ? 'text-2xl' : 'text-3xl'">Projects</h2>
+    <!-- A sheet from the bottom on a phone, from the right otherwise. -->
+    <div class="w-full h-full flex items-end justify-center sm:justify-end sm:items-stretch" @click.self="$emit('closePanel')">
+    <div class="w-full max-h-[85%] sm:max-h-full sm:max-w-md px-4 py-5 overflow-y-auto bg-neutral-900/80 backdrop-blur-lg text-white rounded-t-2xl sm:rounded-none shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold font-oswald text-white">Projects</h2>
             <div class="flex items-center gap-4">
                 <!-- Renaming and deleting stay out of the way until asked for. -->
                 <button
-                    v-if="asPanel && localProjects.length > 0"
+                    v-if="localProjects.length > 0"
                     @click="editing = !editing"
                     :aria-pressed="editing"
                     class="px-3 py-1.5 rounded-full text-sm font-inter font-semibold transition"
@@ -54,7 +49,6 @@
                     <a href="/login" class="hover:text-white/60 transition underline">sign in to sync</a></template>
                 </span>
                 <button
-                    v-if="asPanel"
                     ref="closePanelRef"
                     @click="$emit('closePanel')"
                     aria-label="Close projects"
@@ -66,7 +60,7 @@
         </div>
 
         <!-- Add project form: a single row in the Activity panel -->
-        <form v-if="asPanel" @submit.prevent="addProject" class="flex gap-2 mb-4">
+        <form @submit.prevent="addProject" class="flex gap-2 mb-4">
             <input
                 v-model="newProjectName"
                 type="text"
@@ -85,31 +79,10 @@
             </button>
         </form>
 
-        <p v-if="asPanel && localProjects.length === 0" class="text-white/50 text-sm font-inter text-center py-4">
+        <p v-if="localProjects.length === 0" class="text-white/50 text-sm font-inter text-center py-4">
             Group your focus sessions by project, then pick one under the timer.
         </p>
 
-        <form v-else-if="!asPanel" @submit.prevent="addProject" class="mb-6">
-            <div class="mb-4">
-                <input
-                    v-model="newProjectName"
-                    type="text"
-                    placeholder="New project name"
-                    required
-                    aria-label="New project name"
-                    class="w-full py-3 px-4 bg-white/10 border border-white/30 rounded-lg text-center text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200"
-                >
-            </div>
-            <button
-                type="submit"
-                :disabled="isAddingProject"
-                aria-label="Add new project"
-                class="w-full py-3 border-2 border-dashed border-white rounded-lg text-center text-sm font-inter font-semibold text-white hover:bg-white/20 transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-                <i v-if="isAddingProject" class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                <span>{{ isAddingProject ? 'Adding...' : '+ Add Project' }}</span>
-            </button>
-        </form>
 
         <!-- Projects list -->
         <ul class="space-y-4" aria-label="Projects">
@@ -163,7 +136,6 @@ export default {
         settings: { type: Object },
         isAuthenticated: { type: [Number, Boolean], default: false },
         zenMode: { type: Boolean, default: false },
-        asPanel: { type: Boolean, default: false },
         panelOpen: { type: Boolean, default: false },
     },
     emits: ['closePanel', 'openPanel'],
@@ -186,9 +158,9 @@ export default {
             }
         };
 
-        // In the Activity, names are plain text until the user asks to edit.
+        // Names are plain text until the user asks to edit.
         const editing = ref(false);
-        const editable = computed(() => !props.asPanel || editing.value);
+        const editable = computed(() => editing.value);
 
         const closePanelRef = ref(null);
         watch(() => props.panelOpen, async (open) => {
