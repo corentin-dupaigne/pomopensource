@@ -1,12 +1,17 @@
 <template>
-    <div class="relative w-72 max-w-[calc(100vw-2rem)]" ref="containerRef">
+    <!-- Embedded: the left part of the session bar in Timer.vue, borderless and
+         sized to its label; the list keeps a usable width. -->
+    <div class="relative" :class="embedded ? 'shrink-0 max-w-[45%]' : 'w-72 max-w-[calc(100vw-2rem)]'" ref="containerRef">
         <!-- Trigger -->
         <button
             ref="triggerRef"
             @click="toggle"
             @keydown="handleTriggerKeydown"
             type="button"
-            class="w-full flex items-center justify-between px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg text-white hover:bg-white/20 transition duration-200 focus:outline-none focus:ring-1 focus:ring-white"
+            class="w-full flex items-center justify-between text-white transition duration-200 focus:outline-none"
+            :class="embedded
+                ? 'h-full pl-3 pr-2 py-2.5 short:py-2 rounded-l-lg hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-white'
+                : 'px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg hover:bg-white/20 focus:ring-1 focus:ring-white'"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
             aria-label="Select project for this session"
@@ -27,8 +32,8 @@
             <div
                 v-if="isOpen"
                 ref="listboxRef"
-                class="absolute left-0 right-0 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
-                :class="openUpward ? 'bottom-full mb-2' : 'top-full mt-2'"
+                class="absolute left-0 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
+                :class="[openUpward ? 'bottom-full mb-2' : 'top-full mt-2', embedded ? 'w-64 max-w-[calc(100vw-2rem)]' : 'right-0']"
                 :style="{ maxHeight: `${maxHeight}px` }"
                 role="listbox"
                 aria-label="Select project"
@@ -88,6 +93,7 @@ export default {
     props: {
         modelValue: { type: String, default: '' },
         projects: { type: Array, default: () => [] },
+        embedded: { type: Boolean, default: false },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
