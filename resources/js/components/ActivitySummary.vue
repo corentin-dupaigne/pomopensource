@@ -1,21 +1,21 @@
 <template>
   <div class="activity-summary bg-white/10 backdrop-blur-lg rounded-lg p-6 shadow-lg">
     <div class="grid grid-cols-3 gap-4">
-      <div class="stat-card text-center p-4 rounded-lg bg-white/10 shadow-md">
+      <div class="stat-card text-center p-4">
         <i class="fas fa-clock text-3xl mb-3 text-white"></i>
         <div>
           <p class="text-3xl font-bold text-white">{{ stats.hours_focused }}</p>
           <h3 class="text-sm font-medium text-white/70">hours focused</h3>
         </div>
       </div>
-      <div class="stat-card text-center p-4 rounded-lg bg-white/10 shadow-md">
+      <div class="stat-card text-center p-4">
         <i class="fas fa-calendar-alt text-3xl mb-3 text-white"></i>
         <div>
           <p class="text-3xl font-bold text-white">{{ stats.days_accessed }}</p>
           <h3 class="text-sm font-medium text-white/70">days accessed</h3>
         </div>
       </div>
-      <div class="stat-card text-center p-4 rounded-lg bg-white/10 shadow-md">
+      <div class="stat-card text-center p-4">
         <i class="fas fa-fire text-3xl mb-3 text-white"></i>
         <div>
           <p class="text-3xl font-bold text-white">{{ stats.day_streak }}</p>
@@ -45,12 +45,10 @@ export default {
   backdrop-filter: blur(10px);
 }
 
+/* Flat: the figures sit straight on the panel, without a box of their own. */
 .stat-card {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
   padding: 1rem;
   text-align: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .stat-card i {
