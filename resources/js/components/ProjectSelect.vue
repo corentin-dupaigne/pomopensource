@@ -1,12 +1,17 @@
 <template>
-    <div class="relative w-72 max-w-[calc(100vw-2rem)]" ref="containerRef">
+    <!-- Embedded: the left part of the session bar in Timer.vue, borderless and
+         sized to its label; the list keeps a usable width. -->
+    <div class="relative" :class="embedded ? 'shrink-0 max-w-[45%]' : 'w-72 max-w-[calc(100vw-2rem)]'" ref="containerRef">
         <!-- Trigger -->
         <button
             ref="triggerRef"
             @click="toggle"
             @keydown="handleTriggerKeydown"
             type="button"
-            class="w-full flex items-center justify-between px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg text-white hover:bg-white/20 transition duration-200 focus:outline-none focus:ring-1 focus:ring-white"
+            class="w-full flex items-center justify-between text-white transition duration-200 focus:outline-none"
+            :class="embedded
+                ? 'h-full pl-3 pr-2 py-2.5 short:py-2 rounded-l-lg hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-white'
+                : 'px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg hover:bg-white/20 focus:ring-1 focus:ring-white'"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
             aria-label="Select project for this session"
@@ -27,8 +32,8 @@
             <div
                 v-if="isOpen"
                 ref="listboxRef"
-                class="absolute left-0 right-0 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
-                :class="openUpward ? 'bottom-full mb-2' : 'top-full mt-2'"
+                class="absolute left-0 bg-neutral-900/90 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
+                :class="[openUpward ? 'bottom-full mb-2' : 'top-full mt-2', embedded ? 'w-64 max-w-[calc(100vw-2rem)]' : 'right-0']"
                 :style="{ maxHeight: `${maxHeight}px` }"
                 role="listbox"
                 aria-label="Select project"
@@ -69,9 +74,42 @@
                     </template>
                 </template>
 
-                <div v-else class="px-4 py-3 text-sm text-white/40 font-inter italic">
-                    No projects yet
-                </div>
+                <!-- Actions: make a project where it is picked, or manage them. -->
+                <template v-if="createProject">
+                    <div class="border-t border-white/10 mx-3 my-1" aria-hidden="true"></div>
+                    <form v-if="creating" @submit.prevent="create" class="px-2 py-1.5">
+                        <input
+                            ref="newNameRef"
+                            v-model="newName"
+                            @keydown.esc.stop.prevent="stopCreating"
+                            @keydown.stop
+                            type="text"
+                            maxlength="255"
+                            placeholder="Project name, then Enter"
+                            aria-label="New project name"
+                            :disabled="isCreating"
+                            class="w-full bg-white/10 border-0 rounded-md px-2.5 py-2 text-sm font-inter text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
+                        >
+                    </form>
+                    <button
+                        v-else
+                        @click="startCreating"
+                        type="button"
+                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                    >
+                        <i class="fas fa-plus text-white/50 text-xs w-3" aria-hidden="true"></i>
+                        <span>New project</span>
+                    </button>
+                    <button
+                        v-if="projects.length > 0"
+                        @click="manage"
+                        type="button"
+                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                    >
+                        <i class="fas fa-sliders-h text-white/50 text-xs w-3" aria-hidden="true"></i>
+                        <span>Manage projects…</span>
+                    </button>
+                </template>
             </div>
         </transition>
     </div>
@@ -88,8 +126,11 @@ export default {
     props: {
         modelValue: { type: String, default: '' },
         projects: { type: Array, default: () => [] },
+        embedded: { type: Boolean, default: false },
+        // async (name) => project | null; enables "New project" in the list.
+        createProject: { type: Function, default: null },
     },
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'manage'],
     setup(props, { emit }) {
         const isOpen = ref(false);
         const containerRef = ref(null);
@@ -111,6 +152,38 @@ export default {
         const selectedIcon = computed(() => {
             return props.modelValue ? 'fas fa-folder' : 'fas fa-infinity';
         });
+
+        const creating = ref(false);
+        const isCreating = ref(false);
+        const newName = ref('');
+        const newNameRef = ref(null);
+
+        const startCreating = async () => {
+            creating.value = true;
+            await nextTick();
+            newNameRef.value?.focus();
+        };
+
+        const stopCreating = () => {
+            creating.value = false;
+            newName.value = '';
+        };
+
+        // Creating a project from the picker also picks it.
+        const create = async () => {
+            if (!newName.value.trim() || isCreating.value) return;
+            isCreating.value = true;
+            const project = await props.createProject(newName.value);
+            isCreating.value = false;
+            if (!project) return;
+            stopCreating();
+            select('project:rbNiqBehszLPVzMmR_' + project.id);
+        };
+
+        const manage = () => {
+            close();
+            emit('manage');
+        };
 
         const getListItems = () =>
             Array.from(listboxRef.value?.querySelectorAll('button') ?? []);
@@ -136,7 +209,10 @@ export default {
             });
         };
 
-        const close = () => { isOpen.value = false; };
+        const close = () => {
+            isOpen.value = false;
+            stopCreating();
+        };
 
         const toggle = () => {
             if (isOpen.value) close();
@@ -193,6 +269,7 @@ export default {
 
         return {
             isOpen, containerRef, triggerRef, listboxRef, openUpward, maxHeight,
+            creating, isCreating, newName, newNameRef, startCreating, stopCreating, create, manage,
             selectedLabel, selectedIcon,
             toggle, close, select,
             handleTriggerKeydown, handleListKeydown,

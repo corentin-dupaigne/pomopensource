@@ -28,9 +28,7 @@
                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                 <span>not synced</span>
             </button>
-            <!-- The Activity has no room for the projects list under the timer. -->
             <button
-                v-if="isDiscordActivity"
                 @click="$emit('toggleProjects')"
                 aria-label="Open projects"
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"

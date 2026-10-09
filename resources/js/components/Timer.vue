@@ -91,36 +91,55 @@
             @cancel="confirmReset = false"
         />
 
-        <!-- Project selector -->
-        <ProjectSelect
-            v-if="!isRunning && currentTimerType === 'pomodoro'"
-            v-model="selectedId"
-            :projects="projects"
-            class="hide-when-minimal mb-4"
-        />
-
-        <!-- Selected context label while running -->
+        <!-- What this pomodoro is for: the project and a note, as one bar.
+             The note is kept from one pomodoro to the next: a long stretch on
+             the same thing should not mean typing it again. -->
         <div
-            v-if="isRunning && currentTimerType === 'pomodoro' && selectedId"
-            class="hide-when-minimal mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
-            aria-live="polite"
+            v-if="currentTimerType === 'pomodoro' && !isRunning"
+            class="hide-when-minimal mb-4 flex items-stretch w-[28rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
         >
-            <i class="fas fa-folder text-white/35" aria-hidden="true"></i>
-            <span>{{ selectedLabel }}</span>
+            <ProjectSelect
+                v-model="selectedId"
+                :projects="projects"
+                :createProject="createProject"
+                embedded
+                @manage="$emit('manageProjects')"
+            />
+            <span class="w-px my-2 bg-white/20" aria-hidden="true"></span>
+            <input
+                v-model="note"
+                @keydown.enter="$event.target.blur()"
+                type="text"
+                maxlength="255"
+                placeholder="What are you working on?"
+                aria-label="What are you working on? (optional note for this session)"
+                class="flex-1 min-w-0 bg-transparent border-0 px-3 py-2.5 short:py-2 text-sm text-white placeholder-white/60 focus:outline-none focus:ring-0"
+            >
         </div>
 
-        <!-- Kept from one pomodoro to the next: a long stretch on the same
-             thing should not mean typing it again. -->
-        <input
-            v-if="currentTimerType === 'pomodoro'"
-            v-model="note"
-            @keydown.enter="$event.target.blur()"
-            type="text"
-            maxlength="255"
-            placeholder="add a note (optional)"
-            aria-label="Note for this session"
-            class="hide-when-minimal w-72 max-w-[calc(100vw-2rem)] mb-4 bg-transparent border-0 border-b border-white/20 px-2 py-1 text-center text-sm text-white placeholder-white/40 focus:outline-none focus:ring-0 focus:border-white/70 hover:border-white/40 transition-colors"
+        <!-- While it runs: the same information as quiet text. The project is
+             locked; the note can still be edited. -->
+        <div
+            v-else-if="currentTimerType === 'pomodoro'"
+            class="hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
         >
+            <i :class="selectedId ? 'fas fa-folder' : 'fas fa-infinity'" class="text-white/40 text-xs" aria-hidden="true"></i>
+            <span class="truncate">{{ selectedLabel || 'General focus' }}</span>
+            <span class="text-white/30" aria-hidden="true">·</span>
+            <label class="group flex items-center gap-1.5 min-w-0 cursor-text">
+                <input
+                    v-model="note"
+                    @keydown.enter="$event.target.blur()"
+                    type="text"
+                    maxlength="255"
+                    :size="Math.min(Math.max(note.length, 10), 32)"
+                    placeholder="Add a note"
+                    aria-label="Note for this session"
+                    class="min-w-0 [field-sizing:content] bg-transparent border-0 border-b border-transparent p-0 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-0 focus:border-white/50 group-hover:border-white/30 transition-colors"
+                >
+                <i class="fas fa-pencil-alt text-[10px] text-white/40 group-hover:text-white/70" aria-hidden="true"></i>
+            </label>
+        </div>
     </div>
 </template>
 
@@ -213,8 +232,13 @@ export default {
     zenMode: {
       type: Boolean,
       default: false
+    },
+    createProject: {
+      type: Function,
+      default: null
     }
   },
+  emits: ['manageProjects'],
   setup(props) {
     const { error } = useToast();
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
