@@ -3,18 +3,24 @@
     <div class="grid grid-cols-3 gap-4">
       <div class="stat-card text-center p-4 rounded-lg bg-white/10 border border-white/20 shadow-md">
         <i class="fas fa-clock text-3xl mb-3 text-white"></i>
-        <p class="text-3xl font-bold text-white">{{ stats.hours_focused }}</p>
-        <h3 class="text-sm font-medium text-white/70">hours focused</h3>
+        <div>
+          <p class="text-3xl font-bold text-white">{{ stats.hours_focused }}</p>
+          <h3 class="text-sm font-medium text-white/70">hours focused</h3>
+        </div>
       </div>
       <div class="stat-card text-center p-4 rounded-lg bg-white/10 border border-white/20 shadow-md">
         <i class="fas fa-calendar-alt text-3xl mb-3 text-white"></i>
-        <p class="text-3xl font-bold text-white">{{ stats.days_accessed }}</p>
-        <h3 class="text-sm font-medium text-white/70">days accessed</h3>
+        <div>
+          <p class="text-3xl font-bold text-white">{{ stats.days_accessed }}</p>
+          <h3 class="text-sm font-medium text-white/70">days accessed</h3>
+        </div>
       </div>
       <div class="stat-card text-center p-4 rounded-lg bg-white/10 border border-white/20 shadow-md">
         <i class="fas fa-fire text-3xl mb-3 text-white"></i>
-        <p class="text-3xl font-bold text-white">{{ stats.day_streak }}</p>
-        <h3 class="text-sm font-medium text-white/70">day streak</h3>
+        <div>
+          <p class="text-3xl font-bold text-white">{{ stats.day_streak }}</p>
+          <h3 class="text-sm font-medium text-white/70">day streak</h3>
+        </div>
       </div>
     </div>
   </div>
@@ -61,5 +67,39 @@ export default {
   font-size: 0.875rem; /* sm */
   font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* Short frames: icon beside the figure, so the three fit in one slim row. */
+@media (max-height: 500px) {
+  .activity-summary {
+    padding: 0.5rem;
+  }
+
+  .grid {
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+
+  .stat-card i {
+    font-size: 1.25rem;
+    margin: 0;
+  }
+
+  .stat-card p {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .stat-card h3 {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
 }
 </style>

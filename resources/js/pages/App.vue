@@ -17,8 +17,12 @@
             <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" :notSynced="notSynced" />
         </div>
 
-        <main class="flex-1 flex flex-col items-center justify-center text-white main-content">
-            <Participants v-if="isDiscordActivity" class="hide-when-minimal mb-4 short:mb-2" />
+        <!-- In the Activity, scroll rather than cut off when the frame is too
+             short; "safe" keeps the top reachable while centred. -->
+        <main
+            class="flex-1 flex flex-col items-center text-white main-content"
+            :class="isDiscordActivity ? '[justify-content:safe_center] overflow-y-auto py-2' : 'justify-center'"
+        >
             <ProjectsAndTasks
                 :projects="accountProjects"
                 :settings="settings"
@@ -57,7 +61,6 @@ import Footer from '../components/Footer.vue';
 import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
-import Participants from '../components/Participants.vue';
 import axios from 'axios';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
@@ -69,7 +72,6 @@ export default {
         StatsModal,
         SettingsModal,
         Toast,
-        Participants,
     },
     props: {
         projects: {

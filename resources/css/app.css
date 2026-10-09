@@ -1,7 +1,4 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
-/* Bundled rather than loaded from Google Fonts: Discord's proxy blocks other origins. */
-@import '@fontsource-variable/oswald';
-@import '@fontsource-variable/inter';
 
 @tailwind base;
 @tailwind components;
@@ -24,12 +21,11 @@
 }
 
 /*
- * Inside Discord, borrow its accent colour for focus and the main action
- * so the Activity feels part of the client.
+ * Inside Discord, borrow its accent colour for focus outlines so the
+ * Activity feels part of the client.
  */
 :root {
     --discord-blurple: #5865f2;
-    --discord-blurple-hover: #4752c4;
 }
 
 .activity :focus-visible {
@@ -37,16 +33,10 @@
     outline-offset: 2px;
 }
 
-.activity .activity-primary {
-    background-color: var(--discord-blurple);
-    color: white;
-    border-color: transparent;
-}
-
-@media (hover: hover) {
-    .activity .activity-primary:hover {
-        background-color: var(--discord-blurple-hover);
-        color: white;
-        border-color: transparent;
-    }
+/*
+ * In the Activity the background shows through less: Discord's frame is
+ * small, and white text over a light, blurred image was hard to read.
+ */
+.activity .modal-surface {
+    background-color: rgb(23 23 23 / 0.85);
 }

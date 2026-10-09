@@ -1,7 +1,7 @@
 <template>
     <div
         v-if="participants.length > 0"
-        class="flex items-center gap-2 py-1 pl-1 pr-3 rounded-full bg-black/30 text-white text-sm font-inter"
+        class="flex items-center gap-2 min-w-0 py-1 pl-1 pr-3 rounded-full bg-black/30 text-white text-sm font-inter"
         :aria-label="label"
         role="group"
     >
@@ -18,7 +18,7 @@
                 class="w-7 h-7 rounded-full bg-white/20 ring-2 ring-black/40 flex items-center justify-center text-xs font-semibold"
             >+{{ hidden }}</span>
         </div>
-        <span>{{ label }}</span>
+        <span class="truncate">{{ label }}</span>
     </div>
 </template>
 
@@ -27,7 +27,7 @@ import { computed } from 'vue';
 import { discordSession } from '../discord.js';
 import DiscordAvatar from './DiscordAvatar.vue';
 
-const MAX_SHOWN = 5;
+const MAX_SHOWN = 3;
 
 export default {
     components: { DiscordAvatar },
@@ -39,10 +39,7 @@ export default {
             participants,
             shown: computed(() => participants.value.slice(0, MAX_SHOWN)),
             hidden: computed(() => Math.max(0, participants.value.length - MAX_SHOWN)),
-            label: computed(() => {
-                if (others.value === 0) return 'Just you so far';
-                return others.value === 1 ? 'You and 1 other' : `You and ${others.value} others`;
-            }),
+            label: computed(() => (others.value === 1 ? 'You and 1 other' : `You and ${others.value} others`)),
         };
     },
 };

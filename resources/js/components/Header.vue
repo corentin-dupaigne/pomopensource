@@ -10,6 +10,9 @@
                 src="/images/logo.webp"
                 alt="Pomopensource Logo"
                 class="h-16 md:h-20 short:h-10" />
+            <!-- With others in the call, show them here rather than in a row
+                 of their own: short frames need the height for the timer. -->
+            <Participants v-else-if="discordSession.participants.length > 1" />
             <template v-else-if="discordSession.user">
                 <DiscordAvatar :user="discordSession.user" :size="32" />
                 <span class="hidden sm:inline truncate text-sm font-inter font-semibold text-white">{{ displayName }}</span>
@@ -78,11 +81,12 @@
 import axios from 'axios';
 import { isDiscordActivity, discordSession, discordDisplayName } from '../discord.js';
 import DiscordAvatar from './DiscordAvatar.vue';
+import Participants from './Participants.vue';
 import { useToast } from '../composables/toast.js';
 
 export default {
     name: 'Header',
-    components: { DiscordAvatar },
+    components: { DiscordAvatar, Participants },
     data: () => ({ isDiscordActivity, discordSession }),
     computed: {
         displayName() {
@@ -117,6 +121,14 @@ export default {
     min-width: 2.75rem;
     min-height: 2.75rem;
     justify-content: center;
+}
+
+/* Short frames with a mouse (Discord on desktop) don't need touch sizes. */
+@media (max-height: 500px) and (pointer: fine) {
+    .activity-nav > button {
+        min-width: 2.25rem;
+        min-height: 2.25rem;
+    }
 }
 
 .activity-nav > button.not-synced {

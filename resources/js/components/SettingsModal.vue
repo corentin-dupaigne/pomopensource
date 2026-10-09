@@ -9,7 +9,7 @@
         <div
             ref="modalRef"
             tabindex="-1"
-            class="modal-content flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
+            class="modal-content modal-surface flex flex-col w-full max-w-2xl mx-4 p-4 sm:p-6 bg-white/10 backdrop-blur-lg rounded-lg shadow-xl transform transition-all duration-300 ease-in-out focus:outline-none"
             @keydown.esc="$emit('close')"
         >
             <div class="shrink-0 flex justify-between items-center pb-4 border-b border-white/20">
