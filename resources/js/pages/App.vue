@@ -31,6 +31,7 @@
                 :asPanel="isDiscordActivity"
                 :panelOpen="showProjectsPanel"
                 @closePanel="showProjectsPanel = false"
+                @openPanel="showProjectsPanel = true"
             />
         </main>
 

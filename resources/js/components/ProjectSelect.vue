@@ -74,9 +74,42 @@
                     </template>
                 </template>
 
-                <div v-else class="px-4 py-3 text-sm text-white/40 font-inter italic">
-                    No projects yet
-                </div>
+                <!-- Actions: make a project where it is picked, or manage them. -->
+                <template v-if="createProject">
+                    <div class="border-t border-white/10 mx-3 my-1" aria-hidden="true"></div>
+                    <form v-if="creating" @submit.prevent="create" class="px-2 py-1.5">
+                        <input
+                            ref="newNameRef"
+                            v-model="newName"
+                            @keydown.esc.stop.prevent="stopCreating"
+                            @keydown.stop
+                            type="text"
+                            maxlength="255"
+                            placeholder="Project name, then Enter"
+                            aria-label="New project name"
+                            :disabled="isCreating"
+                            class="w-full bg-white/10 border-0 rounded-md px-2.5 py-2 text-sm font-inter text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
+                        >
+                    </form>
+                    <button
+                        v-else
+                        @click="startCreating"
+                        type="button"
+                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                    >
+                        <i class="fas fa-plus text-white/50 text-xs w-3" aria-hidden="true"></i>
+                        <span>New project</span>
+                    </button>
+                    <button
+                        v-if="projects.length > 0"
+                        @click="manage"
+                        type="button"
+                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                    >
+                        <i class="fas fa-sliders-h text-white/50 text-xs w-3" aria-hidden="true"></i>
+                        <span>Manage projects…</span>
+                    </button>
+                </template>
             </div>
         </transition>
     </div>
@@ -94,8 +127,10 @@ export default {
         modelValue: { type: String, default: '' },
         projects: { type: Array, default: () => [] },
         embedded: { type: Boolean, default: false },
+        // async (name) => project | null; enables "New project" in the list.
+        createProject: { type: Function, default: null },
     },
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'manage'],
     setup(props, { emit }) {
         const isOpen = ref(false);
         const containerRef = ref(null);
@@ -117,6 +152,38 @@ export default {
         const selectedIcon = computed(() => {
             return props.modelValue ? 'fas fa-folder' : 'fas fa-infinity';
         });
+
+        const creating = ref(false);
+        const isCreating = ref(false);
+        const newName = ref('');
+        const newNameRef = ref(null);
+
+        const startCreating = async () => {
+            creating.value = true;
+            await nextTick();
+            newNameRef.value?.focus();
+        };
+
+        const stopCreating = () => {
+            creating.value = false;
+            newName.value = '';
+        };
+
+        // Creating a project from the picker also picks it.
+        const create = async () => {
+            if (!newName.value.trim() || isCreating.value) return;
+            isCreating.value = true;
+            const project = await props.createProject(newName.value);
+            isCreating.value = false;
+            if (!project) return;
+            stopCreating();
+            select('project:rbNiqBehszLPVzMmR_' + project.id);
+        };
+
+        const manage = () => {
+            close();
+            emit('manage');
+        };
 
         const getListItems = () =>
             Array.from(listboxRef.value?.querySelectorAll('button') ?? []);
@@ -142,7 +209,10 @@ export default {
             });
         };
 
-        const close = () => { isOpen.value = false; };
+        const close = () => {
+            isOpen.value = false;
+            stopCreating();
+        };
 
         const toggle = () => {
             if (isOpen.value) close();
@@ -199,6 +269,7 @@ export default {
 
         return {
             isOpen, containerRef, triggerRef, listboxRef, openUpward, maxHeight,
+            creating, isCreating, newName, newNameRef, startCreating, stopCreating, create, manage,
             selectedLabel, selectedIcon,
             toggle, close, select,
             handleTriggerKeydown, handleListKeydown,

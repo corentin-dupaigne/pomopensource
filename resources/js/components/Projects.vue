@@ -8,7 +8,14 @@
         @cancel="handleCancel"
     />
 
-    <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
+    <Timer
+        :projects="localProjects"
+        :settings="settings"
+        :isAuthenticated="isAuthenticated"
+        :zenMode="zenMode"
+        :createProject="createProject"
+        @manageProjects="$emit('openPanel')"
+    />
 
     <!-- On the website the list sits under the timer; in a Discord Activity it
          opens as a panel from the header. -->
@@ -159,7 +166,7 @@ export default {
         asPanel: { type: Boolean, default: false },
         panelOpen: { type: Boolean, default: false },
     },
-    emits: ['closePanel'],
+    emits: ['closePanel', 'openPanel'],
     setup(props) {
         const { success, error } = useToast();
 
@@ -213,24 +220,28 @@ export default {
 
         const handleCancel = () => { confirmDialog.visible = false; };
 
-        const addProject = async () => {
-            if (!newProjectName.value.trim()) return;
-            isAddingProject.value = true;
+        // Shared by the panel and the picker under the timer.
+        const createProject = async (rawName) => {
+            const name = rawName.trim();
+            if (!name) return null;
             try {
-                if (props.isAuthenticated) {
-                    const response = await axios.post('/projects', { name: newProjectName.value });
-                    localProjects.value.push(response.data);
-                } else {
-                    localProjects.value.push({ id: localId(), name: newProjectName.value.trim() });
-                    persistLocal();
-                }
-                newProjectName.value = '';
+                const project = props.isAuthenticated
+                    ? (await axios.post('/projects', { name })).data
+                    : { id: localId(), name };
+                localProjects.value.push(project);
+                persistLocal();
                 success('Project added');
+                return project;
             } catch (err) {
                 error('Failed to add project');
-            } finally {
-                isAddingProject.value = false;
+                return null;
             }
+        };
+
+        const addProject = async () => {
+            isAddingProject.value = true;
+            if (await createProject(newProjectName.value)) newProjectName.value = '';
+            isAddingProject.value = false;
         };
 
         const updateProject = async (project) => {
@@ -271,7 +282,7 @@ export default {
             localProjects, newProjectName,
             isAddingProject, confirmDialog,
             handleConfirm, handleCancel,
-            addProject, updateProject, cancelRename, openDeleteProject, renaming,
+            addProject, createProject, updateProject, cancelRename, openDeleteProject, renaming,
             isDiscordActivity, closePanelRef, editing, editable,
         };
     }

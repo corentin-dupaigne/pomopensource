@@ -98,7 +98,13 @@
             v-if="currentTimerType === 'pomodoro' && !isRunning"
             class="hide-when-minimal mb-4 flex items-stretch w-[28rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
         >
-            <ProjectSelect v-model="selectedId" :projects="projects" embedded />
+            <ProjectSelect
+                v-model="selectedId"
+                :projects="projects"
+                :createProject="createProject"
+                embedded
+                @manage="$emit('manageProjects')"
+            />
             <span class="w-px my-2 bg-white/20" aria-hidden="true"></span>
             <input
                 v-model="note"
@@ -226,8 +232,13 @@ export default {
     zenMode: {
       type: Boolean,
       default: false
+    },
+    createProject: {
+      type: Function,
+      default: null
     }
   },
+  emits: ['manageProjects'],
   setup(props) {
     const { error } = useToast();
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
