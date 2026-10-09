@@ -56,28 +56,33 @@ class UserStatsController extends Controller
     }
 
 
+    /**
+     * Consecutive days with a focus session, counted back from today. A day
+     * with no session yet today keeps yesterday's streak alive.
+     *
+     * Computed from the sessions on every call: the stored value used to be
+     * incremented on each request, so it grew every time stats were read.
+     */
     private function updateDayStreak(User $user, Stats $stats): void
     {
-        $lastSession = $user->focusedSessions()->latest('started_at')->first();
+        $days = $user->focusedSessions()
+            ->selectRaw('DATE(started_at) as day')
+            ->distinct()
+            ->pluck('day')
+            ->flip();
 
-        if (!$lastSession) {
-            $stats->day_streak = 0;
-            return;
+        $day = Carbon::today();
+        if (!$days->has($day->toDateString())) {
+            $day->subDay();
         }
 
-        $today = Carbon::today();
-        $yesterday = $today->copy()->subDay();
-        $lastSessionDate = $lastSession->started_at->startOfDay();
-        $oldestSessionDate = $user->focusedSessions()->oldest('started_at')->first()->started_at->startOfDay();
-
-        if ($lastSessionDate->lt($yesterday) || $oldestSessionDate->eq($today)) {
-            // Last session was before yesterday, reset streak
-            $stats->day_streak = 1;
-        } elseif ($lastSessionDate->eq($yesterday)) {
-            // Last session was yesterday, increment streak
-            $stats->day_streak++;
+        $streak = 0;
+        while ($days->has($day->toDateString())) {
+            $streak++;
+            $day->subDay();
         }
-        // If the last session was today, keep the current streak
+
+        $stats->day_streak = $streak;
     }
 
 
