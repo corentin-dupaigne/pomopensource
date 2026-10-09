@@ -27,7 +27,6 @@ class FocusedSessionSeeder extends Seeder
 
             FocusedSession::create([
                 'user_id' => $userId,
-                'task_id' => null,
                 'started_at' => $startTime,
                 'ended_at' => $endTime,
                 'minute_focused' => $minutesFocused,

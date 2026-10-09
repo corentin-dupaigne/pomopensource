@@ -13,7 +13,6 @@ class FocusedSession extends Model
     protected $fillable = [
         'user_id',
         'project_id',
-        'task_id',
         'started_at',
         'ended_at',
         'minute_focused',
@@ -36,11 +35,6 @@ class FocusedSession extends Model
     public function project(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Project::class);
-    }
-
-    public function task(): \Illuminate\Database\Eloquent\Relations\BelongsTo
-    {
-        return $this->belongsTo(Task::class);
     }
 
     protected static function booted()

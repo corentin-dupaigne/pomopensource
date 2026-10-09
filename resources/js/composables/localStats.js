@@ -1,4 +1,5 @@
 const LOCAL_SESSIONS_KEY = 'localSessions';
+const LOCAL_PROJECTS_KEY = 'localProjects';
 const PROJECT_PREFIX = 'project:rbNiqBehszLPVzMmR_';
 const TASK_PREFIX = 'task:rbNiqBehszLPVzMmR_';
 
@@ -25,6 +26,38 @@ export function addLocalSession(session) {
     const sessions = getLocalSessions();
     sessions.push(session);
     localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+/**
+ * Projects used to have tasks. Like the server's migration, a session spent
+ * on a task moves to the task's project, with the task's name as its note,
+ * and the tasks are dropped. Does nothing once done.
+ */
+export function foldLocalTasks() {
+    let projects;
+    try { projects = JSON.parse(localStorage.getItem(LOCAL_PROJECTS_KEY) || '[]'); }
+    catch { return; }
+    if (!projects.some((p) => 'tasks' in p || 'showTasks' in p)) return;
+
+    const taskOwners = {};
+    for (const project of projects) {
+        for (const task of project.tasks ?? []) {
+            taskOwners[String(task.id)] = { projectId: project.id, name: task.name };
+        }
+    }
+
+    const sessions = getLocalSessions().map((session) => {
+        if (!session.selectedId?.startsWith(TASK_PREFIX)) return session;
+        const owner = taskOwners[session.selectedId.slice(TASK_PREFIX.length)];
+        return {
+            ...session,
+            selectedId: owner ? PROJECT_PREFIX + owner.projectId : '',
+            note: session.note ?? owner?.name,
+        };
+    });
+
+    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+    localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(projects.map(({ id, name }) => ({ id, name }))));
 }
 
 export function computeStats(sessions) {
@@ -72,37 +105,14 @@ export function computeProjectStats(sessions, localProjects) {
             id: project.id,
             name: project.name,
             total_time_focused: 0,
-            tasks: (project.tasks || []).map(t => ({
-                id: t.id,
-                name: t.name,
-                time_focused: 0,
-            })),
         };
     }
 
-    for (const session of sessions) {
-        const { selectedId, duration_seconds = 0 } = session;
-        if (!selectedId || duration_seconds === 0) continue;
-
-        if (selectedId.startsWith(PROJECT_PREFIX)) {
-            const projectId = selectedId.slice(PROJECT_PREFIX.length);
-            if (projectMap[projectId]) {
-                projectMap[projectId].total_time_focused += duration_seconds;
-            }
-        } else if (selectedId.startsWith(TASK_PREFIX)) {
-            const taskId = selectedId.slice(TASK_PREFIX.length);
-            for (const project of Object.values(projectMap)) {
-                const task = project.tasks.find(t => String(t.id) === String(taskId));
-                if (task) {
-                    task.time_focused += duration_seconds;
-                    project.total_time_focused += duration_seconds;
-                    break;
-                }
-            }
-        }
+    for (const { selectedId, duration_seconds = 0 } of sessions) {
+        if (!selectedId?.startsWith(PROJECT_PREFIX)) continue;
+        const project = projectMap[selectedId.slice(PROJECT_PREFIX.length)];
+        if (project) project.total_time_focused += duration_seconds;
     }
 
-    return Object.values(projectMap).filter(
-        p => p.total_time_focused > 0 || p.tasks.some(t => t.time_focused > 0)
-    );
+    return Object.values(projectMap).filter((p) => p.total_time_focused > 0);
 }

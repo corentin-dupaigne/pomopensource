@@ -10,7 +10,7 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = auth()->user()->projects()->with('tasks')->get();
+        $projects = auth()->user()->projects()->get();
 
         return Inertia::render('App', ['projects' => $projects]);
     }
@@ -42,8 +42,6 @@ class ProjectController extends Controller
     public function destroy(Request $request, Project $project)
     {
         $this->authorizeOwner($request, $project);
-
-        $project->tasks()->delete();
 
         $project->delete();
     }

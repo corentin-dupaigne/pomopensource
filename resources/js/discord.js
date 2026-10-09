@@ -138,7 +138,7 @@ async function signIn(clientId) {
     return 'signed-in';
 }
 
-// Same key as ProjectsAndTasks uses for guests.
+// Same key as Projects uses for guests.
 const GUEST_PROJECTS_KEY = 'localProjects';
 
 /**
@@ -159,11 +159,6 @@ async function importGuestProjects() {
         while (remaining.length > 0) {
             const guest = remaining[0];
             const { data: project } = await axios.post('/projects', { name: guest.name });
-            project.tasks = [];
-            for (const task of guest.tasks ?? []) {
-                const { data: saved } = await axios.post(`/projects/${project.id}/tasks`, { name: task.name });
-                project.tasks.push(saved);
-            }
             imported.push(project);
             remaining.shift();
             localStorage.setItem(GUEST_PROJECTS_KEY, JSON.stringify(remaining));
@@ -235,7 +230,7 @@ const PRESENCE_DETAILS = {
     long_break: 'On a long break',
 };
 
-// Project and task names are deliberately left out: presence is visible to
+// Project names are deliberately left out: presence is visible to
 // the user's friends.
 export function timerPresence({ timerType, isRunning, isPaused, secondsLeft }) {
     if (isRunning) {

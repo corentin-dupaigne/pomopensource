@@ -91,7 +91,7 @@
             @cancel="confirmReset = false"
         />
 
-        <!-- Project / task selector -->
+        <!-- Project selector -->
         <ProjectSelect
             v-if="!isRunning && currentTimerType === 'pomodoro'"
             v-model="selectedId"
@@ -105,7 +105,7 @@
             class="hide-when-minimal mb-4 flex items-center justify-center gap-2 text-sm text-white/50 font-inter"
             aria-live="polite"
         >
-            <i :class="selectedId.startsWith('project:') ? 'fas fa-folder' : 'fas fa-circle text-[10px]'" class="text-white/35" aria-hidden="true"></i>
+            <i class="fas fa-folder text-white/35" aria-hidden="true"></i>
             <span>{{ selectedLabel }}</span>
         </div>
     </div>
@@ -210,7 +210,6 @@ export default {
     const playSound = ref(props.settings?.sound?.settings?.play_sound ?? 'true');
     const isRunning = ref(false);
     const timerInterval = ref(null);
-    const selectedTaskId = ref('');
     const selectedId = ref('');
     const sessionStartTime = ref(null);
     const currentTimerType = ref('pomodoro');
@@ -287,15 +286,8 @@ export default {
 
     const selectedLabel = computed(() => {
       if (!selectedId.value) return '';
-      for (const project of props.projects) {
-        if (selectedId.value === 'project:rbNiqBehszLPVzMmR_' + project.id) return project.name;
-        for (const task of project.tasks ?? []) {
-          if (selectedId.value === 'task:rbNiqBehszLPVzMmR_' + task.id) {
-            return `${project.name} › ${task.name}`;
-          }
-        }
-      }
-      return '';
+      const project = props.projects.find((p) => selectedId.value === 'project:rbNiqBehszLPVzMmR_' + p.id);
+      return project?.name ?? '';
     });
 
     const updateTimerFromSettings = () => {
@@ -407,19 +399,11 @@ export default {
       if (!props.isAuthenticated) return;
 
       const payload = {
-        project_id: null,
-        task_id: null,
+        project_id: selectedId.value.startsWith('project:rbNiqBehszLPVzMmR_')
+          ? extractAfterFirstUnderscore(selectedId.value)
+          : null,
         started_at: sessionStartTime.value
       };
-
-      if (selectedId.value) {
-        const selected = selectedId.value;
-        if (selected.startsWith('project:rbNiqBehszLPVzMmR_')) {
-          payload.project_id = extractAfterFirstUnderscore(selected);
-        } else if (selected.startsWith('task:rbNiqBehszLPVzMmR_')) {
-          payload.task_id = extractAfterFirstUnderscore(selected);
-        }
-      }
 
       axios
         .post('/focused-sessions', payload)
@@ -492,7 +476,6 @@ export default {
       }
 
       sessionStartTime.value = null;
-      selectedTaskId.value = '';
     };
 
     const alarmSoundUrl = () => {
@@ -569,7 +552,8 @@ export default {
       if (stored.currentTimerType) currentTimerType.value = stored.currentTimerType;
       updateTimerFromSettings();
       if (stored.initialTime) initialTime.value = stored.initialTime;
-      selectedId.value = stored.selectedId ?? '';
+      // Tasks were folded into their projects: a saved task is no longer picked.
+      selectedId.value = stored.selectedId?.startsWith('project:') ? stored.selectedId : '';
 
       if (stored.sessionStartTime) {
         sessionStartTime.value = new Date(stored.sessionStartTime);
@@ -707,7 +691,6 @@ export default {
       isRunning,
       formattedTime,
       currentTimerType,
-      selectedTaskId,
       selectedId,
       setTimer,
       toggleTimer,

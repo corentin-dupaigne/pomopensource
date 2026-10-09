@@ -105,95 +105,29 @@
         </form>
 
         <!-- Projects list -->
-        <ul class="space-y-4" aria-label="Projects">
-            <li v-for="project in localProjects" :key="project.id" class="bg-white/5 rounded-lg p-4">
-                <div class="flex items-center justify-between mb-2 gap-2">
-                    <h3 v-if="!editable" class="flex-1 min-w-0 truncate py-1 font-inter font-semibold text-white">{{ project.name }}</h3>
-                    <div v-else class="flex-1 group relative flex items-center gap-2 min-w-0">
-                        <input
-                            v-model="project.name"
-                            @blur="updateProject(project)"
-                            :aria-label="`Project name: ${project.name}`"
-                            class="flex-1 bg-transparent border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors min-w-0"
-                        >
-                        <i class="fas fa-pencil-alt text-white/30 text-xs group-hover:text-white/60 transition-colors shrink-0" aria-hidden="true"></i>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button
-                            @click="toggleTasksVisibility(project)"
-                            class="text-white/70 hover:text-white transition text-sm font-inter whitespace-nowrap"
-                            :aria-label="project.showTasks ? `Hide tasks for ${project.name}` : `Show tasks for ${project.name}`"
-                            :aria-expanded="project.showTasks"
-                        >
-                            <i :class="project.showTasks ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" class="mr-1" aria-hidden="true"></i>
-                            {{ project.showTasks ? 'Hide tasks' : 'Show tasks' }}
-                        </button>
-                        <button
-                            v-if="editable"
-                            @click="openDeleteProject(project.id, project.name)"
-                            class="text-red-400 hover:text-red-500 transition"
-                            :aria-label="`Delete project ${project.name}`"
-                        >
-                            <i class="fas fa-trash" aria-hidden="true"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tasks section -->
-                <div v-if="project.showTasks" class="mt-4">
-                    <form @submit.prevent="addTask(project)" class="mb-4">
-                        <div class="flex">
-                            <input
-                                v-model="newTaskNames[project.id]"
-                                type="text"
-                                placeholder="New task name"
-                                required
-                                :aria-label="`New task for ${project.name}`"
-                                class="flex-grow py-2 px-3 bg-white/10 border border-white/30 rounded-l-lg text-sm font-inter font-semibold text-white placeholder-white/70 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition duration-200"
-                            >
-                            <button
-                                type="submit"
-                                :disabled="isAddingTask[project.id]"
-                                :aria-label="`Add task to ${project.name}`"
-                                class="py-2 px-4 bg-white/20 border border-white/30 rounded-r-lg text-sm font-inter font-semibold text-white hover:bg-white/30 transition duration-200 disabled:opacity-50 flex items-center gap-1"
-                            >
-                                <i v-if="isAddingTask[project.id]" class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                <span>{{ isAddingTask[project.id] ? '' : 'Add task' }}</span>
-                            </button>
-                        </div>
-                    </form>
-
-                    <p v-if="project.tasks && project.tasks.length === 0" class="text-white/40 text-sm font-inter text-center py-2">
-                        No tasks yet.
-                    </p>
-
-                    <ul class="space-y-2" :aria-label="`Tasks for ${project.name}`">
-                        <li
-                            v-for="task in project.tasks"
-                            :key="task.id"
-                            class="flex items-center justify-between bg-white/5 rounded p-2 group"
-                        >
-                            <span v-if="!editable" class="flex-1 min-w-0 truncate text-white/90 font-inter">{{ task.name }}</span>
-                            <div v-else class="flex items-center gap-2 flex-1 min-w-0">
-                                <input
-                                    v-model="task.name"
-                                    @blur="updateTask(project, task)"
-                                    :aria-label="`Task name: ${task.name}`"
-                                    class="flex-1 bg-transparent text-white font-inter focus:outline-none border-b border-transparent hover:border-white/30 focus:border-white transition-colors min-w-0"
-                                >
-                                <i class="fas fa-pencil-alt text-white/20 text-xs group-hover:text-white/50 transition-colors shrink-0" aria-hidden="true"></i>
-                            </div>
-                            <button
-                                v-if="editable"
-                                @click="openDeleteTask(project, task.id, task.name)"
-                                class="text-red-400 hover:text-red-500 transition ml-2 shrink-0"
-                                :aria-label="`Delete task ${task.name}`"
-                            >
-                                <i class="fas fa-times" aria-hidden="true"></i>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+        <ul class="space-y-2" aria-label="Projects">
+            <li v-for="project in localProjects" :key="project.id" class="group flex items-center gap-2 bg-white/5 rounded-lg px-4 py-3">
+                <span v-if="!editable" class="flex-1 min-w-0 truncate py-1 font-inter font-semibold text-white">{{ project.name }}</span>
+                <template v-else>
+                    <input
+                        v-model="project.name"
+                        @keydown.enter.prevent="$event.target.blur()"
+                        @keydown.esc.stop="cancelRename(project, $event)"
+                        @focus="renaming[project.id] = project.name"
+                        @blur="updateProject(project)"
+                        :aria-label="`Project name: ${project.name}`"
+                        maxlength="255"
+                        class="flex-1 min-w-0 bg-transparent border-b border-white/30 py-1 px-2 text-white font-inter font-semibold focus:outline-none focus:border-white hover:border-white/60 transition-colors"
+                    >
+                    <i class="fas fa-pencil-alt text-white/30 text-xs group-hover:text-white/60 transition-colors shrink-0" aria-hidden="true"></i>
+                    <button
+                        @click="openDeleteProject(project.id, project.name)"
+                        class="w-8 h-8 shrink-0 flex items-center justify-center text-red-400 hover:text-red-500 transition"
+                        :aria-label="`Delete project ${project.name}`"
+                    >
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                </template>
             </li>
         </ul>
     </div>
@@ -209,6 +143,7 @@ import Timer from './Timer.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useToast } from '../composables/toast.js';
 import { isDiscordActivity } from '../discord.js';
+import { foldLocalTasks } from '../composables/localStats.js';
 
 const LOCAL_KEY = 'localProjects';
 let localIdCounter = Date.now();
@@ -233,6 +168,7 @@ export default {
             catch { return []; }
         };
 
+        if (!props.isAuthenticated) foldLocalTasks();
         const localProjects = ref(
             props.isAuthenticated ? [...props.projects] : loadLocal()
         );
@@ -258,9 +194,9 @@ export default {
         });
 
         const newProjectName = ref('');
-        const newTaskNames = reactive({});
         const isAddingProject = ref(false);
-        const isAddingTask = reactive({});
+        // Name before editing started, to put back on Escape or when cleared.
+        const renaming = reactive({});
 
         const confirmDialog = reactive({
             visible: false, title: '', message: '', confirmLabel: 'Delete', onConfirm: null
@@ -283,9 +219,9 @@ export default {
             try {
                 if (props.isAuthenticated) {
                     const response = await axios.post('/projects', { name: newProjectName.value });
-                    localProjects.value.push({ ...response.data, tasks: response.data.tasks ?? [], showTasks: false });
+                    localProjects.value.push(response.data);
                 } else {
-                    localProjects.value.push({ id: localId(), name: newProjectName.value.trim(), tasks: [], showTasks: false });
+                    localProjects.value.push({ id: localId(), name: newProjectName.value.trim() });
                     persistLocal();
                 }
                 newProjectName.value = '';
@@ -298,6 +234,11 @@ export default {
         };
 
         const updateProject = async (project) => {
+            const previous = renaming[project.id];
+            delete renaming[project.id];
+            project.name = project.name.trim();
+            if (!project.name && previous !== undefined) project.name = previous;
+            if (project.name === previous) return;
             if (props.isAuthenticated) {
                 try { await axios.patch(`/projects/${project.id}`, { name: project.name }); }
                 catch { error('Failed to update project'); }
@@ -306,8 +247,13 @@ export default {
             }
         };
 
+        const cancelRename = (project, event) => {
+            if (renaming[project.id] !== undefined) project.name = renaming[project.id];
+            event.target.blur();
+        };
+
         const openDeleteProject = (projectId, projectName) => {
-            showConfirm('Delete project', `Delete "${projectName}" and all its tasks? This cannot be undone.`, () => deleteProject(projectId));
+            showConfirm('Delete project', `Delete "${projectName}"? This cannot be undone.`, () => deleteProject(projectId));
         };
 
         const deleteProject = async (projectId) => {
@@ -321,62 +267,11 @@ export default {
             }
         };
 
-        const toggleTasksVisibility = (project) => {
-            project.showTasks = !project.showTasks;
-            persistLocal();
-        };
-
-        const addTask = async (project) => {
-            const taskName = newTaskNames[project.id]?.trim();
-            if (!taskName) return;
-            isAddingTask[project.id] = true;
-            try {
-                if (props.isAuthenticated) {
-                    const response = await axios.post(`/projects/${project.id}/tasks`, { name: taskName });
-                    project.tasks.push(response.data);
-                } else {
-                    project.tasks.push({ id: localId(), name: taskName });
-                    persistLocal();
-                }
-                newTaskNames[project.id] = '';
-                success('Task added');
-            } catch (err) {
-                error('Failed to add task');
-            } finally {
-                isAddingTask[project.id] = false;
-            }
-        };
-
-        const updateTask = async (project, task) => {
-            if (props.isAuthenticated) {
-                try { await axios.patch(`/tasks/${task.id}`, { name: task.name }); }
-                catch { error('Failed to update task'); }
-            } else {
-                persistLocal();
-            }
-        };
-
-        const openDeleteTask = (project, taskId, taskName) => {
-            showConfirm('Delete task', `Delete "${taskName}"? This cannot be undone.`, () => deleteTask(project, taskId));
-        };
-
-        const deleteTask = async (project, taskId) => {
-            try {
-                if (props.isAuthenticated) await axios.delete(`/tasks/${taskId}`);
-                project.tasks = project.tasks.filter(t => t.id !== taskId);
-                persistLocal();
-                success('Task deleted');
-            } catch (err) {
-                error('Failed to delete task');
-            }
-        };
-
         return {
-            localProjects, newProjectName, newTaskNames,
-            isAddingProject, isAddingTask, confirmDialog,
+            localProjects, newProjectName,
+            isAddingProject, confirmDialog,
             handleConfirm, handleCancel,
-            addProject, updateProject, openDeleteProject,
-            toggleTasksVisibility, addTask, updateTask, openDeleteTask,
+            addProject, updateProject, cancelRename, openDeleteProject, renaming,
             isDiscordActivity, closePanelRef, editing, editable,
         };
     }

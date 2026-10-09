@@ -9,7 +9,7 @@
             class="w-full flex items-center justify-between px-4 py-3 short:py-2 bg-white/10 backdrop-blur-sm border border-white/30 rounded-lg text-white hover:bg-white/20 transition duration-200 focus:outline-none focus:ring-1 focus:ring-white"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
-            aria-label="Select project or task for this session"
+            aria-label="Select project for this session"
         >
             <div class="flex items-center gap-2 min-w-0">
                 <i :class="selectedIcon" class="text-white/50 text-xs shrink-0" aria-hidden="true"></i>
@@ -31,7 +31,7 @@
                 :class="openUpward ? 'bottom-full mb-2' : 'top-full mt-2'"
                 :style="{ maxHeight: `${maxHeight}px` }"
                 role="listbox"
-                aria-label="Select project or task"
+                aria-label="Select project"
                 @keydown="handleListKeydown"
             >
                 <!-- General focus -->
@@ -66,21 +66,6 @@
                             <span>{{ project.name }}</span>
                         </button>
 
-                        <button
-                            v-for="task in project.tasks"
-                            :key="task.id"
-                            @click="select('task:rbNiqBehszLPVzMmR_' + task.id)"
-                            type="button"
-                            class="w-full text-left pl-11 pr-4 py-2 text-sm font-inter flex items-center gap-3 transition"
-                            :class="modelValue === 'task:rbNiqBehszLPVzMmR_' + task.id
-                                ? 'bg-white/20 text-white'
-                                : 'text-white/60 hover:bg-white/10 hover:text-white'"
-                            role="option"
-                            :aria-selected="modelValue === 'task:rbNiqBehszLPVzMmR_' + task.id"
-                        >
-                            <i class="fas fa-circle text-white/25 text-[8px] w-3" aria-hidden="true"></i>
-                            <span>{{ task.name }}</span>
-                        </button>
                     </template>
                 </template>
 
@@ -119,19 +104,12 @@ export default {
                 if (props.modelValue === 'project:rbNiqBehszLPVzMmR_' + project.id) {
                     return project.name;
                 }
-                for (const task of project.tasks ?? []) {
-                    if (props.modelValue === 'task:rbNiqBehszLPVzMmR_' + task.id) {
-                        return `${project.name} › ${task.name}`;
-                    }
-                }
             }
             return 'General focus';
         });
 
         const selectedIcon = computed(() => {
-            if (!props.modelValue) return 'fas fa-infinity';
-            if (props.modelValue.startsWith('project:')) return 'fas fa-folder';
-            return 'fas fa-circle text-[8px]';
+            return props.modelValue ? 'fas fa-folder' : 'fas fa-infinity';
         });
 
         const getListItems = () =>

@@ -73,7 +73,7 @@ import axios from 'axios';
 import ActivitySummary from './ActivitySummary.vue';
 import Calendar from './Calendar.vue';
 import ActivityDetail from './ActivityDetail.vue';
-import { getLocalSessions, computeStats, computeCalendarData, computeProjectStats } from '../composables/localStats.js';
+import { getLocalSessions, computeStats, computeCalendarData, computeProjectStats, foldLocalTasks } from '../composables/localStats.js';
 
 export default {
     components: {
@@ -111,6 +111,7 @@ export default {
         };
 
         const loadLocalStats = () => {
+            foldLocalTasks();
             const sessions = getLocalSessions();
             const computed = computeStats(sessions);
             stats.value = computed;
