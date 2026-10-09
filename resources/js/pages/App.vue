@@ -1,9 +1,9 @@
 <template>
     <!-- Inside Discord the app fills the frame exactly: no page scroll. -->
-    <div class="app safe-area flex flex-col" :class="isDiscordActivity ? ['activity h-[100dvh] overflow-hidden', { minimal: isSmallLayout(discordLayoutMode) }] : 'min-h-screen'">
+    <div class="app safe-area flex flex-col" :class="[isDiscordActivity ? ['activity h-[100dvh] overflow-hidden', { minimal: isSmallLayout(discordLayoutMode) }] : 'min-h-screen', { quiet }]">
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'a' }" :style="{ backgroundImage: bgA }"></div>
         <div class="bg-layer" :class="{ 'bg-layer-active': activeLayer === 'b' }" :style="{ backgroundImage: bgB }"></div>
-        <div class="background-overlay" :class="{ 'overlay-zen': zenMode }"></div>
+        <div class="background-overlay"></div>
 
         <!-- Rendered only once the Activity knows who is signed in, so guest
              data never flashes before the account's. -->
@@ -13,7 +13,7 @@
         </div>
 
         <template v-else>
-        <div class="header zen-fade hide-when-minimal" :class="{ 'zen-hidden': zenMode }">
+        <div class="header quiet-fade hide-when-minimal">
             <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" :notSynced="notSynced" />
         </div>
 
@@ -27,23 +27,23 @@
                 :projects="accountProjects"
                 :settings="settings"
                 :isAuthenticated="isAuthenticated"
-                :zenMode="zenMode"
                 :panelOpen="showProjectsPanel"
                 @closePanel="showProjectsPanel = false"
                 @openPanel="showProjectsPanel = true"
             />
         </main>
 
-        <!-- Zen toggle: always bottom-right. Not in the Activity, where it sat
-             under Discord's call controls and Discord has its own focus view. -->
+        <!-- Real full screen, where the browser allows it. Not in the Activity,
+             whose frame Discord can make full screen itself. -->
         <button
-            v-if="!isDiscordActivity"
-            @click="toggleZen"
-            :aria-label="zenMode ? 'Exit zen mode' : 'Enter zen mode'"
-            class="zen-toggle hide-when-minimal fixed z-10 flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            v-if="canFullscreen"
+            @click="toggleFullscreen"
+            :aria-label="isFullscreen ? 'Exit full screen' : 'Full screen'"
+            :title="isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'"
+            class="fullscreen-toggle quiet-fade fixed z-10 flex items-center gap-1.5 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
         >
-            <i :class="zenMode ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
-            <span v-if="!zenMode" class="text-sm font-inter">zen</span>
+            <i :class="isFullscreen ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
+            <span class="text-sm font-inter">{{ isFullscreen ? 'exit full screen' : 'full screen' }}</span>
         </button>
 
         <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
@@ -62,7 +62,8 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { settingsSaved, settingsCategories } from '../composables/settings.js';
+import { settingsSaved, settingsCategories, isEnabled } from '../composables/settings.js';
+import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
 export default {
@@ -92,9 +93,7 @@ export default {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
         const showProjectsPanel = ref(false);
-        const zenMode = ref(false);
 
-        const toggleZen = () => { zenMode.value = !zenMode.value; };
         const backgroundImage = ref(localStorage.getItem('userBackground') || '');
         // In the Activity, the Discord sign-in decides which account is used.
         const ready = computed(() => discordSession.status !== 'connecting');
@@ -103,6 +102,38 @@ export default {
         const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
         const notSynced = computed(() => discordSession.expired || (discordSession.status === 'guest' && !props.isAuthenticated));
         const settings = ref({});
+
+        const canFullscreen = !isDiscordActivity && document.fullscreenEnabled;
+        const isFullscreen = ref(false);
+        const toggleFullscreen = () => {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else document.documentElement.requestFullscreen().catch(() => {});
+        };
+        const syncFullscreen = () => { isFullscreen.value = Boolean(document.fullscreenElement); };
+
+        // F toggles full screen, unless typing or a window is open.
+        const handleKeydown = (e) => {
+            if (!canFullscreen || e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey) return;
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+            if (showStatsModal.value || showSettingsModal.value || showProjectsPanel.value) return;
+            e.preventDefault();
+            toggleFullscreen();
+        };
+        onMounted(() => {
+            document.addEventListener('keydown', handleKeydown);
+            document.addEventListener('fullscreenchange', syncFullscreen);
+        });
+        onUnmounted(() => {
+            document.removeEventListener('keydown', handleKeydown);
+            document.removeEventListener('fullscreenchange', syncFullscreen);
+        });
+
+        // Hide everything but the time while focusing, unless turned off or a
+        // window is open.
+        const quiet = useQuietWhileFocusing({
+            enabled: computed(() => isEnabled(settings.value?.timers?.settings?.hide_controls_while_focusing ?? true)),
+            blocked: computed(() => showStatsModal.value || showSettingsModal.value || showProjectsPanel.value),
+        });
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
         const bgA = ref(initialBg);
@@ -185,11 +216,6 @@ export default {
             }
         });
 
-        const handleKeydown = (e) => {
-            if (e.key === 'Escape' && zenMode.value && !showStatsModal.value && !showSettingsModal.value) {
-                zenMode.value = false;
-            }
-        };
 
         loadSettingsFromStorage();
 
@@ -199,8 +225,6 @@ export default {
             await startDiscordActivity(props.discordClientId);
             loadAccountData();
         });
-        onMounted(() => document.addEventListener('keydown', handleKeydown));
-        onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 
         return {
             showStatsModal,
@@ -216,8 +240,10 @@ export default {
             accountProjects,
             ready,
             notSynced,
-            zenMode,
-            toggleZen,
+            quiet,
+            canFullscreen,
+            isFullscreen,
+            toggleFullscreen,
             showProjectsPanel,
             isDiscordActivity,
             discordLayoutMode,
@@ -255,18 +281,27 @@ export default {
     transition: background 0.8s ease;
 }
 
-.overlay-zen {
-    background: rgba(0, 0, 0, 0.15);
+/*
+ * Quiet while focusing: the controls marked quiet-fade fade out, and the
+ * cursor hides, until the user moves, taps or types.
+ */
+.quiet-fade {
+    transition: opacity 0.6s ease;
 }
 
-.zen-fade {
-    transition: opacity 0.4s ease, visibility 0.4s ease;
-}
-
-.zen-hidden {
+.app.quiet .quiet-fade {
     opacity: 0;
-    visibility: hidden;
     pointer-events: none;
+}
+
+.app.quiet {
+    cursor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quiet-fade {
+        transition: none;
+    }
 }
 
 /*
@@ -304,7 +339,7 @@ export default {
     }
 }
 
-.zen-toggle {
+.fullscreen-toggle {
     bottom: calc(1.5rem + var(--saib));
     right: calc(1.5rem + var(--sair));
 }

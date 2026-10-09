@@ -93,6 +93,15 @@ class SettingsSeeder extends Seeder
                 'default_value' => 'false',
                 'display_order' => 5,
             ],
+            [
+                'category_id' => 2,
+                'key' => 'hide_controls_while_focusing',
+                'name' => 'Hide controls while focusing',
+                'type' => 'checkbox',
+                'options' => null,
+                'default_value' => 'true',
+                'display_order' => 6,
+            ],
             // Sound settings
             [
                 'category_id' => 3,
