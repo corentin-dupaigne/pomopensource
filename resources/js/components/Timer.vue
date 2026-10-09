@@ -109,6 +109,19 @@
             <i class="fas fa-folder text-white/35" aria-hidden="true"></i>
             <span>{{ selectedLabel }}</span>
         </div>
+
+        <!-- Kept from one pomodoro to the next: a long stretch on the same
+             thing should not mean typing it again. -->
+        <input
+            v-if="currentTimerType === 'pomodoro'"
+            v-model="note"
+            @keydown.enter="$event.target.blur()"
+            type="text"
+            maxlength="255"
+            placeholder="add a note (optional)"
+            aria-label="Note for this session"
+            class="hide-when-minimal w-72 max-w-[calc(100vw-2rem)] mb-4 bg-transparent border-0 border-b border-white/20 px-2 py-1 text-center text-sm text-white placeholder-white/40 focus:outline-none focus:ring-0 focus:border-white/70 hover:border-white/40 transition-colors"
+        >
     </div>
 </template>
 
@@ -216,6 +229,7 @@ export default {
     const isRunning = ref(false);
     const timerInterval = ref(null);
     const selectedId = ref('');
+    const note = ref('');
     const sessionStartTime = ref(null);
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
@@ -463,14 +477,15 @@ export default {
       sessionStartRemaining = null;
 
       const selected = selectedId.value;
+      const sessionNote = note.value.trim() || null;
       const saveLocally = () => {
         if (duration <= 0) return;
-        addLocalSession({ date: toLocalDateString(endedAt), duration_seconds: duration, selectedId: selected });
+        addLocalSession({ date: toLocalDateString(endedAt), duration_seconds: duration, selectedId: selected, note: sessionNote });
       };
 
       if (props.isAuthenticated) {
         axios
-          .patch('/focused-sessions/current', { ended_at: endedAt, time_focused: duration })
+          .patch('/focused-sessions/current', { ended_at: endedAt, time_focused: duration, note: sessionNote })
           .catch((err) => {
             // Keep the time on this device rather than losing it.
             console.error('Error ending session', err);
@@ -544,12 +559,17 @@ export default {
           initialTime: initialTime.value,
           currentTimerType: currentTimerType.value,
           sessionStartTime: sessionStartTime.value,
-          selectedId: selectedId.value
+          selectedId: selectedId.value,
+          note: note.value
         })
       );
     };
 
-    watch(selectedId, () => {
+    // A note is about one project: picking another starts a blank one.
+    // Synchronous, so restoring a saved project and its note keeps the note.
+    watch(selectedId, () => { note.value = ''; }, { flush: 'sync' });
+
+    watch([selectedId, note], () => {
       if (sessionStartTime.value) saveTimerStateToLocalStorage();
     });
 
@@ -559,6 +579,7 @@ export default {
       if (stored.initialTime) initialTime.value = stored.initialTime;
       // Tasks were folded into their projects: a saved task is no longer picked.
       selectedId.value = stored.selectedId?.startsWith('project:') ? stored.selectedId : '';
+      note.value = stored.note ?? '';
 
       if (stored.sessionStartTime) {
         sessionStartTime.value = new Date(stored.sessionStartTime);
@@ -697,6 +718,7 @@ export default {
       formattedTime,
       currentTimerType,
       selectedId,
+      note,
       setTimer,
       toggleTimer,
       resetTimer,
