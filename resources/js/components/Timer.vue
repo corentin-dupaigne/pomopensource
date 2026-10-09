@@ -129,7 +129,7 @@
                     :size="Math.min(Math.max(note.length, 10), 32)"
                     placeholder="Add a note"
                     aria-label="Note for this session"
-                    class="min-w-0 bg-transparent border-0 border-b border-transparent p-0 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-0 focus:border-white/50 group-hover:border-white/30 transition-colors"
+                    class="min-w-0 [field-sizing:content] bg-transparent border-0 border-b border-transparent p-0 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-0 focus:border-white/50 group-hover:border-white/30 transition-colors"
                 >
                 <i class="fas fa-pencil-alt text-[10px] text-white/40 group-hover:text-white/70" aria-hidden="true"></i>
             </label>
