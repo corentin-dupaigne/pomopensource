@@ -30,6 +30,8 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $this->authorizeOwner($request, $project);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -39,8 +41,19 @@ class ProjectController extends Controller
 
     public function destroy(Request $request, Project $project)
     {
+        $this->authorizeOwner($request, $project);
+
         $project->tasks()->delete();
 
         $project->delete();
+    }
+
+    /**
+     * Route model binding finds any user's project: answer as if someone
+     * else's did not exist.
+     */
+    private function authorizeOwner(Request $request, Project $project): void
+    {
+        abort_unless((int) $project->user_id === $request->user()->id, 404);
     }
 }

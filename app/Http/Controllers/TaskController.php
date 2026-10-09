@@ -11,6 +11,8 @@ class TaskController extends Controller
 {
     public function store(Request $request, Project $project)
     {
+        abort_unless((int) $project->user_id === $request->user()->id, 404);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -22,6 +24,8 @@ class TaskController extends Controller
 
     public function update(Request $request, Task $task)
     {
+        $this->authorizeOwner($request, $task);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -31,8 +35,16 @@ class TaskController extends Controller
 
     public function destroy(Request $request, Task $task)
     {
-        $taskId = $task->id;
-        $projectId = $task->project_id;
+        $this->authorizeOwner($request, $task);
+
         $task->delete();
+    }
+
+    /**
+     * A task belongs to whoever owns its project.
+     */
+    private function authorizeOwner(Request $request, Task $task): void
+    {
+        abort_unless((int) $task->project?->user_id === $request->user()->id, 404);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FocusedSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class FocusedSessionController extends Controller
@@ -23,9 +24,16 @@ class FocusedSessionController extends Controller
 
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
         $validated = $request->validate([
-            'task_id' => 'nullable|exists:tasks,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'task_id' => [
+                'nullable',
+                Rule::exists('tasks', 'id')->where(fn ($query) => $query->whereIn(
+                    'project_id',
+                    fn ($projects) => $projects->select('id')->from('projects')->where('user_id', $userId)
+                )),
+            ],
+            'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'started_at' => 'required|date',
         ]);
 
