@@ -5,7 +5,7 @@ image:
   # Managed by .github/workflows/release.yml: pushing a vX.Y.Z tag rewrites
   # this to X.Y.Z on master, which is what triggers the Argo CD sync.
   # Do not set this back to a mutable tag.
-  tag: "1.7.1"
+  tag: "1.7.2"
 
 hostname: "pomopensource.corentindupaigne.com"
 
