@@ -62,7 +62,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { settingsSaved } from '../composables/settings.js';
+import { settingsSaved, settingsCategories } from '../composables/settings.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
 export default {
@@ -113,6 +113,7 @@ export default {
             try {
                 const response = await axios.get('/user-settings');
                 const rawData = response.data;
+                settingsCategories.value = rawData;
 
                 const transformedData = Array.from(rawData).reduce((acc, category) => {
                     acc[category.name.toLowerCase()] = {
