@@ -8,7 +8,7 @@
         @cancel="handleCancel"
     />
 
-    <Timer :projects="localProjects" :createProject="createProject" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
+    <Timer :projects="localProjects" :settings="settings" :isAuthenticated="isAuthenticated" :zenMode="zenMode"/>
 
     <!-- On the website the list sits under the timer; in a Discord Activity it
          opens as a panel from the header. -->
@@ -79,7 +79,7 @@
         </form>
 
         <p v-if="asPanel && localProjects.length === 0" class="text-white/50 text-sm font-inter text-center py-4">
-            Group your focus sessions by project: pick one under the timer, or add one there.
+            Group your focus sessions by project, then pick one under the timer.
         </p>
 
         <form v-else-if="!asPanel" @submit.prevent="addProject" class="mb-6">
@@ -105,8 +105,8 @@
         </form>
 
         <!-- Projects list -->
-        <ul class="space-y-2" aria-label="Projects">
-            <li v-for="project in localProjects" :key="project.id" class="group flex items-center gap-2 bg-white/5 rounded-lg px-4 py-3">
+        <ul class="space-y-4" aria-label="Projects">
+            <li v-for="project in localProjects" :key="project.id" class="group flex items-center gap-2 bg-white/5 rounded-lg p-4">
                 <span v-if="!editable" class="flex-1 min-w-0 truncate py-1 font-inter font-semibold text-white">{{ project.name }}</span>
                 <template v-else>
                     <input
@@ -213,32 +213,24 @@ export default {
 
         const handleCancel = () => { confirmDialog.visible = false; };
 
-        // Also used by the chips under the timer. Resolves to the project, or
-        // to null once the failure has been reported.
-        const createProject = async (name) => {
+        const addProject = async () => {
+            if (!newProjectName.value.trim()) return;
+            isAddingProject.value = true;
             try {
-                let project;
                 if (props.isAuthenticated) {
-                    ({ data: project } = await axios.post('/projects', { name }));
+                    const response = await axios.post('/projects', { name: newProjectName.value });
+                    localProjects.value.push(response.data);
                 } else {
-                    project = { id: localId(), name };
+                    localProjects.value.push({ id: localId(), name: newProjectName.value.trim() });
+                    persistLocal();
                 }
-                localProjects.value.push(project);
-                persistLocal();
+                newProjectName.value = '';
                 success('Project added');
-                return project;
             } catch (err) {
                 error('Failed to add project');
-                return null;
+            } finally {
+                isAddingProject.value = false;
             }
-        };
-
-        const addProject = async () => {
-            const name = newProjectName.value.trim();
-            if (!name) return;
-            isAddingProject.value = true;
-            if (await createProject(name)) newProjectName.value = '';
-            isAddingProject.value = false;
         };
 
         const updateProject = async (project) => {
@@ -279,7 +271,7 @@ export default {
             localProjects, newProjectName,
             isAddingProject, confirmDialog,
             handleConfirm, handleCancel,
-            addProject, createProject, updateProject, cancelRename, openDeleteProject, renaming,
+            addProject, updateProject, cancelRename, openDeleteProject, renaming,
             isDiscordActivity, closePanelRef, editing, editable,
         };
     }
