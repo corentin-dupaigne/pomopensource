@@ -92,11 +92,10 @@
         />
 
         <!-- Project selector -->
-        <ProjectChips
+        <ProjectSelect
             v-if="!isRunning && currentTimerType === 'pomodoro'"
             v-model="selectedId"
             :projects="projects"
-            :createProject="createProject"
             class="hide-when-minimal mb-4"
         />
 
@@ -133,7 +132,7 @@ import { addLocalSession, toLocalDateString } from '../composables/localStats.js
 import { isEnabled, settingsSaved } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
-import ProjectChips from './ProjectChips.vue';
+import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -197,14 +196,10 @@ const notifyTimerDone = (timerType) => {
 };
 
 export default {
-  components: { ProjectChips, ConfirmModal },
+  components: { ProjectSelect, ConfirmModal },
   props: {
     projects: {
       type: Array,
-      required: true
-    },
-    createProject: {
-      type: Function,
       required: true
     },
     settings: {
