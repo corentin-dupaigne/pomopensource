@@ -33,6 +33,19 @@
             />
         </main>
 
+        <!-- Real full screen, where the browser allows it. Not in the Activity,
+             whose frame Discord can make full screen itself. -->
+        <button
+            v-if="canFullscreen"
+            @click="toggleFullscreen"
+            :aria-label="isFullscreen ? 'Exit full screen' : 'Full screen'"
+            :title="isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'"
+            class="fullscreen-toggle quiet-fade fixed z-10 flex items-center gap-1.5 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+        >
+            <i :class="isFullscreen ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
+            <span class="text-sm font-inter">{{ isFullscreen ? 'exit full screen' : 'full screen' }}</span>
+        </button>
+
         <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
         <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
         </template>
@@ -89,6 +102,31 @@ export default {
         const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
         const notSynced = computed(() => discordSession.expired || (discordSession.status === 'guest' && !props.isAuthenticated));
         const settings = ref({});
+
+        const canFullscreen = !isDiscordActivity && document.fullscreenEnabled;
+        const isFullscreen = ref(false);
+        const toggleFullscreen = () => {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else document.documentElement.requestFullscreen().catch(() => {});
+        };
+        const syncFullscreen = () => { isFullscreen.value = Boolean(document.fullscreenElement); };
+
+        // F toggles full screen, unless typing or a window is open.
+        const handleKeydown = (e) => {
+            if (!canFullscreen || e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey) return;
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+            if (showStatsModal.value || showSettingsModal.value || showProjectsPanel.value) return;
+            e.preventDefault();
+            toggleFullscreen();
+        };
+        onMounted(() => {
+            document.addEventListener('keydown', handleKeydown);
+            document.addEventListener('fullscreenchange', syncFullscreen);
+        });
+        onUnmounted(() => {
+            document.removeEventListener('keydown', handleKeydown);
+            document.removeEventListener('fullscreenchange', syncFullscreen);
+        });
 
         // Hide everything but the time while focusing, unless turned off or a
         // window is open.
@@ -203,6 +241,9 @@ export default {
             ready,
             notSynced,
             quiet,
+            canFullscreen,
+            isFullscreen,
+            toggleFullscreen,
             showProjectsPanel,
             isDiscordActivity,
             discordLayoutMode,
@@ -296,6 +337,11 @@ export default {
     .app.activity .timer-fluid {
         font-size: clamp(2.5rem, min(30vw, 42vh), 8rem);
     }
+}
+
+.fullscreen-toggle {
+    bottom: calc(1.5rem + var(--saib));
+    right: calc(1.5rem + var(--sair));
 }
 
 .main-content {
