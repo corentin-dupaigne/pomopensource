@@ -59,6 +59,17 @@ class User extends Authenticatable
 
 
     /**
+     * Projects have no foreign key cascade, unlike the user's sessions,
+     * settings and stats: remove them with the account.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            $user->projects()->delete();
+        });
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
