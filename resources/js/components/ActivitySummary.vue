@@ -1,32 +1,23 @@
 <template>
-  <div class="activity-summary bg-white/10 backdrop-blur-lg rounded-lg p-6 shadow-lg">
-    <div class="grid grid-cols-3 gap-4">
-      <div class="stat-card text-center p-4">
-        <i class="fas fa-clock text-3xl mb-3 text-white"></i>
-        <div>
-          <p class="text-3xl font-bold text-white">{{ stats.hours_focused }}</p>
-          <h3 class="text-sm font-medium text-white/70">hours focused</h3>
-        </div>
-      </div>
-      <div class="stat-card text-center p-4">
-        <i class="fas fa-calendar-alt text-3xl mb-3 text-white"></i>
-        <div>
-          <p class="text-3xl font-bold text-white">{{ stats.days_accessed }}</p>
-          <h3 class="text-sm font-medium text-white/70">days accessed</h3>
-        </div>
-      </div>
-      <div class="stat-card text-center p-4">
-        <i class="fas fa-fire text-3xl mb-3 text-white"></i>
-        <div>
-          <p class="text-3xl font-bold text-white">{{ stats.day_streak }}</p>
-          <h3 class="text-sm font-medium text-white/70">day streak</h3>
-        </div>
-      </div>
+  <!-- The figure leads; a small icon and a muted label explain it. Hairline
+       dividers group the row without boxing each stat. -->
+  <dl class="activity-summary grid grid-cols-3 divide-x divide-white/10 rounded-xl bg-white/10 backdrop-blur-lg py-5 short:py-3">
+    <div v-for="stat in items" :key="stat.label" class="flex flex-col-reverse items-center gap-1 px-2 text-center">
+      <dt class="flex items-center gap-1.5 text-sm text-white/60">
+        <i :class="[stat.icon, stat.iconClass]" class="text-xs" aria-hidden="true"></i>
+        {{ stat.label }}
+      </dt>
+      <dd class="text-white tabular-nums">
+        <span class="text-3xl short:text-2xl font-bold">{{ stat.value }}</span>
+        <span class="ml-1 text-base short:text-sm font-medium text-white/60">{{ stat.unit }}</span>
+      </dd>
     </div>
-  </div>
+  </dl>
 </template>
 
 <script>
+const plural = (count, one, many) => (Number(count) === 1 ? one : many);
+
 export default {
   props: {
     stats: {
@@ -34,69 +25,16 @@ export default {
       required: true,
     },
   },
+  computed: {
+    items() {
+      const { hours_focused: hours, days_accessed: days, day_streak: streak } = this.stats;
+      return [
+        { label: 'Time focused', value: hours, unit: 'h', icon: 'fas fa-clock', iconClass: 'text-white/60' },
+        { label: 'Days active', value: days, unit: plural(days, 'day', 'days'), icon: 'fas fa-calendar-alt', iconClass: 'text-white/60' },
+        // The one accent in the row: the streak is the stat worth keeping up.
+        { label: 'Current streak', value: streak, unit: plural(streak, 'day', 'days'), icon: 'fas fa-fire', iconClass: 'text-orange-400' },
+      ];
+    },
+  },
 };
 </script>
-
-<style scoped>
-.activity-summary {
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  backdrop-filter: blur(10px);
-}
-
-/* Flat: the figures sit straight on the panel, without a box of their own. */
-.stat-card {
-  padding: 1rem;
-  text-align: center;
-}
-
-.stat-card i {
-  color: white;
-}
-
-.stat-card p {
-  font-size: 1.875rem; /* 3xl */
-  color: white;
-}
-
-.stat-card h3 {
-  font-size: 0.875rem; /* sm */
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Short frames: icon beside the figure, so the three fit in one slim row. */
-@media (max-height: 500px) {
-  .activity-summary {
-    padding: 0.5rem;
-  }
-
-  .grid {
-    gap: 0.5rem;
-  }
-
-  .stat-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    text-align: left;
-  }
-
-  .stat-card i {
-    font-size: 1.25rem;
-    margin: 0;
-  }
-
-  .stat-card p {
-    font-size: 1.25rem;
-    line-height: 1.2;
-  }
-
-  .stat-card h3 {
-    font-size: 0.75rem;
-    line-height: 1.2;
-  }
-}
-</style>
