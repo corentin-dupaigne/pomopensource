@@ -120,7 +120,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
-import { isEnabled } from '../composables/settings.js';
+import { isEnabled, settingsCategories as loadedCategories } from '../composables/settings.js';
 
 const debounce = (fn, delay) => {
     let timer;
@@ -140,17 +140,23 @@ export default {
         const isSaving = ref(false);
         const modalRef = ref(null);
 
+        const showCategories = (categories) => {
+            settingsCategories.value = categories;
+            if (categories.length > 0) activeCategory.value = categories[0].name;
+        };
+
         const fetchSettings = async () => {
             try {
                 const response = await axios.get('/user-settings');
-                settingsCategories.value = response.data;
-                if (settingsCategories.value.length > 0) {
-                    activeCategory.value = settingsCategories.value[0].name;
-                }
+                showCategories(response.data);
             } catch (err) {
                 error('Failed to load settings');
             }
         };
+
+        // A copy: a value edited but not saved (e.g. closed within the save
+        // delay) must not still show the next time the modal opens.
+        if (loadedCategories.value) showCategories(structuredClone(loadedCategories.value));
 
         const getActiveCategorySettings = () => {
             const category = settingsCategories.value.find(cat => cat.name === activeCategory.value);
@@ -174,7 +180,8 @@ export default {
         const debouncedSave = debounce(saveSetting, 500);
 
         onMounted(async () => {
-            await fetchSettings();
+            // Only before the page has loaded them, e.g. opened right away.
+            if (!loadedCategories.value) await fetchSettings();
             await nextTick();
             modalRef.value?.focus();
         });
