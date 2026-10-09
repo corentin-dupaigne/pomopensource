@@ -73,7 +73,7 @@
             </button>
             <button
                 @click="requestReset"
-                class="reset-button quiet-fade text-2xl"
+                class="reset-button text-2xl"
                 aria-label="Reset timer"
             >
                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
