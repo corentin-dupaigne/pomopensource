@@ -220,7 +220,7 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
 
 Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/developers/activities/overview). Users are signed in with their Discord account automatically, and their Discord status shows the timer.
 
-1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
+1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications). Under **General Information**, set the **Terms of Service URL** to `https://<your-host>/terms` and the **Privacy Policy URL** to `https://<your-host>/privacy`. Both pages show `CONTACT_EMAIL` as the contact address: set it to yours if you run your own instance.
 2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://127.0.0.1` as a redirect URI. Discord requires one, but Activities don't use it.
 3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`, and the prefix `/discord-cdn` to `cdn.discordapp.com` for avatars. Without the second mapping, avatars fall back to initials.
 4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.

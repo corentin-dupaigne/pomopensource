@@ -21,6 +21,11 @@
     <div class="z-10 w-full max-w-md mx-3 sm:mx-auto px-5 py-6 sm:px-8 bg-white/10 backdrop-blur-lg rounded-xl shadow-xl">
         {{ $slot }}
     </div>
+
+    <p class="z-10 mt-4 flex gap-4 text-xs text-white/50">
+        <a href="{{ route('privacy') }}" class="hover:text-white transition">Privacy</a>
+        <a href="{{ route('terms') }}" class="hover:text-white transition">Terms</a>
+    </p>
 </div>
 </body>
 </html>

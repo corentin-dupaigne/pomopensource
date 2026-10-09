@@ -111,6 +111,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Inside Discord, links can't leave the Activity's frame; Discord
+                 lists these pages on the app's profile instead. -->
+            <p v-if="!isDiscordActivity" class="shrink-0 flex gap-4 pt-3 border-t border-white/20 text-xs text-white/50">
+                <a href="/privacy" target="_blank" rel="noopener" class="hover:text-white transition">Privacy</a>
+                <a href="/terms" target="_blank" rel="noopener" class="hover:text-white transition">Terms</a>
+            </p>
         </div>
     </div>
 </template>
@@ -121,6 +128,7 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
 import { isEnabled, settingsCategories as loadedCategories } from '../composables/settings.js';
+import { isDiscordActivity } from '../discord.js';
 
 const debounce = (fn, delay) => {
     let timer;
@@ -199,6 +207,7 @@ export default {
             debouncedSave,
             themeImageUrl,
             isEnabled,
+            isDiscordActivity,
         };
     },
 };
