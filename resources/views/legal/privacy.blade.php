@@ -67,8 +67,9 @@
         A session cookie keeps you signed in. While your session is active, our server stores the
         IP address and browser user agent it was opened from, to keep the session secure. Like
         most web servers, it also logs requests (IP address, page requested, browser) to keep the
-        service running and investigate problems. These logs are kept only briefly. We use no
-        advertising or analytics cookies.
+        service running and investigate problems. These logs stay on our server, are rotated
+        away automatically as new ones are written, and are deleted at the latest when the service
+        is next updated. We use no advertising or analytics cookies.
     </p>
 
     <h2>Why we use it</h2>
@@ -93,8 +94,10 @@
             <a href="https://discord.com/privacy">privacy policy</a> applies to that.
         </li>
         <li>
-            <strong>Our hosting provider</strong>, which runs the server and database the service
-            uses, and processes data only to run them.
+            <strong>OVHcloud</strong>, a French hosting provider, from which we rent the virtual
+            server that runs the service and its database. We administer that server ourselves;
+            OVHcloud only provides the machine, under its own
+            <a href="https://www.ovhcloud.com/en/personal-data-protection/">data protection commitments</a>.
         </li>
     </ul>
     <p>We share nothing else, unless the law requires it.</p>
@@ -104,7 +107,7 @@
         <li>Your account and what you created: until you delete your account, or ask us to.</li>
         <li>Shared timers: about a day after the call ends.</li>
         <li>Sign-in sessions: until they expire or you sign out.</li>
-        <li>Server logs: briefly, for operating the service.</li>
+        <li>Server logs: until they are rotated away, and at the latest until the service is next updated.</li>
     </ul>
 
     <h2>Your rights</h2>
