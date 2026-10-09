@@ -18,10 +18,14 @@
         </div>
 
         <!-- In the Activity, scroll rather than cut off when the frame is too
-             short; "safe" keeps the top reachable while centred. -->
+             short; "safe" keeps the top reachable while centred. On the website,
+             padding puts the time itself in the middle of the window (see
+             centreTime). -->
         <main
-            class="flex-1 flex flex-col items-center text-white main-content"
-            :class="isDiscordActivity ? '[justify-content:safe_center] overflow-y-auto py-2' : 'justify-center'"
+            ref="mainRef"
+            class="flex-1 flex flex-col items-center text-white main-content [justify-content:safe_center]"
+            :class="{ 'overflow-y-auto py-2': isDiscordActivity }"
+            :style="isDiscordActivity ? null : { paddingTop: `${timePadding.top}px`, paddingBottom: `${timePadding.bottom}px` }"
         >
             <Projects
                 :projects="accountProjects"
@@ -54,7 +58,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import Header from '../components/Header.vue';
 import Projects from '../components/Projects.vue';
 import Footer from '../components/Footer.vue';
@@ -102,6 +106,52 @@ export default {
         const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
         const notSynced = computed(() => discordSession.expired || (discordSession.status === 'guest' && !props.isAuthenticated));
         const settings = ref({});
+
+        // On the website, put the time in the middle of the window. Content is
+        // centred below the header, so the header's height is mirrored as
+        // bottom padding; and there is more under the time (controls, session
+        // bar) than over it (tabs), so the difference is added on top. In a
+        // window too short for both, the padding shares the room left so the
+        // time gets as close to the middle as it can without the page
+        // scrolling. Nothing measured depends on the padding, so measuring
+        // again cannot loop.
+        const mainRef = ref(null);
+        const timePadding = ref({ top: 0, bottom: 0 });
+        const centreTime = () => {
+            const main = mainRef.value;
+            const time = main?.querySelector('#timerDisplay');
+            if (!time) return;
+            const block = time.parentElement.getBoundingClientRect();
+            const digits = time.getBoundingClientRect();
+            const middle = (digits.top + digits.bottom) / 2;
+            const above = middle - block.top;
+            const below = block.bottom - middle;
+            const headerSpace = main.offsetTop;
+            const room = Math.max(0, window.innerHeight - headerSpace - block.height);
+            let top = Math.max(0, below - above);
+            let bottom = headerSpace;
+            if (top + bottom > room) {
+                top = Math.min(room, Math.max(0, window.innerHeight / 2 - headerSpace - above));
+                bottom = room - top;
+            }
+            timePadding.value = { top, bottom };
+        };
+        let layoutObserver = null;
+        watch(mainRef, async (main) => {
+            layoutObserver?.disconnect();
+            if (!main || isDiscordActivity) return;
+            await nextTick();
+            const time = main.querySelector('#timerDisplay');
+            layoutObserver = new ResizeObserver(centreTime);
+            layoutObserver.observe(main.previousElementSibling);
+            if (time) layoutObserver.observe(time.parentElement);
+            window.addEventListener('resize', centreTime);
+            centreTime();
+        });
+        onUnmounted(() => {
+            layoutObserver?.disconnect();
+            window.removeEventListener('resize', centreTime);
+        });
 
         const canFullscreen = !isDiscordActivity && document.fullscreenEnabled;
         const isFullscreen = ref(false);
@@ -241,6 +291,8 @@ export default {
             ready,
             notSynced,
             quiet,
+            mainRef,
+            timePadding,
             canFullscreen,
             isFullscreen,
             toggleFullscreen,
