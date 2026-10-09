@@ -97,6 +97,44 @@ export function computeCalendarData(sessions) {
     }));
 }
 
+/**
+ * The sessions of one day for the day log, in the shape the server sends.
+ * Guest sessions have no id: their place in the list stands in for it.
+ * Sessions saved before the log existed have no start time; they keep the
+ * order they were saved in.
+ */
+export function computeDayLog(sessions, localProjects, date) {
+    const projects = Object.fromEntries(localProjects.map((p) => [String(p.id), p]));
+    return sessions
+        .map((session, index) => ({ session, index }))
+        .filter(({ session }) => session.date === date && session.duration_seconds > 0)
+        .map(({ session, index }) => {
+            const project = session.selectedId?.startsWith(PROJECT_PREFIX)
+                ? projects[session.selectedId.slice(PROJECT_PREFIX.length)]
+                : null;
+            return {
+                id: index,
+                started_at: session.started_at ?? null,
+                minutes_focused: Math.round(session.duration_seconds / 60),
+                project: project ? { id: project.id, name: project.name } : null,
+                note: session.note ?? null,
+            };
+        });
+}
+
+export function updateLocalSessionNotes(indexes, note) {
+    const sessions = getLocalSessions();
+    for (const index of indexes) {
+        if (sessions[index]) sessions[index].note = note;
+    }
+    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+export function getLocalProjects() {
+    try { return JSON.parse(localStorage.getItem(LOCAL_PROJECTS_KEY) || '[]'); }
+    catch { return []; }
+}
+
 export function computeProjectStats(sessions, localProjects) {
     const projectMap = {};
 

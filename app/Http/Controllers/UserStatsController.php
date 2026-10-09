@@ -184,6 +184,30 @@ class UserStatsController extends Controller
         ]);
     }
 
+    /**
+     * The sessions of one day, oldest first, for the day log. Days are
+     * grouped as in the calendar.
+     */
+    public function getDayLog(Request $request, string $date)
+    {
+        $sessions = $request->user()->focusedSessions()
+            ->with('project:id,name')
+            ->whereDate('started_at', $date)
+            ->whereNotNull('ended_at')
+            ->orderBy('started_at')
+            ->get();
+
+        return response()->json([
+            'sessions' => $sessions->map(fn ($session) => [
+                'id' => $session->id,
+                'started_at' => $session->started_at,
+                'minutes_focused' => $session->minute_focused,
+                'project' => $session->project?->only(['id', 'name']),
+                'note' => $session->note,
+            ]),
+        ]);
+    }
+
     public function getProjectStats(Request $request)
     {
         $projects = $request->user()->projects()

@@ -35,12 +35,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/focused-sessions', [FocusedSessionController::class, 'store'])->name('focused-sessions.store');
     Route::patch('/focused-sessions/current', [FocusedSessionController::class, 'update'])->name('focused-sessions.update');
     Route::get('/focused-sessions', [FocusedSessionController::class, 'index'])->name('focused-sessions.index');
+    Route::patch('/focused-sessions/notes', [FocusedSessionController::class, 'updateNotes'])->name('focused-sessions.notes');
 
     // Routes for User Stats
     Route::get('/user-stats', [UserStatsController::class, 'index'])->name('user-stats.index');
     Route::get('/user-stats/calendar/{year}', [UserStatsController::class, 'getCalendarData']);
     Route::get('/user-stats/calendar/{year}/{month}', [UserStatsController::class, 'getCalendarData']);
     Route::get('/user-stats/calendar/{year}/{month}/{day}', [UserStatsController::class, 'getCalendarData']);
+    Route::get('/user-stats/day/{date}', [UserStatsController::class, 'getDayLog'])
+        ->where('date', '\d{4}-\d{2}-\d{2}')
+        ->name('user-stats.day');
     Route::get('/projects-stats', [UserStatsController::class, 'getProjectStats'])->name('projects-stats');
 
     // The timer shared by everyone in a Discord Activity instance

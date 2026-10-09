@@ -478,9 +478,16 @@ export default {
 
       const selected = selectedId.value;
       const sessionNote = note.value.trim() || null;
+      const startedAt = sessionStartTime.value;
       const saveLocally = () => {
         if (duration <= 0) return;
-        addLocalSession({ date: toLocalDateString(endedAt), duration_seconds: duration, selectedId: selected, note: sessionNote });
+        addLocalSession({
+          date: toLocalDateString(endedAt),
+          started_at: startedAt ? new Date(startedAt).toISOString() : null,
+          duration_seconds: duration,
+          selectedId: selected,
+          note: sessionNote,
+        });
       };
 
       if (props.isAuthenticated) {
