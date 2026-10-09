@@ -62,6 +62,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
+import { settingsSaved } from '../composables/settings.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
 export default {
@@ -168,6 +169,7 @@ export default {
 
         const handleSettingsSaved = async () => {
             await Promise.all([fetchSettings(), fetchBackgroundImage()]);
+            settingsSaved.value++;
         };
 
         watch(backgroundImage, (newValue) => {

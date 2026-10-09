@@ -116,7 +116,7 @@ import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
-import { isEnabled } from '../composables/settings.js';
+import { isEnabled, settingsSaved } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
@@ -664,6 +664,21 @@ export default {
     };
 
     const sharedTimer = shared ? useSharedTimer(discordInstanceId, applySharedState) : null;
+
+    // A shared timer only takes durations with an action: after the user
+    // saves new durations, line up the call's timer again, unless it has been
+    // started (as the solo timer never overwrites a started timer either).
+    if (shared) {
+      let savedDurations = JSON.stringify(durationsFromSettings());
+      watch(settingsSaved, () => {
+        const durations = durationsFromSettings();
+        const changed = JSON.stringify(durations) !== savedDurations;
+        savedDurations = JSON.stringify(durations);
+        if (changed && !isRunning.value && time.value === initialTime.value) {
+          sharedTimer.send('reset', { durations });
+        }
+      });
+    }
     onUnmounted(() => {
       sharedTimer?.stop();
       clearInterval(timerInterval.value);
