@@ -46,6 +46,11 @@
                 :class="getDayClasses(day)"
                 role="gridcell"
                 :aria-label="day.date ? `${day.date.toLocaleDateString()}: ${day.minutesFocused} minutes focused` : ''"
+                :aria-selected="isSelected(day)"
+                :tabindex="day.date ? 0 : -1"
+                @click="selectDay(day)"
+                @keydown.enter.prevent="selectDay(day)"
+                @keydown.space.prevent="selectDay(day)"
             >
                 <span class="text-white">{{ day.date.getDate() }}</span>
                 <span v-if="day.minutesFocused > 0" class="text-xs mt-1 text-white font-bold">
@@ -65,6 +70,11 @@
                 :class="getDayClasses(day)"
                 role="gridcell"
                 :aria-label="day.date ? `${day.date.toLocaleDateString()}: ${day.minutesFocused} minutes focused` : ''"
+                :aria-selected="isSelected(day)"
+                :tabindex="day.date ? 0 : -1"
+                @click="selectDay(day)"
+                @keydown.enter.prevent="selectDay(day)"
+                @keydown.space.prevent="selectDay(day)"
             >
                 <span v-if="day.date" class="text-white">{{ day.date.getDate() }}</span>
                 <span v-if="day.minutesFocused > 0" class="text-xs mt-1 text-white font-bold">
@@ -94,7 +104,7 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
-import { parseLocalDate } from '../composables/localStats.js';
+import { parseLocalDate, toLocalDateString } from '../composables/localStats.js';
 
 // Mid to dark blues: the day and its time are white, and lighter blues
 // left them hard to read.
@@ -116,8 +126,11 @@ export default {
     props: {
         localData: { type: Array, default: null },
         localStreak: { type: Number, default: null },
+        // Local 'YYYY-MM-DD' of the day shown in the day log.
+        selectedDate: { type: String, default: null },
     },
-    setup(props) {
+    emits: ['select-day'],
+    setup(props, { emit }) {
         const currentDate = ref(new Date());
         const currentView = ref('month');
         const calendarData = ref([]);
@@ -238,9 +251,16 @@ export default {
             currentView.value = view;
         };
 
+        const isSelected = (day) => Boolean(day.date) && toLocalDateString(day.date) === props.selectedDate;
+
+        const selectDay = (day) => {
+            if (day.date) emit('select-day', toLocalDateString(day.date));
+        };
+
         const getDayClasses = (day) => {
             if (!day.date) return 'invisible';
-            let classes = 'cursor-pointer hover:bg-white/10';
+            let classes = 'cursor-pointer hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70';
+            if (isSelected(day)) classes += ' ring-2 ring-white';
 
             if (day.hasSession) {
                 const intensityIndex = Math.min(
@@ -305,6 +325,8 @@ export default {
             previousPeriod,
             nextPeriod,
             changeView,
+            isSelected,
+            selectDay,
             getDayClasses,
             getMonthClasses,
             formatTime

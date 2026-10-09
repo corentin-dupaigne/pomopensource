@@ -65,7 +65,7 @@ class DiscordActivityController extends Controller
             'access_token' => $accessToken,
             'logged_in' => $loggedIn,
             'user' => ['name' => $user->name],
-            'projects' => $user->projects()->with('tasks')->get(),
+            'projects' => $user->projects()->get(),
         ]);
     }
 

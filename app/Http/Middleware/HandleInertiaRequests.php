@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
         return array_merge(parent::share($request), [
             'projects' => function () use ($request) {
                 if ($request->user()) {
-                    return $request->user()->projects()->with('tasks')->get();
+                    return $request->user()->projects()->get();
                 }
                 return [];
             },

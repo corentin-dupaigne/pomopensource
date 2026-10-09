@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,7 +15,7 @@ return new class extends Migration
         Schema::create('focused_sessions', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(User::class)->constrained()->onDelete('cascade');
-            $table->foreignIdFor(Task::class)->nullable();;
+            $table->unsignedBigInteger('task_id')->nullable();
             $table->timestamps();
             $table->dateTime('started_at');
             $table->dateTime('ended_at')->nullable();

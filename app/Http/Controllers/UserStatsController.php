@@ -184,33 +184,43 @@ class UserStatsController extends Controller
         ]);
     }
 
-    public function getProjectStats(Request $request)
+    /**
+     * The sessions of one day, oldest first, for the day log. Days are
+     * grouped as in the calendar.
+     */
+    public function getDayLog(Request $request, string $date)
     {
-        $projects = $request->user()->projects()->with(['tasks' => function ($query) {
-            $query->withSum('focusedSessions', 'minute_focused');
-        }, 'focusedSessions' => function ($query) {
-            $query->selectRaw('project_id, SUM(minute_focused) as total_time')
-                ->groupBy('project_id');
-        }])->get();
+        $sessions = $request->user()->focusedSessions()
+            ->with('project:id,name')
+            ->whereDate('started_at', $date)
+            ->whereNotNull('ended_at')
+            ->orderBy('started_at')
+            ->get();
 
         return response()->json([
-            'projects' => $projects->map(function ($project) {
-                $totalTimeOnProject = $project->focusedSessions->sum('total_time');
-                $totalTimeOnTasks = $project->tasks->sum('focused_sessions_sum_minute_focused');
+            'sessions' => $sessions->map(fn ($session) => [
+                'id' => $session->id,
+                'started_at' => $session->started_at,
+                'minutes_focused' => $session->minute_focused,
+                'project' => $session->project?->only(['id', 'name']),
+                'note' => $session->note,
+            ]),
+        ]);
+    }
 
-                return [
-                    'id' => $project->id,
-                    'name' => $project->name,
-                    'total_time_focused' => $totalTimeOnProject + $totalTimeOnTasks,
-                    'tasks' => $project->tasks->map(function ($task) {
-                        return [
-                            'id' => $task->id,
-                            'name' => $task->name,
-                            'time_focused' => $task->focused_sessions_sum_minute_focused ?? 0,
-                        ];
-                    }),
-                ];
-            }),
+    public function getProjectStats(Request $request)
+    {
+        $projects = $request->user()->projects()
+            ->withSum('focusedSessions', 'minute_focused')
+            ->get();
+
+        return response()->json([
+            'projects' => $projects->map(fn ($project) => [
+                'id' => $project->id,
+                'name' => $project->name,
+                // In seconds, like the guest stats computed on the device.
+                'total_time_focused' => (int) $project->focused_sessions_sum_minute_focused * 60,
+            ]),
         ]);
     }
 

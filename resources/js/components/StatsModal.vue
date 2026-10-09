@@ -51,7 +51,13 @@
                     <ActivitySummary v-else :stats="stats" class="short:mb-3" />
 
                     <h3 class="text-lg font-semibold font-oswald text-white mt-6 mb-4 short:sr-only">Monthly Activity</h3>
-                    <Calendar :localData="localCalendarData" :localStreak="localStreak" />
+                    <Calendar
+                        :localData="localCalendarData"
+                        :localStreak="localStreak"
+                        :selectedDate="selectedDay"
+                        @select-day="selectedDay = $event"
+                    />
+                    <DayLog :date="selectedDay" :isAuthenticated="isAuthenticated" class="mt-4" />
                 </div>
 
                 <div
@@ -72,14 +78,16 @@ import { ref, onMounted, watch, nextTick } from 'vue';
 import axios from 'axios';
 import ActivitySummary from './ActivitySummary.vue';
 import Calendar from './Calendar.vue';
+import DayLog from './DayLog.vue';
 import ActivityDetail from './ActivityDetail.vue';
-import { getLocalSessions, computeStats, computeCalendarData, computeProjectStats } from '../composables/localStats.js';
+import { getLocalSessions, getLocalProjects, computeStats, computeCalendarData, computeProjectStats, foldLocalTasks, toLocalDateString } from '../composables/localStats.js';
 
 export default {
     components: {
         ActivityDetail,
         ActivitySummary,
         Calendar,
+        DayLog,
     },
     emits: ['close'],
     props: {
@@ -97,6 +105,7 @@ export default {
         const localCalendarData = ref(null);
         const localStreak = ref(0);
         const localProjectStats = ref(null);
+        const selectedDay = ref(toLocalDateString(new Date()));
 
         const fetchStats = async () => {
             isLoadingStats.value = true;
@@ -111,16 +120,13 @@ export default {
         };
 
         const loadLocalStats = () => {
+            foldLocalTasks();
             const sessions = getLocalSessions();
             const computed = computeStats(sessions);
             stats.value = computed;
             localCalendarData.value = computeCalendarData(sessions);
             localStreak.value = computed.day_streak;
-            const storedProjects = (() => {
-                try { return JSON.parse(localStorage.getItem('localProjects') || '[]'); }
-                catch { return []; }
-            })();
-            localProjectStats.value = computeProjectStats(sessions, storedProjects);
+            localProjectStats.value = computeProjectStats(sessions, getLocalProjects());
             isLoadingStats.value = false;
         };
 
@@ -142,6 +148,7 @@ export default {
             localCalendarData,
             localStreak,
             localProjectStats,
+            selectedDay,
         };
     },
 };

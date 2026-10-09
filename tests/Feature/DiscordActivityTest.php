@@ -56,8 +56,7 @@ test('the token response includes the account\'s projects', function () {
     $this->postJson('/discord/token', ['code' => 'abc'])
         ->assertOk()
         ->assertJsonPath('user.name', 'Pomo Fan')
-        ->assertJsonPath('projects.0.name', 'Thesis')
-        ->assertJsonPath('projects.0.tasks', []);
+        ->assertJsonPath('projects.0.name', 'Thesis');
 });
 
 test('the session endpoint reports whether the sign-in cookie came back', function () {

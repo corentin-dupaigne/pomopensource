@@ -13,7 +13,7 @@ class HomeController extends Controller
         $projects = [];
 
         if (Auth::check()) {
-            $projects = Auth::user()->projects()->with('tasks')->get();
+            $projects = Auth::user()->projects()->get();
         }
 
         return Inertia::render('App', [

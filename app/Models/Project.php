@@ -26,14 +26,6 @@ class Project extends Model
 
 
     /**
-     * Get the projects of a user.
-     */
-    public function tasks(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Task::class, 'project_id');
-    }
-
-    /**
      * Get this project owner
      *
      * @return BelongsTo
@@ -48,11 +40,6 @@ class Project extends Model
         return $this->hasMany(FocusedSession::class);
     }
 
-    public function updateTimeFocusedProject(): void
-    {
-        $this->minute_focused= $this->tasks->sum('minute_focused');
-        $this->save();
-    }
 
 
 

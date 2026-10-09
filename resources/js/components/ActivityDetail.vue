@@ -4,20 +4,9 @@
             <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading activity"></i>
         </div>
         <div v-else-if="projects.length">
-            <div v-for="project in projects" :key="project.id" class="mb-6">
-                <h3 class="text-xl font-semibold text-white mb-3">
-                    {{ project.name }}
-                    <span class="text-base font-normal text-white/60 ml-2">
-                        {{ formatHours(project.total_time_focused) }}
-                    </span>
-                </h3>
-                <div class="ml-4 space-y-1">
-                    <div v-for="task in project.tasks" :key="task.id" class="flex items-center gap-2 text-white/70">
-                        <i class="fas fa-circle text-white/30 text-[8px]" aria-hidden="true"></i>
-                        <span>{{ task.name }}</span>
-                        <span class="text-white/40 text-sm">— {{ formatHours(task.time_focused) }}</span>
-                    </div>
-                </div>
+            <div v-for="project in projects" :key="project.id" class="flex items-baseline justify-between gap-4 py-2">
+                <h3 class="text-xl font-semibold text-white truncate">{{ project.name }}</h3>
+                <span class="text-base text-white/60 shrink-0">{{ formatHours(project.total_time_focused) }}</span>
             </div>
         </div>
         <div v-else class="text-white/50 text-sm font-inter text-center py-4">

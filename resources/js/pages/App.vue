@@ -23,7 +23,7 @@
             class="flex-1 flex flex-col items-center text-white main-content"
             :class="isDiscordActivity ? '[justify-content:safe_center] overflow-y-auto py-2' : 'justify-center'"
         >
-            <ProjectsAndTasks
+            <Projects
                 :projects="accountProjects"
                 :settings="settings"
                 :isAuthenticated="isAuthenticated"
@@ -56,7 +56,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import Header from '../components/Header.vue';
-import ProjectsAndTasks from '../components/ProjectsAndTasks.vue';
+import Projects from '../components/Projects.vue';
 import Footer from '../components/Footer.vue';
 import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
@@ -68,7 +68,7 @@ import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutM
 export default {
     components: {
         Header,
-        ProjectsAndTasks,
+        Projects,
         Footer,
         StatsModal,
         SettingsModal,
