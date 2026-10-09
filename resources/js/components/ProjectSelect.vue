@@ -32,7 +32,7 @@
             <div
                 v-if="isOpen"
                 ref="listboxRef"
-                class="absolute left-0 bg-black/40 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
+                class="absolute left-0 bg-neutral-900/90 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl overflow-hidden z-20 overflow-y-auto"
                 :class="[openUpward ? 'bottom-full mb-2' : 'top-full mt-2', embedded ? 'w-64 max-w-[calc(100vw-2rem)]' : 'right-0']"
                 :style="{ maxHeight: `${maxHeight}px` }"
                 role="listbox"
