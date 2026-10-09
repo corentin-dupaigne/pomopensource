@@ -12,7 +12,6 @@
         :projects="localProjects"
         :settings="settings"
         :isAuthenticated="isAuthenticated"
-        :zenMode="zenMode"
         :createProject="createProject"
         @manageProjects="$emit('openPanel')"
     />
@@ -164,7 +163,6 @@ export default {
         projects: { type: Array, required: true },
         settings: { type: Object },
         isAuthenticated: { type: [Number, Boolean], default: false },
-        zenMode: { type: Boolean, default: false },
         panelOpen: { type: Boolean, default: false },
     },
     emits: ['closePanel', 'openPanel'],

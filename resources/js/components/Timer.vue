@@ -1,6 +1,6 @@
 <template>
     <div class="flex flex-col items-center">
-        <div class="zen-fade hide-when-minimal flex flex-wrap justify-center gap-2 sm:gap-4 px-4 mb-8 short:mb-2" :class="{ 'zen-hidden': zenMode }" role="tablist" aria-label="Timer type">
+        <div class="quiet-fade hide-when-minimal flex flex-wrap justify-center gap-2 sm:gap-4 px-4 mb-8 short:mb-2" role="tablist" aria-label="Timer type">
             <button
                 @click="setTimer('pomodoro')"
                 id="default-timer"
@@ -73,7 +73,7 @@
             </button>
             <button
                 @click="requestReset"
-                class="reset-button text-2xl"
+                class="reset-button quiet-fade text-2xl"
                 aria-label="Reset timer"
             >
                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
@@ -121,7 +121,7 @@
              locked; the note can still be edited. -->
         <div
             v-else-if="currentTimerType === 'pomodoro'"
-            class="hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
+            class="quiet-fade hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
         >
             <i :class="selectedId ? 'fas fa-folder' : 'fas fa-infinity'" class="text-white/40 text-xs" aria-hidden="true"></i>
             <span class="truncate">{{ selectedLabel || 'General focus' }}</span>
@@ -150,6 +150,7 @@ import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { isEnabled, settingsSaved } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
+import { timerRunning } from '../composables/focus.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
@@ -229,10 +230,6 @@ export default {
       type: [Boolean, Number],
       default: false
     },
-    zenMode: {
-      type: Boolean,
-      default: false
-    },
     createProject: {
       type: Function,
       default: null
@@ -246,6 +243,9 @@ export default {
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
     const playSound = ref(props.settings?.sound?.settings?.play_sound ?? 'true');
     const isRunning = ref(false);
+    // Lets the page go quiet while the timer runs (see composables/focus.js).
+    watch(isRunning, (running) => { timerRunning.value = running; });
+    onUnmounted(() => { timerRunning.value = false; });
     const timerInterval = ref(null);
     const selectedId = ref('');
     const note = ref('');
