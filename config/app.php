@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Contact Email
+    |--------------------------------------------------------------------------
+    |
+    | Published on the privacy policy and terms of service, for questions
+    | and data requests.
+    |
+    */
+
+    'contact_email' => env('CONTACT_EMAIL', 'corentin.dupaigne.productivity@gmail.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

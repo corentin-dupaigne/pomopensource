@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 
+// Linked from Discord's Developer Portal, as the Activity's legal pages.
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::view('/terms', 'legal.terms')->name('terms');
+
 Route::post('/discord/token', [DiscordActivityController::class, 'token'])
     ->middleware('throttle:20,1')
     ->name('discord.token');
