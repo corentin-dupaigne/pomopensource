@@ -44,14 +44,13 @@
                     id="tab-panel-summary"
                     role="tabpanel"
                 >
-                    <h3 class="text-lg font-semibold font-oswald text-white mb-4 short:sr-only">Activity Summary</h3>
 
                     <div v-if="isLoadingStats" class="flex justify-center py-8">
                         <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading stats"></i>
                     </div>
                     <ActivitySummary v-else :stats="stats" class="short:mb-3" />
 
-                    <h3 class="text-lg font-semibold font-oswald text-white mt-8 mb-4 short:sr-only">Monthly Activity</h3>
+                    <h3 class="text-lg font-semibold font-oswald text-white mt-6 mb-4 short:sr-only">Monthly Activity</h3>
                     <Calendar :localData="localCalendarData" :localStreak="localStreak" />
                 </div>
 
