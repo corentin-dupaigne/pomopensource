@@ -18,6 +18,7 @@ class FocusedSession extends Model
         'ended_at',
         'minute_focused',
         'break_time',
+        'note',
     ];
 
     protected $casts = [

@@ -47,6 +47,7 @@ class FocusedSessionController extends Controller
         $validated = $request->validate([
             'ended_at' => 'required|date',
             'time_focused' => 'required|integer|min:0',
+            'note' => 'nullable|string|max:255',
         ]);
 
         $focusedSession = $request->user()->focusedSessions()
@@ -59,6 +60,7 @@ class FocusedSessionController extends Controller
         $focusedSession->update([
             'ended_at' => $validated['ended_at'],
             'minute_focused' => intdiv($validated['time_focused'] + 30, 60),
+            'note' => $validated['note'] ?? null,
         ]);
     }
 }
