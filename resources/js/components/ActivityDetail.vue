@@ -9,7 +9,7 @@
                 <span class="text-base text-white/60 shrink-0">{{ formatHours(project.total_time_focused) }}</span>
             </div>
         </div>
-        <div v-else class="text-white/50 text-sm font-inter text-center py-4">
+        <div v-else class="text-white/50 text-sm text-center py-4">
             No focus sessions recorded yet.
         </div>
     </div>

@@ -8,7 +8,7 @@
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg pointer-events-auto text-white text-sm font-inter min-w-[220px] max-w-xs backdrop-blur-sm"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg pointer-events-auto text-white text-sm min-w-[220px] max-w-xs backdrop-blur-sm"
                 :class="toast.type === 'error' ? 'bg-red-600/90' : 'bg-green-600/90'"
                 role="alert"
             >

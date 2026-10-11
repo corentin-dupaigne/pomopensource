@@ -6,7 +6,7 @@
             @click="toggle"
             @keydown="handleTriggerKeydown"
             type="button"
-            class="w-full flex items-center justify-between mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm font-inter hover:bg-white/15 transition duration-150 focus:outline-none focus:ring-1 focus:ring-white/40"
+            class="w-full flex items-center justify-between mt-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/15 transition duration-150 focus:outline-none focus:ring-1 focus:ring-white/40"
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
             :id="triggerId"
@@ -45,7 +45,7 @@
                         :key="option"
                         @click="select(option)"
                         type="button"
-                        class="w-full text-left text-sm font-inter transition border-l-2 flex items-center gap-3"
+                        class="w-full text-left text-sm transition border-l-2 flex items-center gap-3"
                         :class="[
                             imageUrlFn ? 'py-1.5 px-3' : 'py-2 px-3',
                             isSelected(option)

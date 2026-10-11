@@ -14,7 +14,7 @@
         >
             <!-- Title, tabs and close share one row: short frames need the height. -->
             <div class="shrink-0 flex items-center gap-4 pb-4 short:pb-2 border-b border-white/20">
-                <h2 id="stats-title" class="text-2xl short:text-xl font-bold font-oswald text-white">Report</h2>
+                <h2 id="stats-title" class="text-2xl short:text-xl font-bold font-display text-white">Report</h2>
                 <div class="flex gap-2 mr-auto" role="tablist" aria-label="Report sections">
                     <button
                         v-for="tab in ['Summary', 'Detail']"
@@ -50,7 +50,7 @@
                     </div>
                     <ActivitySummary v-else :stats="stats" class="short:mb-3" />
 
-                    <h3 class="text-lg font-semibold font-oswald text-white mt-6 mb-4 short:sr-only">Monthly Activity</h3>
+                    <h3 class="text-lg font-semibold font-display text-white mt-6 mb-4 short:sr-only">Monthly Activity</h3>
                     <Calendar
                         :localData="localCalendarData"
                         :localStreak="localStreak"
@@ -65,7 +65,7 @@
                     id="tab-panel-detail"
                     role="tabpanel"
                 >
-                    <h3 class="text-lg font-semibold font-oswald text-white mb-4 short:sr-only">Detailed Activity</h3>
+                    <h3 class="text-lg font-semibold font-display text-white mb-4 short:sr-only">Detailed Activity</h3>
                     <ActivityDetail :localProjectsData="localProjectStats" />
                 </div>
             </div>

@@ -1,3 +1,4 @@
+import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
 /** @type {import('tailwindcss').Config} */
@@ -16,6 +17,12 @@ export default {
 
     theme: {
         extend: {
+            // Both have tabular figures, so the ticking timer and the stats
+            // keep their width.
+            fontFamily: {
+                sans: ['"Nunito Variable"', ...defaultTheme.fontFamily.sans],
+                display: ['"Baloo 2 Variable"', ...defaultTheme.fontFamily.sans],
+            },
             screens: {
                 // Landscape phones and the Discord Activity picture-in-picture
                 // view: keep the timer and its controls on screen.

@@ -34,8 +34,8 @@
     >
         <div class="shrink-0 flex justify-between items-start pb-4 short:pb-2 border-b border-white/20">
             <div>
-                <h2 id="projects-title" class="text-2xl short:text-xl font-bold font-oswald text-white">Projects</h2>
-                <p v-if="!isAuthenticated" class="mt-0.5 text-xs text-white/50 font-inter">
+                <h2 id="projects-title" class="text-2xl short:text-xl font-bold font-display text-white">Projects</h2>
+                <p v-if="!isAuthenticated" class="mt-0.5 text-xs text-white/50">
                     Saved on this device<template v-if="!isDiscordActivity"> ·
                     <a href="/login" class="underline hover:text-white/80 transition">Sign in to sync</a></template>
                 </p>
@@ -54,7 +54,7 @@
              background fits without a sideways scroll. -->
         <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden" @scroll="menuId = null">
 
-        <p v-if="localProjects.length === 0" class="text-white/50 text-sm font-inter py-3">
+        <p v-if="localProjects.length === 0" class="text-white/50 text-sm py-3">
             Group your focus sessions by project, then pick one under the timer.
         </p>
 
@@ -76,13 +76,13 @@
                     @blur="finishRename(project)"
                     maxlength="255"
                     :aria-label="`Rename project ${project.name}`"
-                    class="flex-1 min-w-0 my-1 bg-white/10 border-0 rounded-md px-2 py-1.5 text-sm font-inter font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white/60"
+                    class="flex-1 min-w-0 my-1 bg-white/10 border-0 rounded-md px-2 py-1.5 text-sm font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white/60"
                 >
                 <button
                     v-else
                     @click="startRename(project)"
                     :title="`Rename ${project.name}`"
-                    class="flex-1 min-w-0 py-2.5 text-left truncate text-sm font-inter font-semibold text-white cursor-text"
+                    class="flex-1 min-w-0 py-2.5 text-left truncate text-sm font-semibold text-white cursor-text"
                 >
                     {{ project.name }}
                 </button>
@@ -110,14 +110,14 @@
                         <button
                             role="menuitem"
                             @click="startRename(project)"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-inter text-white/80 hover:bg-white/10 hover:text-white"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
                         >
                             <i class="fas fa-pencil-alt w-3 text-xs" aria-hidden="true"></i>Rename
                         </button>
                         <button
                             role="menuitem"
                             @click="menuId = null; openDeleteProject(project.id, project.name)"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm font-inter text-red-400 hover:bg-red-500/10"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                         >
                             <i class="fas fa-trash w-3 text-xs" aria-hidden="true"></i>Delete
                         </button>
@@ -139,13 +139,13 @@
                 placeholder="Project name, then Enter"
                 aria-label="New project name"
                 :disabled="isAddingProject"
-                class="w-full bg-white/10 border-0 rounded-md px-2 py-2 text-sm font-inter text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
+                class="w-full bg-white/10 border-0 rounded-md px-2 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
             >
         </form>
         <button
             v-else
             @click="startAdding"
-            class="-mx-2 w-[calc(100%+1rem)] flex items-center gap-2.5 min-h-11 px-2 rounded-lg text-sm font-inter text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+            class="-mx-2 w-[calc(100%+1rem)] flex items-center gap-2.5 min-h-11 px-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
         >
             <i class="fas fa-plus w-3 text-xs" aria-hidden="true"></i>New project
         </button>

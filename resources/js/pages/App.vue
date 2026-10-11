@@ -7,7 +7,7 @@
 
         <!-- Rendered only once the Activity knows who is signed in, so guest
              data never flashes before the account's. -->
-        <div v-if="!ready" class="main-content flex-1 flex flex-col items-center justify-center gap-4 text-white font-inter" role="status">
+        <div v-if="!ready" class="main-content flex-1 flex flex-col items-center justify-center gap-4 text-white" role="status">
             <i class="fas fa-circle-notch fa-spin text-3xl text-white/70" aria-hidden="true"></i>
             <p class="text-sm text-white/70">Connecting to Discord…</p>
         </div>
@@ -47,7 +47,7 @@
             class="fullscreen-toggle quiet-fade fixed z-10 flex items-center gap-1.5 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
         >
             <i :class="isFullscreen ? 'fas fa-compress' : 'fas fa-expand'" aria-hidden="true"></i>
-            <span class="text-sm font-inter">{{ isFullscreen ? 'exit full screen' : 'full screen' }}</span>
+            <span class="text-sm">{{ isFullscreen ? 'exit full screen' : 'full screen' }}</span>
         </button>
 
         <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
