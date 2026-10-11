@@ -50,7 +50,9 @@
             </button>
         </div>
 
-        <div class="modal-body flex-1 min-h-0 pt-3 overflow-y-auto">
+        <!-- Padded by as much as the rows reach out (-mx-2), so their hover
+             background fits without a sideways scroll. -->
+        <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden">
 
         <p v-if="localProjects.length === 0" class="text-white/50 text-sm font-inter py-3">
             Group your focus sessions by project, then pick one under the timer.
