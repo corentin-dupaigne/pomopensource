@@ -92,13 +92,14 @@
         />
 
         <!-- What this pomodoro is for: the project and a note, as one bar. In
-             the Activity's smaller frame it keeps to about the tabs' width.
+             the Activity's smaller frame it is narrower, though still wide
+             enough for "General focus" and the whole placeholder.
              The note is kept from one pomodoro to the next: a long stretch on
              the same thing should not mean typing it again. -->
         <div
             v-if="currentTimerType === 'pomodoro' && !isRunning"
             class="hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
-            :class="isDiscordActivity ? 'w-80' : 'w-[28rem]'"
+            :class="isDiscordActivity ? 'w-96' : 'w-[28rem]'"
         >
             <ProjectSelect
                 v-model="selectedId"

@@ -16,23 +16,25 @@
         @manageProjects="$emit('openPanel')"
     />
 
-    <!-- Managing projects is occasional: it opens as a sheet, from the header or
-         from the picker, instead of sitting under the timer. -->
+    <!-- Managing projects is occasional: it opens as a dialog like Settings and
+         the Report, from the header or from the picker, instead of sitting
+         under the timer. -->
     <teleport to="body">
     <div
         v-if="panelOpen"
-        class="safe-area fixed inset-0 z-50 bg-black/70"
+        class="safe-area fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
         role="dialog"
         aria-modal="true"
-        aria-label="Projects"
+        aria-labelledby="projects-title"
+        @click.self="$emit('closePanel')"
+    >
+    <div
+        class="modal-content modal-surface flex flex-col w-full max-w-md mx-4 p-4 sm:p-6 short:p-3 bg-white/10 backdrop-blur-lg text-white rounded-lg shadow-xl"
         @keydown.esc="$emit('closePanel')"
     >
-    <!-- A sheet from the bottom on a phone, from the right otherwise. -->
-    <div class="w-full h-full flex items-end justify-center sm:justify-end sm:items-stretch" @click.self="$emit('closePanel')">
-    <div class="w-full max-h-[85%] sm:max-h-full sm:max-w-md px-4 py-5 overflow-y-auto bg-neutral-900/80 backdrop-blur-lg text-white rounded-t-2xl sm:rounded-none shadow-lg">
-        <div class="flex items-start justify-between mb-3">
+        <div class="shrink-0 flex justify-between items-start pb-4 short:pb-2 border-b border-white/20">
             <div>
-                <h2 class="text-2xl font-bold font-oswald text-white">Projects</h2>
+                <h2 id="projects-title" class="text-2xl short:text-xl font-bold font-oswald text-white">Projects</h2>
                 <p v-if="!isAuthenticated" class="mt-0.5 text-xs text-white/50 font-inter">
                     Saved on this device<template v-if="!isDiscordActivity"> ·
                     <a href="/login" class="underline hover:text-white/80 transition">Sign in to sync</a></template>
@@ -42,11 +44,13 @@
                 ref="closePanelRef"
                 @click="$emit('closePanel')"
                 aria-label="Close projects"
-                class="w-11 h-11 -mr-2 -mt-1 flex items-center justify-center text-white hover:text-gray-300 transition"
+                class="w-11 h-11 -mr-3 -mt-2.5 flex items-center justify-center text-white hover:text-gray-300 transition"
             >
                 <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
+
+        <div class="modal-body flex-1 min-h-0 pt-3 overflow-y-auto">
 
         <p v-if="localProjects.length === 0" class="text-white/50 text-sm font-inter py-3">
             Group your focus sessions by project, then pick one under the timer.
@@ -83,7 +87,7 @@
 
                 <div class="relative shrink-0" :data-menu="project.id">
                     <button
-                        @click="toggleMenu(project.id)"
+                        @click="toggleMenu(project.id, $event)"
                         :aria-expanded="menuId === project.id"
                         aria-haspopup="menu"
                         :aria-label="`Actions for ${project.name}`"
@@ -94,7 +98,8 @@
                     <div
                         v-if="menuId === project.id"
                         role="menu"
-                        class="absolute right-0 top-full mt-1 z-10 w-36 py-1 bg-neutral-800 border border-white/10 rounded-lg shadow-xl"
+                        class="absolute right-0 z-10 w-36 py-1 bg-neutral-800 border border-white/10 rounded-lg shadow-xl"
+                        :class="menuUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                         @keydown.esc.stop="menuId = null"
                     >
                         <button
@@ -138,7 +143,7 @@
         >
             <i class="fas fa-plus w-3 text-xs" aria-hidden="true"></i>New project
         </button>
-    </div>
+        </div>
     </div>
     </div>
     </teleport>
@@ -202,7 +207,17 @@ export default {
             closePanelRef.value?.focus();
         });
 
-        const toggleMenu = (id) => {
+        // The list scrolls inside the dialog and would cut a menu off at its
+        // bottom edge, so a menu without room below opens upward.
+        const menuUp = ref(false);
+        const MENU_HEIGHT = 88;
+
+        const toggleMenu = (id, event) => {
+            const button = event.currentTarget;
+            const list = button.closest('.modal-body');
+            if (list) {
+                menuUp.value = list.getBoundingClientRect().bottom - button.getBoundingClientRect().bottom < MENU_HEIGHT;
+            }
             menuId.value = menuId.value === id ? null : id;
         };
 
@@ -326,7 +341,7 @@ export default {
             isAddingProject, confirmDialog,
             handleConfirm, handleCancel,
             addProject, createProject, updateProject, cancelRename, openDeleteProject, renaming,
-            isDiscordActivity, closePanelRef, renamingId, menuId, toggleMenu,
+            isDiscordActivity, closePanelRef, renamingId, menuId, menuUp, toggleMenu,
             startRename, finishRename, adding, newProjectRef, startAdding, stopAdding,
         };
     }
@@ -334,6 +349,12 @@ export default {
 </script>
 
 <style scoped>
+.modal-content {
+    /* Fit the frame, however short: a Discord Activity can be under 400px tall. */
+    max-height: min(90vh, calc(100% - 2rem));
+    overflow: hidden;
+}
+
 /* With a mouse, a row's menu button shows on hover or focus only; touch
    screens always show it. */
 @media (hover: hover) {
