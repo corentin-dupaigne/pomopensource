@@ -52,7 +52,7 @@
 
         <!-- Padded by as much as the rows reach out (-mx-2), so their hover
              background fits without a sideways scroll. -->
-        <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden">
+        <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden" @scroll="menuId = null">
 
         <p v-if="localProjects.length === 0" class="text-white/50 text-sm font-inter py-3">
             Group your focus sessions by project, then pick one under the timer.
@@ -97,11 +97,14 @@
                     >
                         <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
                     </button>
+                    <!-- Out of the list, which scrolls and would cut it off. -->
+                    <teleport to="body">
                     <div
                         v-if="menuId === project.id"
                         role="menu"
-                        class="absolute right-0 z-10 w-36 py-1 bg-neutral-800 border border-white/10 rounded-lg shadow-xl"
-                        :class="menuUp ? 'bottom-full mb-1' : 'top-full mt-1'"
+                        :data-menu="project.id"
+                        class="fixed z-[55] w-36 py-1 bg-neutral-800 border border-white/10 rounded-lg shadow-xl"
+                        :style="menuPosition"
                         @keydown.esc.stop="menuId = null"
                     >
                         <button
@@ -119,6 +122,7 @@
                             <i class="fas fa-trash w-3 text-xs" aria-hidden="true"></i>Delete
                         </button>
                     </div>
+                    </teleport>
                 </div>
             </li>
         </ul>
@@ -209,19 +213,25 @@ export default {
             closePanelRef.value?.focus();
         });
 
-        // The list scrolls inside the dialog and would cut a menu off at its
-        // bottom edge, so a menu without room below opens upward.
-        const menuUp = ref(false);
+        // A row's menu is placed against its button, in the window: under it,
+        // or over it when the window has no room below (a short frame).
+        const menuPosition = ref({});
         const MENU_HEIGHT = 88;
+        const MENU_GAP = 4;
 
         const toggleMenu = (id, event) => {
-            const button = event.currentTarget;
-            const list = button.closest('.modal-body');
-            if (list) {
-                menuUp.value = list.getBoundingClientRect().bottom - button.getBoundingClientRect().bottom < MENU_HEIGHT;
-            }
+            const rect = event.currentTarget.getBoundingClientRect();
+            const right = `${window.innerWidth - rect.right}px`;
+            menuPosition.value = window.innerHeight - rect.bottom >= MENU_HEIGHT + MENU_GAP
+                ? { right, top: `${rect.bottom + MENU_GAP}px` }
+                : { right, bottom: `${window.innerHeight - rect.top + MENU_GAP}px` };
             menuId.value = menuId.value === id ? null : id;
         };
+
+        // A placed menu would be left behind by a resize.
+        const closeMenu = () => { menuId.value = null; };
+        onMounted(() => window.addEventListener('resize', closeMenu));
+        onUnmounted(() => window.removeEventListener('resize', closeMenu));
 
         // Close a row's menu on a click anywhere else.
         const closeMenuOutside = (event) => {
@@ -343,7 +353,7 @@ export default {
             isAddingProject, confirmDialog,
             handleConfirm, handleCancel,
             addProject, createProject, updateProject, cancelRename, openDeleteProject, renaming,
-            isDiscordActivity, closePanelRef, renamingId, menuId, menuUp, toggleMenu,
+            isDiscordActivity, closePanelRef, renamingId, menuId, menuPosition, toggleMenu,
             startRename, finishRename, adding, newProjectRef, startAdding, stopAdding,
         };
     }
