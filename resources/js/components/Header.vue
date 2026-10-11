@@ -15,14 +15,14 @@
             <Participants v-else-if="discordSession.participants.length > 1" />
             <template v-else-if="discordSession.user">
                 <DiscordAvatar :user="discordSession.user" :size="32" />
-                <span class="hidden sm:inline truncate text-sm font-inter font-semibold text-white">{{ displayName }}</span>
+                <span class="hidden sm:inline truncate text-sm font-semibold text-white">{{ displayName }}</span>
             </template>
         </div>
         <nav class="flex items-center space-x-2" :class="{ 'activity-nav': isDiscordActivity }" aria-label="Main navigation">
             <button
                 v-if="notSynced"
                 @click="explainNotSynced"
-                class="not-synced flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-amber-500/25 text-amber-100 text-xs font-inter"
+                class="not-synced flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-amber-500/25 text-amber-100 text-xs"
                 aria-label="Not synced: why?"
             >
                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
@@ -34,7 +34,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-folder w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">projects</span>
+                <span class="hidden md:inline-block text-sm">projects</span>
             </button>
             <button
                 @click="$emit('toggleStats')"
@@ -42,7 +42,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">stats</span>
+                <span class="hidden md:inline-block text-sm">stats</span>
             </button>
             <button
                 @click="$emit('toggleSettings')"
@@ -50,7 +50,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-cog w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">settings</span>
+                <span class="hidden md:inline-block text-sm">settings</span>
             </button>
             <!-- Inside a Discord Activity, Discord handles sign-in. -->
             <a
@@ -60,7 +60,7 @@
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-user w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">login</span>
+                <span class="hidden md:inline-block text-sm">login</span>
             </a>
             <a
                 v-if="auth && !isDiscordActivity"
@@ -69,7 +69,7 @@
                 class="flex items-center space-x-2 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition cursor-pointer"
             >
                 <i class="fas fa-sign-out-alt w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm font-inter">logout</span>
+                <span class="hidden md:inline-block text-sm">logout</span>
             </a>
         </nav>
     </header>

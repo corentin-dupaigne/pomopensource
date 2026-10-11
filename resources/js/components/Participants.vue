@@ -1,7 +1,7 @@
 <template>
     <div
         v-if="participants.length > 0"
-        class="flex items-center gap-2 min-w-0 py-1 pl-1 pr-3 rounded-full bg-black/30 text-white text-sm font-inter"
+        class="flex items-center gap-2 min-w-0 py-1 pl-1 pr-3 rounded-full bg-black/30 text-white text-sm"
         :aria-label="label"
         role="group"
     >

@@ -18,7 +18,7 @@
         >
             <div class="flex items-center gap-2 min-w-0">
                 <i :class="selectedIcon" class="text-white/50 text-xs shrink-0" aria-hidden="true"></i>
-                <span class="text-sm font-inter text-white truncate">{{ selectedLabel }}</span>
+                <span class="text-sm text-white truncate">{{ selectedLabel }}</span>
             </div>
             <i
                 class="fas fa-chevron-down text-white/50 text-xs transition-transform duration-200 shrink-0 ml-2"
@@ -43,7 +43,7 @@
                 <button
                     @click="select('')"
                     type="button"
-                    class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 transition"
+                    class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition"
                     :class="modelValue === '' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'"
                     role="option"
                     :aria-selected="modelValue === ''"
@@ -60,7 +60,7 @@
                         <button
                             @click="select('project:rbNiqBehszLPVzMmR_' + project.id)"
                             type="button"
-                            class="w-full text-left px-4 py-2.5 text-sm font-inter font-semibold flex items-center gap-3 transition"
+                            class="w-full text-left px-4 py-2.5 text-sm font-semibold flex items-center gap-3 transition"
                             :class="modelValue === 'project:rbNiqBehszLPVzMmR_' + project.id
                                 ? 'bg-white/20 text-white'
                                 : 'text-white hover:bg-white/10'"
@@ -88,14 +88,14 @@
                             placeholder="Project name, then Enter"
                             aria-label="New project name"
                             :disabled="isCreating"
-                            class="w-full bg-white/10 border-0 rounded-md px-2.5 py-2 text-sm font-inter text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
+                            class="w-full bg-white/10 border-0 rounded-md px-2.5 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
                         >
                     </form>
                     <button
                         v-else
                         @click="startCreating"
                         type="button"
-                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                        class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
                     >
                         <i class="fas fa-plus text-white/50 text-xs w-3" aria-hidden="true"></i>
                         <span>New project</span>
@@ -104,7 +104,7 @@
                         v-if="projects.length > 0"
                         @click="manage"
                         type="button"
-                        class="w-full text-left px-4 py-2.5 text-sm font-inter flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                        class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 text-white/70 hover:bg-white/10 hover:text-white transition"
                     >
                         <i class="fas fa-sliders-h text-white/50 text-xs w-3" aria-hidden="true"></i>
                         <span>Manage projects…</span>

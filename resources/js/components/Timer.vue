@@ -38,13 +38,13 @@
         </div>
 
         <!-- Picture-in-picture and grid tiles hide the tabs: name the timer. -->
-        <p class="show-when-minimal text-sm uppercase tracking-widest font-inter font-semibold text-white/80 mb-1">
+        <p class="show-when-minimal text-sm uppercase tracking-widest font-semibold text-white/80 mb-1">
             {{ TIMER_LABELS[currentTimerType] }}<template v-if="!isRunning && time !== initialTime && time > 0"> · paused</template>
         </p>
 
         <div
             id="timerDisplay"
-            class="text-9xl font-oswald font-bold mb-8 short:text-7xl short:mb-2"
+            class="text-9xl font-display font-bold mb-8 short:text-7xl short:mb-2"
             :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"

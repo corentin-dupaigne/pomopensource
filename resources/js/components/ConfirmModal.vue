@@ -14,18 +14,18 @@
                 tabindex="-1"
                 class="bg-white/15 backdrop-blur-lg rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 text-white focus:outline-none"
             >
-                <h3 :id="labelId" class="text-lg font-bold font-oswald mb-2">{{ title }}</h3>
+                <h3 :id="labelId" class="text-lg font-bold font-display mb-2">{{ title }}</h3>
                 <p class="text-white/70 text-sm mb-6">{{ message }}</p>
                 <div class="flex justify-end gap-3">
                     <button
                         @click="$emit('cancel')"
-                        class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition text-sm font-inter font-semibold"
+                        class="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition text-sm font-semibold"
                     >
                         Cancel
                     </button>
                     <button
                         @click="$emit('confirm')"
-                        class="px-4 py-2 bg-red-600/70 text-white rounded-lg hover:bg-red-700/80 transition text-sm font-inter font-semibold"
+                        class="px-4 py-2 bg-red-600/70 text-white rounded-lg hover:bg-red-700/80 transition text-sm font-semibold"
                     >
                         {{ confirmLabel }}
                     </button>

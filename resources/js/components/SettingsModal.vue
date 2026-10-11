@@ -14,7 +14,7 @@
         >
             <div class="shrink-0 flex justify-between items-center pb-4 border-b border-white/20">
                 <div class="flex items-center gap-3">
-                    <h2 id="settings-title" class="text-2xl font-bold font-oswald text-white">Settings</h2>
+                    <h2 id="settings-title" class="text-2xl font-bold font-display text-white">Settings</h2>
                     <i v-if="isSaving" class="fas fa-circle-notch fa-spin text-white/40 text-sm" aria-label="Saving..."></i>
                 </div>
                 <button
