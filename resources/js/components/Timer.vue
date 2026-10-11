@@ -44,7 +44,7 @@
 
         <div
             id="timerDisplay"
-            class="text-9xl font-display font-bold mb-8 short:text-7xl short:mb-2"
+            class="text-8xl sm:text-9xl font-display font-bold tabular-nums mb-8 short:text-7xl short:mb-2"
             :class="{ 'timer-done': justFinished, 'timer-fluid': isDiscordActivity }"
             :aria-label="`Timer: ${formattedTime}`"
             aria-live="off"
