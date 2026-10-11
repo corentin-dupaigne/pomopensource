@@ -1,4 +1,7 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
+/* Self-hosted: Discord's Activity proxy blocks Google Fonts. */
+@import '@fontsource-variable/nunito';
+@import '@fontsource-variable/baloo-2';
 
 @tailwind base;
 @tailwind components;
