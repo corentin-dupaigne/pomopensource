@@ -527,9 +527,10 @@ export default {
       sessionStartTime.value = null;
     };
 
+    // "Singing Bowl" is public/sounds/singing_bowl.mp3, as the seeder names it.
     const alarmSoundUrl = () => {
       const soundFile = props.settings?.sound?.settings?.alert_sound
-        ? `${props.settings.sound.settings.alert_sound.toLowerCase()}.mp3`
+        ? `${props.settings.sound.settings.alert_sound.toLowerCase().replace(/ /g, '_')}.mp3`
         : 'waves.mp3';
       return `/sounds/${soundFile}`;
     };
