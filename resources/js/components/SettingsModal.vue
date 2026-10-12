@@ -61,13 +61,27 @@
                                 class="mt-1 block w-full bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
                             >
 
-                            <CustomSelect
-                                v-else-if="setting.type === 'select'"
-                                v-model="setting.value"
-                                :options="setting.options"
-                                :imageUrlFn="setting.key === 'theme' ? themeImageUrl : null"
-                                @update:modelValue="saveSetting(setting)"
-                            />
+                            <!-- A sound plays once picked, and again from the button. -->
+                            <div v-else-if="setting.type === 'select'" class="flex items-end gap-2">
+                                <CustomSelect
+                                    v-model="setting.value"
+                                    :options="setting.options"
+                                    :imageUrlFn="setting.key === 'theme' ? themeThumbnailUrl : null"
+                                    :imageFallbackFn="setting.key === 'theme' ? themeImageUrl : null"
+                                    @update:modelValue="saveSetting(setting); setting.key === 'alert_sound' && previewSound()"
+                                    class="flex-1 min-w-0"
+                                />
+                                <button
+                                    v-if="setting.key === 'alert_sound'"
+                                    type="button"
+                                    @click="previewSound"
+                                    :aria-label="`Play ${setting.value}`"
+                                    :title="`Play ${setting.value}`"
+                                    class="shrink-0 w-10 h-10 flex items-center justify-center bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/15 transition"
+                                >
+                                    <i class="fas fa-play text-xs" aria-hidden="true"></i>
+                                </button>
+                            </div>
 
                             <div v-else-if="setting.type === 'checkbox'" class="mt-1 flex items-center">
                                 <input
@@ -101,6 +115,7 @@
                                         :id="setting.key"
                                         :aria-label="`${setting.name}: ${setting.value}`"
                                         @input="debouncedSave(setting)"
+                                        @change="setting.key === 'alert_volume' && previewSound()"
                                         class="range-slider ml-2 w-full cursor-pointer focus:outline-none"
                                         :style="{ '--pct': setting.value + '%' }"
                                     />
@@ -116,11 +131,11 @@
 </template>
 
 <script>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
-import { isEnabled, settingsCategories as loadedCategories } from '../composables/settings.js';
+import { isEnabled, settingsCategories as loadedCategories, alertSoundUrl, audioVolume } from '../composables/settings.js';
 
 const debounce = (fn, delay) => {
     let timer;
@@ -186,8 +201,26 @@ export default {
             modalRef.value?.focus();
         });
 
-        const themeImageUrl = (theme) =>
-            `images/backgrounds/${theme.toLowerCase().replace(/ /g, '_')}.webp`;
+        // Plays the chosen alert sound at the chosen volume, from the start
+        // if it is already playing.
+        const preview = new Audio();
+        const settingValue = (key) => settingsCategories.value
+            .flatMap((category) => category.settings)
+            .find((setting) => setting.key === key)?.value;
+        const previewSound = () => {
+            const url = alertSoundUrl(settingValue('alert_sound'));
+            if (!preview.src.endsWith(url)) preview.src = url;
+            preview.currentTime = 0;
+            preview.volume = audioVolume(settingValue('alert_volume') ?? 50);
+            preview.play().catch(() => {});
+        };
+        onUnmounted(() => preview.pause());
+
+        // The picker shows small thumbnails: the backgrounds themselves weigh
+        // up to 1.5MB each.
+        const themeFile = (theme) => `${theme.toLowerCase().replace(/ /g, '_')}.webp`;
+        const themeThumbnailUrl = (theme) => `images/backgrounds/thumbnails/${themeFile(theme)}`;
+        const themeImageUrl = (theme) => `images/backgrounds/${themeFile(theme)}`;
 
         return {
             settingsCategories,
@@ -197,6 +230,8 @@ export default {
             getActiveCategorySettings,
             saveSetting,
             debouncedSave,
+            themeThumbnailUrl,
+            previewSound,
             themeImageUrl,
             isEnabled,
         };

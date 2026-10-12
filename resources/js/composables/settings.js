@@ -12,3 +12,10 @@ export const settingsSaved = ref(0);
 // The settings as /user-settings sends them, kept from the page's own load so
 // the settings modal opens with them instead of growing once they arrive.
 export const settingsCategories = shallowRef(null);
+
+// "Singing Bowl" is public/sounds/singing_bowl.mp3, as the seeder names it.
+export const alertSoundUrl = (sound) =>
+    `/sounds/${(sound || 'Waves').toLowerCase().replace(/ /g, '_')}.mp3`;
+
+// The alert volume setting, 0 to 100, as an audio element's 0 to 1.
+export const audioVolume = (value) => Math.min(Math.max(parseInt(value) / 100, 0), 1);

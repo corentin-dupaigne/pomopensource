@@ -254,6 +254,18 @@ For local development, expose the app over HTTPS with a tunnel (e.g. `cloudflare
 
 Distributed under the MIT License.
 
+These alert sounds were recorded by [BigSoundBank](https://bigsoundbank.com) and released under CC0 (public domain). They were trimmed and levelled for the app; the music box is an arpeggio of single notes.
+
+| Sound | Source |
+|---|---|
+| Birdsong | [Robin #4](https://bigsoundbank.com/robin-4-s1670.html) |
+| Clock Chime | [1 pendulum chime](https://bigsoundbank.com/1-pendulum-chime-s3360.html) |
+| Desk Bell | [Counter bell #1](https://bigsoundbank.com/counter-bell-s0479.html) |
+| Kitchen Timer | [Timer](https://bigsoundbank.com/timer-s0927.html) |
+| Music Box | [Music box, G# #1](https://bigsoundbank.com/music-box-gd-1-s1865.html), [C #1](https://bigsoundbank.com/music-box-c-1-s1867.html), [D# #1](https://bigsoundbank.com/music-box-dd-1-s1869.html), [G# #2](https://bigsoundbank.com/music-box-gd-2-s1872.html) |
+| Singing Bowl | [Tibetan Bowl Struck #1](https://bigsoundbank.com/tibetan-bowl-struck-s1110.html) |
+| Wind Chimes | [Chimes "Dream" #1](https://bigsoundbank.com/chimes-dream-1-s2079.html) |
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 

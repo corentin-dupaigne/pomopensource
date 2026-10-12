@@ -254,8 +254,21 @@ export default {
             settingsSaved.value++;
         };
 
-        watch(backgroundImage, (newValue) => {
+        // Fade to the new background only once it is loaded and decoded:
+        // otherwise the fade shows the bare overlay, and the image pops in.
+        const preload = (url) => {
+            const image = new Image();
+            image.src = url;
+            return image.decode().catch(() => {});
+        };
+
+        let latestBackground = null;
+        watch(backgroundImage, async (newValue) => {
             localStorage.setItem('userBackground', newValue);
+            latestBackground = newValue;
+            if (newValue) await preload(newValue);
+            // Picked another one meanwhile: that one fades in instead.
+            if (latestBackground !== newValue) return;
             const newUrl = newValue ? `url(${newValue})` : '';
             if (activeLayer.value === 'a') {
                 bgB.value = newUrl;

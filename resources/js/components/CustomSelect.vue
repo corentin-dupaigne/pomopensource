@@ -15,6 +15,9 @@
                 <img
                     v-if="imageUrlFn && modelValue"
                     :src="imageUrlFn(modelValue)"
+                    @error="useFallbackImage($event, modelValue)"
+                    width="40"
+                    height="28"
                     class="w-10 h-7 object-cover rounded shrink-0"
                     aria-hidden="true"
                 />
@@ -58,6 +61,11 @@
                         <img
                             v-if="imageUrlFn"
                             :src="imageUrlFn(option)"
+                            @error="useFallbackImage($event, option)"
+                            width="56"
+                            height="36"
+                            loading="lazy"
+                            decoding="async"
                             class="w-14 h-9 object-cover rounded shrink-0"
                             aria-hidden="true"
                         />
@@ -78,6 +86,8 @@ export default {
         options: { type: Array, default: () => [] },
         placeholder: { type: String, default: 'Select...' },
         imageUrlFn: { type: Function, default: null },
+        // Image to show instead when imageUrlFn's is missing.
+        imageFallbackFn: { type: Function, default: null },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
@@ -122,6 +132,11 @@ export default {
         const toggle = () => {
             if (isOpen.value) close();
             else open();
+        };
+
+        const useFallbackImage = (event, option) => {
+            const fallback = props.imageFallbackFn?.(option);
+            if (fallback && !event.target.src.endsWith(fallback)) event.target.src = fallback;
         };
 
         const isSelected = (option) =>
@@ -181,7 +196,7 @@ export default {
         return {
             isOpen, containerRef, triggerRef, listboxRef,
             triggerId, dropdownStyle,
-            toggle, close, select, isSelected,
+            toggle, close, select, isSelected, useFallbackImage,
             handleTriggerKeydown, handleListKeydown,
         };
     }

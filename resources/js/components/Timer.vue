@@ -151,7 +151,7 @@ import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
-import { isEnabled, settingsSaved } from '../composables/settings.js';
+import { isEnabled, settingsSaved, alertSoundUrl, audioVolume } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
@@ -527,12 +527,7 @@ export default {
       sessionStartTime.value = null;
     };
 
-    const alarmSoundUrl = () => {
-      const soundFile = props.settings?.sound?.settings?.alert_sound
-        ? `${props.settings.sound.settings.alert_sound.toLowerCase()}.mp3`
-        : 'waves.mp3';
-      return `/sounds/${soundFile}`;
-    };
+    const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
 
     // Mobile webviews, Discord's included, only let an audio element play
     // after it has played during a tap. The alarm fires later, from a timer,
@@ -558,7 +553,7 @@ export default {
       if (!element.src.endsWith(url)) element.src = url;
       element.muted = false;
       element.currentTime = 0;
-      element.volume = Math.min(Math.max(parseInt(alertVolume.value) / 100, 0), 1);
+      element.volume = audioVolume(alertVolume.value);
       element.play().catch((err) => {
         console.error('Error playing sound:', err);
       });

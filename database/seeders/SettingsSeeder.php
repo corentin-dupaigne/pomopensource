@@ -134,6 +134,14 @@ class SettingsSeeder extends Seeder
 
         foreach ($settings as $setting) {
             DB::table('settings')->insertOrIgnore($setting);
+
+            // The choices follow the files on disk, so a sound or theme added
+            // later shows up on the next deploy; the rest of an existing
+            // setting is left alone.
+            if ($setting['options'] !== null) {
+                DB::table('settings')->where('key', $setting['key'])
+                    ->update(['options' => $setting['options']]);
+            }
         }
     }
 }
