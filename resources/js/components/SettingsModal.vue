@@ -65,7 +65,8 @@
                                 v-else-if="setting.type === 'select'"
                                 v-model="setting.value"
                                 :options="setting.options"
-                                :imageUrlFn="setting.key === 'theme' ? themeImageUrl : null"
+                                :imageUrlFn="setting.key === 'theme' ? themeThumbnailUrl : null"
+                                :imageFallbackFn="setting.key === 'theme' ? themeImageUrl : null"
                                 @update:modelValue="saveSetting(setting)"
                             />
 
@@ -186,8 +187,11 @@ export default {
             modalRef.value?.focus();
         });
 
-        const themeImageUrl = (theme) =>
-            `images/backgrounds/${theme.toLowerCase().replace(/ /g, '_')}.webp`;
+        // The picker shows small thumbnails: the backgrounds themselves weigh
+        // up to 1.5MB each.
+        const themeFile = (theme) => `${theme.toLowerCase().replace(/ /g, '_')}.webp`;
+        const themeThumbnailUrl = (theme) => `images/backgrounds/thumbnails/${themeFile(theme)}`;
+        const themeImageUrl = (theme) => `images/backgrounds/${themeFile(theme)}`;
 
         return {
             settingsCategories,
@@ -197,6 +201,7 @@ export default {
             getActiveCategorySettings,
             saveSetting,
             debouncedSave,
+            themeThumbnailUrl,
             themeImageUrl,
             isEnabled,
         };
