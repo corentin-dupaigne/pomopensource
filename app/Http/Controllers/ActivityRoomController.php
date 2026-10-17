@@ -37,17 +37,20 @@ class ActivityRoomController extends Controller
         $this->authorizeDiscordUser($request);
 
         $validated = $request->validate([
-            'action' => ['required', Rule::in(['start', 'pause', 'reset', 'switch', 'complete'])],
+            'action' => ['required', Rule::in(['start', 'pause', 'reset', 'switch', 'complete', 'durations'])],
             'timer_type' => ['required_if:action,switch', Rule::in(ActivityRoom::TIMER_TYPES)],
-            'durations' => ['sometimes', 'array:'.implode(',', ActivityRoom::TIMER_TYPES)],
+            'durations' => ['required_if:action,durations', 'array:'.implode(',', ActivityRoom::TIMER_TYPES)],
             'durations.*' => ['integer', 'min:1', 'max:600'],
         ]);
 
-        $room = DB::transaction(function () use ($instance, $validated) {
+        $actor = $request->user()->name;
+        $room = DB::transaction(function () use ($instance, $validated, $actor) {
             $room = $this->lockedRoom($instance);
             // A timer that ran out since the last request ends first.
             $changed = $room->completeIfDue();
-            $changed = $room->act($validated['action'], $validated['timer_type'] ?? null, $validated['durations'] ?? null) || $changed;
+            $changed = $validated['action'] === 'durations'
+                ? $room->setDurations($validated['durations'], $actor) || $changed
+                : $room->act($validated['action'], $validated['timer_type'] ?? null) || $changed;
             if ($changed || $room->isDirty()) {
                 $room->save();
             }
