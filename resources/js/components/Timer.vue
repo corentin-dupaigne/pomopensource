@@ -152,10 +152,11 @@ import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
 import { saveSession, flushPendingSessions } from '../composables/pendingSessions.js';
-import { isEnabled, settingsSaved, alertSoundUrl, audioVolume } from '../composables/settings.js';
+import { isEnabled, settingsCategories as loadedSettings, alertSoundUrl, audioVolume } from '../composables/settings.js';
+import { callTimer } from '../composables/callTimer.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
-import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
+import { setPresence, timerPresence, isDiscordActivity, discordInstanceId, discordSession } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
 
@@ -241,7 +242,7 @@ export default {
   },
   emits: ['manageProjects'],
   setup(props) {
-    const { error } = useToast();
+    const { error, success } = useToast();
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
     const initialTime = ref(time.value);
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
@@ -338,8 +339,8 @@ export default {
       initialTime.value = time.value;
     };
 
-    // Minutes per timer type from this user's settings, sent with shared
-    // actions so the room uses them.
+    // Minutes per timer type from this user's settings: a new call's timer
+    // starts with them.
     const durationsFromSettings = () => Object.fromEntries(
       ['pomodoro', 'short_break', 'long_break']
         .map((type) => [type, parseInt(props.settings?.timers?.settings?.[`${type}_duration`])])
@@ -348,7 +349,7 @@ export default {
 
     const setTimer = (timerType) => {
       if (shared) {
-        sharedTimer.send('switch', { timer_type: timerType, durations: durationsFromSettings() });
+        sharedTimer.send('switch', { timer_type: timerType });
         return;
       }
       justFinished.value = null;
@@ -363,7 +364,7 @@ export default {
     const toggleTimer = () => {
       if (!isRunning.value && isEnabled(playSound.value)) unlockAlarmSound();
       if (shared) {
-        sharedTimer.send(isRunning.value ? 'pause' : 'start', { durations: durationsFromSettings() });
+        sharedTimer.send(isRunning.value ? 'pause' : 'start');
       } else if (isRunning.value) {
         pauseTimer();
       } else {
@@ -482,7 +483,7 @@ export default {
 
     const resetTimer = () => {
       if (shared) {
-        sharedTimer.send('reset', { durations: durationsFromSettings() });
+        sharedTimer.send('reset');
         return;
       }
       justFinished.value = null;
@@ -680,10 +681,56 @@ export default {
       sessionStartRemaining = stored.startRemaining;
     };
 
+    // The call's timer has its own durations, which everyone sees; acting
+    // on it never changes them. They change when someone sets them in the
+    // settings, or when a new call's timer takes those of whoever opens it.
+    // A change made here: 'announce' when the user made it in the settings,
+    // 'quiet' when a new call took their durations by itself.
+    let ownChange = null;
+    const setCallDurations = (durations, { announce = true } = {}) => {
+      ownChange = announce ? 'announce' : 'quiet';
+      sharedTimer.send('durations', { durations });
+    };
+
+    // Tell everyone in the call who changed which duration. The one who
+    // changed it is told too, so they know the others were: unless alone.
+    const DURATION_NAMES = { pomodoro: 'pomodoro', short_break: 'short break', long_break: 'long break' };
+    const announceDurations = (state, previous) => {
+      const own = ownChange;
+      ownChange = null;
+      const changes = Object.keys(DURATION_NAMES)
+        .filter((type) => previous?.[type] !== state.durations[type])
+        .map((type) => `${DURATION_NAMES[type]} to ${state.durations[type]} min`)
+        .join(', ');
+      if (!changes || own === 'quiet') return;
+      if (!own) {
+        success(`${state.durations_changed_by ?? 'Someone'} set this call's ${changes}`);
+      } else if (discordSession.participants.length > 1) {
+        success(`You set this call's ${changes} for everyone`);
+      }
+    };
+
+    // A new call's timer waits for the account's settings: until they load
+    // after the Discord sign-in, the app only has the copy cached on the
+    // device, or none, and the call ran 25 minutes.
+    let seedPending = false;
+    const seedCallDurations = () => {
+      seedPending = false;
+      const durations = durationsFromSettings();
+      if (Object.keys(durations).length > 0) setCallDurations(durations, { announce: false });
+    };
+    if (shared) {
+      watch(loadedSettings, () => { if (seedPending) seedCallDurations(); });
+    }
+
     let firstSharedState = true;
     const applySharedState = (state, { isNew, offset }) => {
       const joining = firstSharedState;
       firstSharedState = false;
+      if (isNew && !joining && state.event === 'durations') announceDurations(state, callTimer.durations);
+      callTimer.active = true;
+      callTimer.durations = state.durations;
+      callTimer.setDurations = setCallDurations;
 
       if (isNew) {
         if (state.event === 'complete') {
@@ -724,35 +771,22 @@ export default {
         saveSharedSession(state.run);
       }
 
-      // Nobody has touched this call's timer yet: line it up with the
-      // durations of whoever opens it first.
-      const durations = durationsFromSettings();
-      if (joining && state.version === 0 && Object.keys(durations).length > 0) {
-        sharedTimer.send('reset', { durations });
+      // Someone else got there first.
+      if (state.version > 0) seedPending = false;
+      if (joining && state.version === 0) {
+        if (loadedSettings.value) seedCallDurations();
+        else seedPending = true;
       }
     };
 
     const sharedTimer = shared ? useSharedTimer(discordInstanceId, applySharedState) : null;
 
-    // A shared timer only takes durations with an action: after the user
-    // saves new durations, line up the call's timer again, unless it has been
-    // started (as the solo timer never overwrites a started timer either).
-    if (shared) {
-      let savedDurations = JSON.stringify(durationsFromSettings());
-      watch(settingsSaved, () => {
-        const durations = durationsFromSettings();
-        const changed = JSON.stringify(durations) !== savedDurations;
-        savedDurations = JSON.stringify(durations);
-        if (changed && !isRunning.value && time.value === initialTime.value) {
-          sharedTimer.send('reset', { durations });
-        }
-      });
-    }
     // Sessions the server could not take earlier go as soon as it can.
     const flushIfSignedIn = () => { if (props.isAuthenticated) flushPendingSessions(); };
     window.addEventListener('online', flushIfSignedIn);
 
     onUnmounted(() => {
+      callTimer.active = false;
       sharedTimer?.stop();
       clearInterval(timerInterval.value);
       window.removeEventListener('online', flushIfSignedIn);

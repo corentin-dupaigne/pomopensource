@@ -31,7 +31,7 @@
                 <div class="shrink-0 w-full sm:w-1/4 sm:pt-6">
                     <div class="flex sm:flex-col flex-row gap-2 overflow-x-auto pb-2 sm:pb-0">
                         <button
-                            v-for="category in settingsCategories"
+                            v-for="category in categories"
                             :key="category.name"
                             @click="activeCategory = category.name"
                             :aria-pressed="activeCategory === category.name"
@@ -45,7 +45,30 @@
 
                 <!-- Settings content -->
                 <div class="modal-body flex-1 min-h-0 w-full sm:w-3/4 sm:pl-4 pb-2">
-                    <div v-if="activeCategory">
+                    <!-- The Discord call's timer, shared by everyone in it. -->
+                    <div v-if="activeCategory === CALL_CATEGORY.name">
+                        <p class="mb-6 text-sm text-white/60">
+                            Everyone in the call shares this timer, and a change applies to everyone.
+                            A timer already started keeps its time; the next one uses the new durations.
+                        </p>
+                        <div v-for="field in CALL_FIELDS" :key="field.type" class="mb-6">
+                            <label :for="`call-${field.type}`" class="block text-sm font-medium text-white/70">{{ field.label }}</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="600"
+                                :id="`call-${field.type}`"
+                                :value="callTimer.durations?.[field.type]"
+                                @change="setCallDuration(field.type, $event.target)"
+                                class="mt-1 block w-1/4 bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
+                            >
+                        </div>
+                    </div>
+                    <div v-else-if="activeCategory">
+                        <p v-if="callTimer.active && activeCategory.toLowerCase() === 'timers'" class="mb-6 text-sm text-white/60">
+                            Your durations start new calls. This call's timer has its own, under
+                            <button type="button" class="underline hover:text-white" @click="activeCategory = CALL_CATEGORY.name">This call</button>.
+                        </p>
                         <div v-for="setting in getActiveCategorySettings()" :key="setting.id" class="mb-6">
 
                             <label v-if="setting.type !== 'checkbox'" :for="setting.key" class="block text-sm font-medium text-white/70">
@@ -131,11 +154,20 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
 import { isEnabled, settingsCategories as loadedCategories, alertSoundUrl, audioVolume } from '../composables/settings.js';
+import { callTimer } from '../composables/callTimer.js';
+
+// Shown first while in a Discord call: the call's own timer.
+const CALL_CATEGORY = { name: 'This call', icon: 'fas fa-users' };
+const CALL_FIELDS = [
+    { type: 'pomodoro', label: 'Pomodoro (minutes)' },
+    { type: 'short_break', label: 'Short break (minutes)' },
+    { type: 'long_break', label: 'Long break (minutes)' },
+];
 
 const debounce = (fn, delay) => {
     let timer;
@@ -155,9 +187,23 @@ export default {
         const isSaving = ref(false);
         const modalRef = ref(null);
 
-        const showCategories = (categories) => {
-            settingsCategories.value = categories;
-            if (categories.length > 0) activeCategory.value = categories[0].name;
+        const categories = computed(() => callTimer.active
+            ? [CALL_CATEGORY, ...settingsCategories.value]
+            : settingsCategories.value);
+
+        const showCategories = (loaded) => {
+            settingsCategories.value = loaded;
+            if (!activeCategory.value && categories.value.length > 0) activeCategory.value = categories.value[0].name;
+        };
+        if (callTimer.active) activeCategory.value = CALL_CATEGORY.name;
+
+        const setCallDuration = (type, input) => {
+            const minutes = parseInt(input.value);
+            if (minutes >= 1 && minutes <= 600) {
+                callTimer.setDurations({ [type]: minutes });
+            } else {
+                input.value = callTimer.durations?.[type] ?? '';
+            }
         };
 
         const fetchSettings = async () => {
@@ -224,6 +270,11 @@ export default {
 
         return {
             settingsCategories,
+            categories,
+            callTimer,
+            CALL_CATEGORY,
+            CALL_FIELDS,
+            setCallDuration,
             activeCategory,
             isSaving,
             modalRef,

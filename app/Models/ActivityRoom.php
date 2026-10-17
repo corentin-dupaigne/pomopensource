@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Model;
  * bumps the version, which clients use to apply every change once. Each
  * timer lined up is a new run, which a device reloading mid-pomodoro uses
  * to tell it is still the one it was counting.
+ *
+ * The call has its own durations, which everyone sees. They change only
+ * when someone sets them: acting on the timer never changes them.
  */
 class ActivityRoom extends Model
 {
@@ -36,6 +39,10 @@ class ActivityRoom extends Model
         'duration' => 25 * 60,
         'remaining' => 25 * 60,
         'run' => 0,
+        // Also in the database, but a room just created would say null: the
+        // client then never saw a new room, and the call kept 25 minutes.
+        'version' => 0,
+        'completed_pomodoros' => 0,
         'durations' => '{"pomodoro":25,"short_break":5,"long_break":15}',
     ];
 
@@ -60,15 +67,9 @@ class ActivityRoom extends Model
 
     /**
      * Apply an action from a participant. Returns whether anything changed.
-     *
-     * @param  array<string, int>|null  $durations  minutes per timer type, from the actor's settings
      */
-    public function act(string $action, ?string $timerType = null, ?array $durations = null): bool
+    public function act(string $action, ?string $timerType = null): bool
     {
-        if ($durations) {
-            $this->durations = array_merge($this->durations, $durations);
-        }
-
         $now = now()->getTimestampMs();
 
         switch ($action) {
@@ -102,6 +103,25 @@ class ActivityRoom extends Model
         }
 
         $this->recordEvent($action);
+
+        return true;
+    }
+
+    /**
+     * Set the call's durations, for everyone. A timer nobody has started
+     * takes its new duration now; a started one keeps its own, and the
+     * next one lined up takes the new one.
+     *
+     * @param  array<string, int>  $durations  minutes per timer type
+     */
+    public function setDurations(array $durations, string $actor): bool
+    {
+        $this->durations = array_merge($this->durations, $durations);
+        $this->durations_changed_by = $actor;
+        if ($this->status === 'idle') {
+            $this->lineUp($this->timer_type);
+        }
+        $this->recordEvent('durations');
 
         return true;
     }
@@ -143,6 +163,8 @@ class ActivityRoom extends Model
         return [
             'version' => $this->version,
             'run' => $this->run,
+            'durations' => $this->durations,
+            'durations_changed_by' => $this->durations_changed_by,
             'timer_type' => $this->timer_type,
             'status' => $this->status,
             'duration' => $this->duration,

@@ -27,6 +27,13 @@ test('a new room starts as an idle pomodoro', function () {
         ]);
 });
 
+test('a new room says it is new', function () {
+    // Its first reader is who opens the call, whose durations it then takes.
+    $this->actingAs(discordUser())
+        ->getJson('/activity-rooms/i-1')
+        ->assertJsonPath('version', 0);
+});
+
 test('starting runs the timer until a shared end time', function () {
     $this->freezeTime();
     $user = discordUser();
@@ -53,9 +60,43 @@ test('pausing keeps the time left, and starting resumes it', function () {
         ->assertJson(['status' => 'running', 'remaining' => 15 * 60]);
 });
 
-test('switching lines up a timer with the actor\'s duration', function () {
+test('switching lines up a timer with the call\'s duration', function () {
+    act(discordUser(), ['action' => 'switch', 'timer_type' => 'short_break'])
+        ->assertJson(['timer_type' => 'short_break', 'status' => 'idle', 'duration' => 5 * 60, 'event' => 'switch']);
+});
+
+test('acting on the timer never changes the call\'s durations', function () {
+    // Clients before the call had its own durations sent the actor's.
     act(discordUser(), ['action' => 'switch', 'timer_type' => 'short_break', 'durations' => ['short_break' => 7]])
-        ->assertJson(['timer_type' => 'short_break', 'status' => 'idle', 'duration' => 7 * 60, 'event' => 'switch']);
+        ->assertJson(['duration' => 5 * 60, 'durations' => ['pomodoro' => 25, 'short_break' => 5, 'long_break' => 15]]);
+});
+
+test('the call\'s durations change on purpose, and say who changed them', function () {
+    $user = discordUser();
+
+    act($user, ['action' => 'durations', 'durations' => ['pomodoro' => 50, 'short_break' => 10]])
+        ->assertJson([
+            'event' => 'durations',
+            'durations_changed_by' => 'Pomo Fan',
+            'durations' => ['pomodoro' => 50, 'short_break' => 10, 'long_break' => 15],
+            // Nobody had started it: it takes the new duration now.
+            'timer_type' => 'pomodoro',
+            'status' => 'idle',
+            'duration' => 50 * 60,
+            'remaining' => 50 * 60,
+        ]);
+});
+
+test('a started timer keeps its duration, and the next one takes the new one', function () {
+    $this->freezeTime();
+    $user = discordUser();
+    act($user, ['action' => 'start']);
+    $this->travel(10)->minutes();
+
+    act($user, ['action' => 'durations', 'durations' => ['pomodoro' => 50]])
+        ->assertJson(['status' => 'running', 'duration' => 25 * 60, 'remaining' => 15 * 60]);
+
+    act($user, ['action' => 'reset'])->assertJson(['duration' => 50 * 60]);
 });
 
 test('resetting lines the current timer up again', function () {
@@ -135,8 +176,9 @@ test('actions are validated', function () {
     act($user, ['action' => 'explode'])->assertUnprocessable();
     act($user, ['action' => 'switch'])->assertUnprocessable();
     act($user, ['action' => 'switch', 'timer_type' => 'nap'])->assertUnprocessable();
-    act($user, ['action' => 'start', 'durations' => ['pomodoro' => 0]])->assertUnprocessable();
-    act($user, ['action' => 'start', 'durations' => ['nap' => 5]])->assertUnprocessable();
+    act($user, ['action' => 'durations'])->assertUnprocessable();
+    act($user, ['action' => 'durations', 'durations' => ['pomodoro' => 0]])->assertUnprocessable();
+    act($user, ['action' => 'durations', 'durations' => ['nap' => 5]])->assertUnprocessable();
 });
 
 test('rooms are only for accounts signed in through Discord', function () {

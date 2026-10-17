@@ -66,7 +66,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
-import { settingsSaved, settingsCategories, isEnabled } from '../composables/settings.js';
+import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 
@@ -251,7 +251,6 @@ export default {
 
         const handleSettingsSaved = async () => {
             await Promise.all([fetchSettings(), fetchBackgroundImage()]);
-            settingsSaved.value++;
         };
 
         // Fade to the new background only once it is loaded and decoded:
