@@ -235,20 +235,28 @@ class UserStatsController extends Controller
         ]);
     }
 
+    /**
+     * Time focused per project, in seconds like the guest stats computed on
+     * the device. Time on no project comes first, as general focus: a
+     * project with no ID and no name.
+     */
     public function getProjectStats(Request $request)
     {
         $projects = $request->user()->projects()
             ->withSum('focusedSessions', 'minute_focused')
-            ->get();
-
-        return response()->json([
-            'projects' => $projects->map(fn ($project) => [
+            ->get()
+            ->map(fn ($project) => [
                 'id' => $project->id,
                 'name' => $project->name,
-                // In seconds, like the guest stats computed on the device.
                 'total_time_focused' => (int) $project->focused_sessions_sum_minute_focused * 60,
-            ]),
-        ]);
+            ]);
+
+        $generalMinutes = (int) $request->user()->focusedSessions()->whereNull('project_id')->sum('minute_focused');
+        if ($generalMinutes > 0) {
+            $projects->prepend(['id' => null, 'name' => null, 'total_time_focused' => $generalMinutes * 60]);
+        }
+
+        return response()->json(['projects' => $projects->values()]);
     }
 
 

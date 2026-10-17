@@ -4,8 +4,11 @@
             <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading activity"></i>
         </div>
         <div v-else-if="projects.length">
-            <div v-for="project in projects" :key="project.id" class="flex items-baseline justify-between gap-4 py-2">
-                <h3 class="text-xl font-semibold text-white truncate">{{ project.name }}</h3>
+            <div v-for="project in projects" :key="project.id ?? 'general'" class="flex items-baseline justify-between gap-4 py-2">
+                <!-- Time on no project, muted as in the day log. -->
+                <h3 class="text-xl font-semibold text-white truncate" :class="{ 'text-white/60 font-normal': !project.id }">
+                    {{ project.name ?? 'General focus' }}
+                </h3>
                 <span class="text-base text-white/60 shrink-0">{{ formatHours(project.total_time_focused) }}</span>
             </div>
         </div>

@@ -135,7 +135,12 @@ export function getLocalProjects() {
     catch { return []; }
 }
 
+/**
+ * Time focused per project, in the shape the server sends: time on no
+ * project comes first, as general focus, with no ID and no name.
+ */
 export function computeProjectStats(sessions, localProjects) {
+    const general = { id: null, name: null, total_time_focused: 0 };
     const projectMap = {};
 
     for (const project of localProjects) {
@@ -147,10 +152,14 @@ export function computeProjectStats(sessions, localProjects) {
     }
 
     for (const { selectedId, duration_seconds = 0 } of sessions) {
-        if (!selectedId?.startsWith(PROJECT_PREFIX)) continue;
+        if (!selectedId) {
+            general.total_time_focused += duration_seconds;
+            continue;
+        }
+        if (!selectedId.startsWith(PROJECT_PREFIX)) continue;
         const project = projectMap[selectedId.slice(PROJECT_PREFIX.length)];
         if (project) project.total_time_focused += duration_seconds;
     }
 
-    return Object.values(projectMap).filter((p) => p.total_time_focused > 0);
+    return [general, ...Object.values(projectMap)].filter((p) => p.total_time_focused > 0);
 }
