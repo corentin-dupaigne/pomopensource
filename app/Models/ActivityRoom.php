@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Clients send actions and poll the state. A running timer is stored as its
  * end time, so clients count down on their own between polls. Each change
- * bumps the version, which clients use to apply every change once.
+ * bumps the version, which clients use to apply every change once. Each
+ * timer lined up is a new run, which a device reloading mid-pomodoro uses
+ * to tell it is still the one it was counting.
  */
 class ActivityRoom extends Model
 {
@@ -33,6 +35,7 @@ class ActivityRoom extends Model
         'status' => 'idle',
         'duration' => 25 * 60,
         'remaining' => 25 * 60,
+        'run' => 0,
         'durations' => '{"pomodoro":25,"short_break":5,"long_break":15}',
     ];
 
@@ -43,6 +46,7 @@ class ActivityRoom extends Model
         'ends_at_ms' => 'integer',
         'completed_pomodoros' => 'integer',
         'version' => 'integer',
+        'run' => 'integer',
         'completed_at_ms' => 'integer',
     ];
 
@@ -138,6 +142,7 @@ class ActivityRoom extends Model
 
         return [
             'version' => $this->version,
+            'run' => $this->run,
             'timer_type' => $this->timer_type,
             'status' => $this->status,
             'duration' => $this->duration,
@@ -157,6 +162,7 @@ class ActivityRoom extends Model
         $this->remaining = $this->duration;
         $this->status = 'idle';
         $this->ends_at_ms = null;
+        $this->run++;
     }
 
     private function recordEvent(string $event): void

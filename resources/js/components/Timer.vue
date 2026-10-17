@@ -534,6 +534,7 @@ export default {
 
       sessionStartTime.value = null;
       sessionStartRequest = null;
+      if (shared) localStorage.removeItem(TIMER_KEY);
     };
 
     const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
@@ -656,6 +657,29 @@ export default {
       sharedTimer.send('complete');
     };
 
+    // The shared timer lives on the server, but this device's focus session
+    // is kept here, with the run of the pomodoro it follows: reloading or
+    // rejoining mid-pomodoro carries on counting it, instead of dropping
+    // the time before the reload.
+    const saveSharedSession = (run) => {
+      try {
+        localStorage.setItem(TIMER_KEY, JSON.stringify({
+          sharedSession: { run, startTime: sessionStartTime.value, startRemaining: sessionStartRemaining },
+        }));
+      } catch {
+        // Storage unavailable: a reload starts a new session.
+      }
+    };
+
+    const resumeSharedSession = (run) => {
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem(TIMER_KEY))?.sharedSession; }
+      catch { /* nothing to resume */ }
+      if (!stored || stored.run !== run) return;
+      sessionStartTime.value = new Date(stored.startTime);
+      sessionStartRemaining = stored.startRemaining;
+    };
+
     let firstSharedState = true;
     const applySharedState = (state, { isNew, offset }) => {
       const joining = firstSharedState;
@@ -678,6 +702,7 @@ export default {
       // This user's focus session follows the shared pomodoro: it starts when
       // the pomodoro runs, and ends when it is reset or switched away.
       const pomodoroOn = state.timer_type === 'pomodoro' && state.status !== 'idle';
+      if (joining && pomodoroOn) resumeSharedSession(state.run);
       if (sessionStartTime.value && !pomodoroOn) endSession();
 
       clearInterval(timerInterval.value);
@@ -696,6 +721,7 @@ export default {
 
       if (state.status === 'running' && state.timer_type === 'pomodoro' && !sessionStartTime.value && !completedHere) {
         startSession();
+        saveSharedSession(state.run);
       }
 
       // Nobody has touched this call's timer yet: line it up with the

@@ -103,6 +103,25 @@ test('reading a room ends a timer that ran out', function () {
         ->assertJson(['timer_type' => 'pomodoro', 'status' => 'idle', 'event' => 'complete', 'completed_type' => 'short_break']);
 });
 
+test('each timer lined up is a new run, kept through pauses', function () {
+    $this->freezeTime();
+    $user = discordUser();
+    $run = act($user, ['action' => 'start'])->json('run');
+
+    // A device reloading mid-pomodoro tells by the run that it is the same one.
+    act($user, ['action' => 'pause'])->assertJson(['run' => $run]);
+    act($user, ['action' => 'start'])->assertJson(['run' => $run]);
+
+    $this->travel(26)->minutes();
+    $afterCompletion = act($user, ['action' => 'complete'])->json('run');
+    expect($afterCompletion)->not->toBe($run);
+
+    $afterSwitch = act($user, ['action' => 'switch', 'timer_type' => 'pomodoro'])->json('run');
+    expect($afterSwitch)->not->toBe($afterCompletion);
+
+    expect(act($user, ['action' => 'reset'])->json('run'))->not->toBe($afterSwitch);
+});
+
 test('each instance has its own room', function () {
     $user = discordUser();
     act($user, ['action' => 'start'], 'i-1');
