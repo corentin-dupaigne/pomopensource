@@ -36,18 +36,21 @@ class FocusedSessionController extends Controller
     }
 
     /**
-     * End a focus session. The client names the session by its start time:
-     * the latest open session may belong to another tab or device, or be
-     * one left open long ago. When the start never reached the server, the
+     * End a focus session, or save the time focused so far in one still
+     * going: a session that never ends, e.g. a pomodoro paused and left,
+     * keeps that time. The client names the session by its start time: the
+     * latest open session may belong to another tab or device, or be one
+     * left open long ago. When the start never reached the server, the
      * session is created here, so the time is still logged.
      */
     public function update(Request $request)
     {
         $userId = $request->user()->id;
         $validated = $request->validate([
-            'started_at' => 'nullable|date',
+            'in_progress' => 'boolean',
+            'started_at' => 'required_if_accepted:in_progress|nullable|date',
             'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
-            'ended_at' => 'required|date',
+            'ended_at' => 'exclude_if:in_progress,true|required|date',
             'time_focused' => 'required|integer|min:0',
             'note' => 'nullable|string|max:255',
         ]);
@@ -55,10 +58,12 @@ class FocusedSessionController extends Controller
         // A session can span pauses, so count the time actually focused rather
         // than the wall-clock time between start and end.
         $end = [
-            'ended_at' => $validated['ended_at'],
             'minute_focused' => intdiv($validated['time_focused'] + 30, 60),
             'note' => $validated['note'] ?? null,
         ];
+        if (empty($validated['in_progress'])) {
+            $end['ended_at'] = $validated['ended_at'];
+        }
 
         $sessions = $request->user()->focusedSessions();
 
@@ -81,7 +86,8 @@ class FocusedSessionController extends Controller
         } elseif ($focusedSession->ended_at === null) {
             $focusedSession->update($end);
         }
-        // Already ended: a retry of a request that went through.
+        // Already ended: a retry of a request that went through, or progress
+        // sent just before the end and arriving after it.
     }
 
     /**

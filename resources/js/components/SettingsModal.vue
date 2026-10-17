@@ -47,11 +47,6 @@
                 <div class="modal-body flex-1 min-h-0 w-full sm:w-3/4 sm:pl-4 pb-2">
                     <!-- The Discord call's timer, shared by everyone in it. -->
                     <div v-if="activeCategory === CALL_CATEGORY.name">
-                        <p class="mb-6 text-sm text-white/60">
-                            Everyone in the call shares this timer, and a change applies to everyone.
-                            A timer already started keeps its time; the next one uses the new durations.
-                            The next call you open starts with them too.
-                        </p>
                         <div v-for="field in CALL_FIELDS" :key="field.type" class="mb-6">
                             <label :for="`call-${field.type}`" class="block text-sm font-medium text-white/70">{{ field.label }}</label>
                             <input
@@ -66,86 +61,90 @@
                         </div>
                     </div>
                     <div v-else-if="activeCategory">
-                        <p v-if="activeCategory === PERSONAL_CATEGORY.name" class="mb-6 text-sm text-white/60">
-                            Only you see these.
-                        </p>
-                        <div v-for="setting in getActiveCategorySettings()" :key="setting.id" class="mb-6">
+                        <!-- In a call, this user's own settings come in sections,
+                             one per category of the website's settings. -->
+                        <section v-for="group in getActiveGroups()" :key="group.name ?? ''" :aria-labelledby="group.name && `group-${group.name}`">
+                            <h3 v-if="group.name" :id="`group-${group.name}`" class="mb-3 text-xs font-semibold uppercase tracking-wider text-white/50">
+                                <i :class="group.icon" class="mr-1.5" aria-hidden="true"></i>{{ group.name }}
+                            </h3>
+                            <div v-for="setting in group.settings" :key="setting.id" class="mb-6">
 
-                            <label v-if="setting.type !== 'checkbox'" :for="setting.key" class="block text-sm font-medium text-white/70">
-                                {{ setting.name }}
-                            </label>
+                                <label v-if="setting.type !== 'checkbox'" :for="setting.key" class="block text-sm font-medium text-white/70">
+                                    {{ setting.name }}
+                                </label>
 
-                            <input
-                                v-if="setting.type === 'text'"
-                                type="text"
-                                v-model="setting.value"
-                                :id="setting.key"
-                                @input="debouncedSave(setting)"
-                                class="mt-1 block w-full bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
-                            >
-
-                            <!-- A sound plays once picked, and again from the button. -->
-                            <div v-else-if="setting.type === 'select'" class="flex items-end gap-2">
-                                <CustomSelect
-                                    v-model="setting.value"
-                                    :options="setting.options"
-                                    :imageUrlFn="setting.key === 'theme' ? themeThumbnailUrl : null"
-                                    :imageFallbackFn="setting.key === 'theme' ? themeImageUrl : null"
-                                    @update:modelValue="saveSetting(setting); setting.key === 'alert_sound' && previewSound()"
-                                    class="flex-1 min-w-0"
-                                />
-                                <button
-                                    v-if="setting.key === 'alert_sound'"
-                                    type="button"
-                                    @click="previewSound"
-                                    :aria-label="`Play ${setting.value}`"
-                                    :title="`Play ${setting.value}`"
-                                    class="shrink-0 w-10 h-10 flex items-center justify-center bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/15 transition"
-                                >
-                                    <i class="fas fa-play text-xs" aria-hidden="true"></i>
-                                </button>
-                            </div>
-
-                            <div v-else-if="setting.type === 'checkbox'" class="mt-1 flex items-center">
                                 <input
-                                    type="checkbox"
-                                    :checked="isEnabled(setting.value)"
-                                    @change="setting.value = $event.target.checked ? 1 : 0; saveSetting(setting)"
-                                    :id="setting.key"
-                                    class="toggle-input"
-                                >
-                                <label :for="setting.key" class="ml-2 text-white/70 cursor-pointer">{{ setting.name }}</label>
-                            </div>
-
-                            <div v-else-if="setting.type === 'number'" class="mt-1 flex flex-wrap gap-4">
-                                <input
-                                    type="number"
+                                    v-if="setting.type === 'text'"
+                                    type="text"
                                     v-model="setting.value"
                                     :id="setting.key"
-                                    @change="saveSetting(setting)"
-                                    class="block w-1/4 bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
+                                    @input="debouncedSave(setting)"
+                                    class="mt-1 block w-full bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
                                 >
-                            </div>
 
-                            <div v-else-if="setting.type === 'range'" class="mt-4">
-                                <div class="flex items-center mt-2">
-                                    <span class="text-white/70 text-xs w-8 shrink-0">{{ setting.value }}</span>
+                                <!-- A sound plays once picked, and again from the button. -->
+                                <div v-else-if="setting.type === 'select'" class="flex items-end gap-2">
+                                    <CustomSelect
+                                        v-model="setting.value"
+                                        :options="setting.options"
+                                        :imageUrlFn="setting.key === 'theme' ? themeThumbnailUrl : null"
+                                        :imageFallbackFn="setting.key === 'theme' ? themeImageUrl : null"
+                                        @update:modelValue="saveSetting(setting); setting.key === 'alert_sound' && previewSound()"
+                                        class="flex-1 min-w-0"
+                                    />
+                                    <button
+                                        v-if="setting.key === 'alert_sound'"
+                                        type="button"
+                                        @click="previewSound"
+                                        :aria-label="`Play ${setting.value}`"
+                                        :title="`Play ${setting.value}`"
+                                        class="shrink-0 w-10 h-10 flex items-center justify-center bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/15 transition"
+                                    >
+                                        <i class="fas fa-play text-xs" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+
+                                <div v-else-if="setting.type === 'checkbox'" class="mt-1 flex items-center">
                                     <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
+                                        type="checkbox"
+                                        :checked="isEnabled(setting.value)"
+                                        @change="setting.value = $event.target.checked ? 1 : 0; saveSetting(setting)"
+                                        :id="setting.key"
+                                        class="toggle-input"
+                                    >
+                                    <label :for="setting.key" class="ml-2 text-white/70 cursor-pointer">{{ setting.name }}</label>
+                                </div>
+
+                                <div v-else-if="setting.type === 'number'" class="mt-1 flex flex-wrap gap-4">
+                                    <input
+                                        type="number"
                                         v-model="setting.value"
                                         :id="setting.key"
-                                        :aria-label="`${setting.name}: ${setting.value}`"
-                                        @input="debouncedSave(setting)"
-                                        @change="setting.key === 'alert_volume' && previewSound()"
-                                        class="range-slider ml-2 w-full cursor-pointer focus:outline-none"
-                                        :style="{ '--pct': setting.value + '%' }"
-                                    />
+                                        @change="saveSetting(setting)"
+                                        class="block w-1/4 bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
+                                    >
                                 </div>
-                            </div>
 
-                        </div>
+                                <div v-else-if="setting.type === 'range'" class="mt-4">
+                                    <div class="flex items-center mt-2">
+                                        <span class="text-white/70 text-xs w-8 shrink-0">{{ setting.value }}</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            v-model="setting.value"
+                                            :id="setting.key"
+                                            :aria-label="`${setting.name}: ${setting.value}`"
+                                            @input="debouncedSave(setting)"
+                                            @change="setting.key === 'alert_volume' && previewSound()"
+                                            class="range-slider ml-2 w-full cursor-pointer focus:outline-none"
+                                            :style="{ '--pct': setting.value + '%' }"
+                                        />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -193,8 +192,11 @@ export default {
         const modalRef = ref(null);
 
         const allSettings = () => settingsCategories.value.flatMap((category) => category.settings);
+        const personalGroups = () => settingsCategories.value
+            .map((category) => ({ ...category, settings: category.settings.filter((s) => !WEBSITE_ONLY.includes(s.key)) }))
+            .filter((group) => group.settings.length > 0);
         const categories = computed(() => callTimer.active
-            ? [CALL_CATEGORY, { ...PERSONAL_CATEGORY, settings: allSettings().filter((s) => !WEBSITE_ONLY.includes(s.key)) }]
+            ? [CALL_CATEGORY, { ...PERSONAL_CATEGORY, groups: personalGroups() }]
             : settingsCategories.value);
 
         const showCategories = (loaded) => {
@@ -232,9 +234,12 @@ export default {
         // delay) must not still show the next time the modal opens.
         if (loadedCategories.value) showCategories(structuredClone(loadedCategories.value));
 
-        const getActiveCategorySettings = () => {
+        // The active page's settings, in sections: one without a heading,
+        // except on the call's "Just for you" page.
+        const getActiveGroups = () => {
             const category = categories.value.find(cat => cat.name === activeCategory.value);
-            return category ? category.settings : [];
+            if (!category) return [];
+            return category.groups ?? [{ name: null, settings: category.settings }];
         };
 
         const saveSetting = async (setting) => {
@@ -286,13 +291,12 @@ export default {
             categories,
             callTimer,
             CALL_CATEGORY,
-            PERSONAL_CATEGORY,
             CALL_FIELDS,
             setCallDuration,
             activeCategory,
             isSaving,
             modalRef,
-            getActiveCategorySettings,
+            getActiveGroups,
             saveSetting,
             debouncedSave,
             themeThumbnailUrl,
