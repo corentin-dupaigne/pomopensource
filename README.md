@@ -120,6 +120,7 @@ Pomopopensource is a cute, minimalist, customizable webapp providing statistics 
   - Everyone in the call shares one timer: anyone can start, pause or switch it, and each person's focus time is saved to their own account
   - See who else is in the session, and show it in your Discord status along with whether you're focusing or on a break, with a countdown
   - Picture-in-picture and grid views show the timer's name and progress
+  - One account on the website and in Discord: sign in on the website with **Continue with Discord** to find the projects, sessions and stats from the Activity
 
 
 ### Built With
@@ -218,10 +219,10 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
 
 ### Running as a Discord Activity
 
-Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/developers/activities/overview). Users are signed in with their Discord account automatically, and their Discord status shows the timer.
+Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/developers/activities/overview). Users are signed in with their Discord account automatically, and their Discord status shows the timer. The same application lets users sign in on the website with Discord, into the same account.
 
 1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
-2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://127.0.0.1` as a redirect URI. Discord requires one, but Activities don't use it.
+2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://<your-host>/auth/discord/callback` as a redirect URI, e.g. `https://pomopensource.example.com/auth/discord/callback`. The website's **Continue with Discord** comes back there; the Activity doesn't use it.
 3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`, and the prefix `/discord-cdn` to `cdn.discordapp.com` for avatars. Without the second mapping, avatars fall back to initials.
 4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.
 5. **Configure the deployment.** Store the client secret in a Kubernetes Secret and point the chart at it:
