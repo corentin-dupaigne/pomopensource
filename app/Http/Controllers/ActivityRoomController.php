@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLaunch;
 use App\Models\ActivityRoom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class ActivityRoomController extends Controller
 
         // Clients poll this often: lock only when a timer ran out and must end.
         $room = ActivityRoom::firstOrCreate(['instance_id' => $instance]);
+        $this->countParticipant($room, $request->user()->id);
         if ($room->isDue()) {
             $room = DB::transaction(function () use ($instance) {
                 $room = $this->lockedRoom($instance);
@@ -67,6 +69,29 @@ class ActivityRoomController extends Controller
     private function authorizeDiscordUser(Request $request): void
     {
         abort_unless($request->user()->discord_id, 403);
+    }
+
+    /**
+     * Count each account that uses the call's timer once, for the usage
+     * statistics. Only a newcomer's first poll writes anything.
+     */
+    private function countParticipant(ActivityRoom $room, int $userId): void
+    {
+        if (in_array($userId, $room->participant_ids ?? [], true)) {
+            return;
+        }
+
+        DB::transaction(function () use ($room, $userId) {
+            $locked = $this->lockedRoom($room->instance_id);
+            $ids = $locked->participant_ids ?? [];
+            if (in_array($userId, $ids, true)) {
+                return;
+            }
+            $ids[] = $userId;
+            $locked->participant_ids = $ids;
+            $locked->save();
+            ActivityLaunch::where('instance_id', $room->instance_id)->update(['participants' => count($ids)]);
+        });
     }
 
     private function lockedRoom(string $instance): ActivityRoom

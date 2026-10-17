@@ -55,6 +55,8 @@ class ActivityRoom extends Model
         'version' => 'integer',
         'run' => 'integer',
         'completed_at_ms' => 'integer',
+        // The accounts that used this call's timer, counted in its launch.
+        'participant_ids' => 'array',
     ];
 
     // Each call is recorded for the usage statistics, which outlive the room.

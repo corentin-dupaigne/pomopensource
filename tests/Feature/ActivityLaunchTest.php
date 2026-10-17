@@ -72,5 +72,48 @@ test('nothing in the record says who was in the call', function () {
     $this->actingAs(callMember())->getJson('/activity-rooms/'.SERVER_CALL)->assertOk();
 
     expect(array_keys((array) launches()->sole()))
-        ->toEqualCanonicalizing(['id', 'instance_id', 'kind', 'guild_id', 'channel_id', 'created_at']);
+        ->toEqualCanonicalizing(['id', 'instance_id', 'kind', 'guild_id', 'channel_id', 'participants', 'created_at']);
+});
+
+test('a call counts each account that uses its timer once', function () {
+    $alice = callMember('1');
+    $bob = callMember('2');
+
+    // Each device polls every 2 seconds.
+    foreach ([$alice, $alice, $bob, $alice, $bob] as $member) {
+        $this->actingAs($member)->getJson('/activity-rooms/'.SERVER_CALL)->assertOk();
+    }
+
+    expect(launches()->sole()->participants)->toBe(2);
+});
+
+test('someone alone in a call counts as one', function () {
+    $this->actingAs(callMember())->getJson('/activity-rooms/'.SERVER_CALL)->assertOk();
+    $this->actingAs(callMember('1'))->getJson('/activity-rooms/'.PRIVATE_CALL)->assertOk();
+
+    expect(launches()->pluck('participants')->all())->toBe([1, 1]);
+});
+
+test('counting a newcomer changes nothing for the others', function () {
+    $alice = callMember('1');
+    $this->actingAs($alice)->getJson('/activity-rooms/'.SERVER_CALL)->assertOk();
+    $this->actingAs($alice)->postJson('/activity-rooms/'.SERVER_CALL, ['action' => 'start'])->assertOk();
+    $version = ActivityRoom::sole()->version;
+
+    $this->actingAs(callMember('2'))->getJson('/activity-rooms/'.SERVER_CALL)
+        ->assertOk()
+        ->assertJsonPath('version', $version)
+        ->assertJsonPath('status', 'running');
+});
+
+test('who was in a call goes with the room, the count stays', function () {
+    foreach (['1', '2', '3'] as $id) {
+        $this->actingAs(callMember($id))->getJson('/activity-rooms/'.SERVER_CALL)->assertOk();
+    }
+
+    $this->travel(2)->days();
+    $this->artisan('model:prune', ['--model' => [ActivityRoom::class]])->assertSuccessful();
+
+    expect(ActivityRoom::count())->toBe(0)
+        ->and(launches()->sole()->participants)->toBe(3);
 });

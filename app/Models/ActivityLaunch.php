@@ -9,7 +9,8 @@ use Illuminate\Database\Eloquent\Model;
  * was, and when it opened. Kept for good, for the usage statistics: the
  * room itself is deleted a day after the call.
  *
- * Nothing here says who was in the call.
+ * Nothing here says who was in the call: only how many accounts used
+ * its timer.
  */
 class ActivityLaunch extends Model
 {
