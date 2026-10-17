@@ -151,6 +151,7 @@ import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
+import { saveSession, flushPendingSessions } from '../composables/pendingSessions.js';
 import { isEnabled, settingsSaved, alertSoundUrl, audioVolume } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
@@ -434,19 +435,24 @@ export default {
     // Time left when it started: in a shared timer, someone joining halfway
     // through only counts the part they were there for.
     let sessionStartRemaining = null;
+    // The start request, which the end request waits for: the server names
+    // a session by its start time, and must not see the end first.
+    let sessionStartRequest = null;
+    const projectIdOf = (selected) => selected.startsWith('project:rbNiqBehszLPVzMmR_')
+      ? extractAfterFirstUnderscore(selected)
+      : null;
+
     const startSession = () => {
       sessionStartTime.value = new Date();
       sessionStartRemaining = time.value;
       if (!props.isAuthenticated) return;
 
       const payload = {
-        project_id: selectedId.value.startsWith('project:rbNiqBehszLPVzMmR_')
-          ? extractAfterFirstUnderscore(selectedId.value)
-          : null,
+        project_id: projectIdOf(selectedId.value),
         started_at: sessionStartTime.value
       };
 
-      axios
+      sessionStartRequest = axios
         .post('/focused-sessions', payload)
         .catch((err) => {
           const status = err.response?.status;
@@ -501,8 +507,22 @@ export default {
       const selected = selectedId.value;
       const sessionNote = note.value.trim() || null;
       const startedAt = sessionStartTime.value;
-      const saveLocally = () => {
-        if (duration <= 0) return;
+      if (props.isAuthenticated) {
+        const payload = {
+          started_at: startedAt,
+          project_id: projectIdOf(selected),
+          ended_at: endedAt,
+          time_focused: duration,
+          note: sessionNote,
+        };
+        Promise.resolve(sessionStartRequest)
+          .then(() => saveSession(payload))
+          .then((saved) => {
+            if (!saved && duration > 0) {
+              error('Could not save this session yet: it is kept on this device and will be sent later');
+            }
+          });
+      } else if (duration > 0) {
         addLocalSession({
           date: toLocalDateString(endedAt),
           started_at: startedAt ? new Date(startedAt).toISOString() : null,
@@ -510,21 +530,11 @@ export default {
           selectedId: selected,
           note: sessionNote,
         });
-      };
-
-      if (props.isAuthenticated) {
-        axios
-          .patch('/focused-sessions/current', { ended_at: endedAt, time_focused: duration, note: sessionNote })
-          .catch((err) => {
-            // Keep the time on this device rather than losing it.
-            console.error('Error ending session', err);
-            saveLocally();
-          });
-      } else {
-        saveLocally();
       }
 
       sessionStartTime.value = null;
+      sessionStartRequest = null;
+      if (shared) localStorage.removeItem(TIMER_KEY);
     };
 
     const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
@@ -647,6 +657,29 @@ export default {
       sharedTimer.send('complete');
     };
 
+    // The shared timer lives on the server, but this device's focus session
+    // is kept here, with the run of the pomodoro it follows: reloading or
+    // rejoining mid-pomodoro carries on counting it, instead of dropping
+    // the time before the reload.
+    const saveSharedSession = (run) => {
+      try {
+        localStorage.setItem(TIMER_KEY, JSON.stringify({
+          sharedSession: { run, startTime: sessionStartTime.value, startRemaining: sessionStartRemaining },
+        }));
+      } catch {
+        // Storage unavailable: a reload starts a new session.
+      }
+    };
+
+    const resumeSharedSession = (run) => {
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem(TIMER_KEY))?.sharedSession; }
+      catch { /* nothing to resume */ }
+      if (!stored || stored.run !== run) return;
+      sessionStartTime.value = new Date(stored.startTime);
+      sessionStartRemaining = stored.startRemaining;
+    };
+
     let firstSharedState = true;
     const applySharedState = (state, { isNew, offset }) => {
       const joining = firstSharedState;
@@ -669,6 +702,7 @@ export default {
       // This user's focus session follows the shared pomodoro: it starts when
       // the pomodoro runs, and ends when it is reset or switched away.
       const pomodoroOn = state.timer_type === 'pomodoro' && state.status !== 'idle';
+      if (joining && pomodoroOn) resumeSharedSession(state.run);
       if (sessionStartTime.value && !pomodoroOn) endSession();
 
       clearInterval(timerInterval.value);
@@ -687,6 +721,7 @@ export default {
 
       if (state.status === 'running' && state.timer_type === 'pomodoro' && !sessionStartTime.value && !completedHere) {
         startSession();
+        saveSharedSession(state.run);
       }
 
       // Nobody has touched this call's timer yet: line it up with the
@@ -713,12 +748,18 @@ export default {
         }
       });
     }
+    // Sessions the server could not take earlier go as soon as it can.
+    const flushIfSignedIn = () => { if (props.isAuthenticated) flushPendingSessions(); };
+    window.addEventListener('online', flushIfSignedIn);
+
     onUnmounted(() => {
       sharedTimer?.stop();
       clearInterval(timerInterval.value);
+      window.removeEventListener('online', flushIfSignedIn);
     });
 
     onMounted(() => {
+      flushIfSignedIn();
       if (shared) {
         sharedTimer.start();
         return;

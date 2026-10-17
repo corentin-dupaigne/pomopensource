@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Stats;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class UserStatsController extends Controller
@@ -15,7 +14,7 @@ class UserStatsController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $stats = $this->updateStats($user);
+        $stats = $this->updateStats($user, $this->timezone($request));
 
         return response()->json([
             'stats' => [
@@ -26,23 +25,42 @@ class UserStatsController extends Controller
         ]);
     }
 
-    public function updateStats(User $user)
+    /**
+     * The user's time zone, which their browser sends: days are the user's
+     * own, not the server's. Falls back to the app's.
+     */
+    private function timezone(Request $request): string
     {
+        $timezone = $request->header('X-Timezone');
+        try {
+            return $timezone ? (new \DateTimeZone($timezone))->getName() : config('app.timezone');
+        } catch (\Exception) {
+            return config('app.timezone');
+        }
+    }
+
+    /**
+     * The dates of the user's days with a focus session, in their time zone.
+     */
+    private function sessionDays(User $user, string $timezone)
+    {
+        return $user->focusedSessions()
+            ->pluck('started_at')
+            ->map(fn ($startedAt) => $startedAt->setTimezone($timezone)->toDateString())
+            ->unique();
+    }
+
+    public function updateStats(User $user, ?string $timezone = null)
+    {
+        $timezone ??= config('app.timezone');
         $stats = $user->stats ?? new Stats(['user_id' => $user->id]);
 
         // Update total focused time
         $this->updateTimeFocused($user, $stats);
 
-        // Update days accessed
-        $daysAccessed = $user->focusedSessions()
-            ->select(DB::raw('DATE(started_at) as date'))
-            ->distinct()
-            ->get()
-            ->count();
-        $stats->days_accessed = $daysAccessed;
-
-        // Update day streak
-        $this->updateDayStreak($user, $stats);
+        $days = $this->sessionDays($user, $timezone);
+        $stats->days_accessed = $days->count();
+        $this->updateDayStreak($days, $timezone, $stats);
 
         $stats->save();
 
@@ -63,15 +81,11 @@ class UserStatsController extends Controller
      * Computed from the sessions on every call: the stored value used to be
      * incremented on each request, so it grew every time stats were read.
      */
-    private function updateDayStreak(User $user, Stats $stats): void
+    private function updateDayStreak($days, string $timezone, Stats $stats): void
     {
-        $days = $user->focusedSessions()
-            ->selectRaw('DATE(started_at) as day')
-            ->distinct()
-            ->pluck('day')
-            ->flip();
+        $days = $days->flip();
 
-        $day = Carbon::today();
+        $day = Carbon::today($timezone);
         if (!$days->has($day->toDateString())) {
             $day->subDay();
         }
@@ -89,48 +103,62 @@ class UserStatsController extends Controller
     public function getCalendarData(Request $request, $year, $month = null, $day = null)
     {
         $user = $request->user();
-        $stats = $this->updateStats($user);
+        $timezone = $this->timezone($request);
+        $stats = $this->updateStats($user, $timezone);
         $view = $request->query('view', 'month');
 
         switch ($view) {
             case 'week':
-                return $this->getWeekCalendarData($user, $year, $month, $day, $stats);
+                return $this->getWeekCalendarData($user, $year, $month, $day, $stats, $timezone);
             case 'month':
-                return $this->getMonthCalendarData($user, $year, $month, $stats);
+                return $this->getMonthCalendarData($user, $year, $month, $stats, $timezone);
             case 'year':
-                return $this->getYearCalendarData($user, $year, $stats);
+                return $this->getYearCalendarData($user, $year, $stats, $timezone);
             default:
                 return response()->json(['error' => 'Invalid view'], 400);
         }
     }
 
-    private function getWeekCalendarData($user, $year, $month, $day, $stats)
+    private function getWeekCalendarData($user, $year, $month, $day, $stats, $timezone)
     {
-        $startDate = Carbon::create($year, $month, $day)->startOfWeek();
+        $startDate = Carbon::create($year, $month, $day, 0, 0, 0, $timezone)->startOfWeek();
         $endDate = $startDate->copy()->endOfWeek();
 
         return $this->getCalendarDataForDateRange($user, $startDate, $endDate, $stats);
     }
 
-    private function getMonthCalendarData($user, $year, $month, $stats)
+    private function getMonthCalendarData($user, $year, $month, $stats, $timezone)
     {
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $startDate = Carbon::create($year, $month, 1, 0, 0, 0, $timezone)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
         return $this->getCalendarDataForDateRange($user, $startDate, $endDate, $stats);
     }
 
-    private function getYearCalendarData($user, $year, $stats)
+    /**
+     * The sessions started between two moments of the user's time zone,
+     * grouped by the user's date in the given format. Sessions are stored
+     * in the app's time zone.
+     */
+    private function sessionsBetween($user, Carbon $startDate, Carbon $endDate, string $format)
     {
-        $startDate = Carbon::create($year, 1, 1)->startOfYear();
+        $timezone = $startDate->getTimezone();
+
+        return $user->focusedSessions()
+            ->whereBetween('started_at', [
+                $startDate->copy()->setTimezone(config('app.timezone')),
+                $endDate->copy()->setTimezone(config('app.timezone')),
+            ])
+            ->get()
+            ->groupBy(fn ($session) => $session->started_at->setTimezone($timezone)->format($format));
+    }
+
+    private function getYearCalendarData($user, $year, $stats, $timezone)
+    {
+        $startDate = Carbon::create($year, 1, 1, 0, 0, 0, $timezone)->startOfYear();
         $endDate = $startDate->copy()->endOfYear();
 
-        $focusedSessions = $user->focusedSessions()
-            ->whereBetween('started_at', [$startDate, $endDate])
-            ->get()
-            ->groupBy(function ($session) {
-                return $session->started_at->format('Y-m');
-            });
+        $focusedSessions = $this->sessionsBetween($user, $startDate, $endDate, 'Y-m');
 
         $calendar = [];
 
@@ -155,12 +183,7 @@ class UserStatsController extends Controller
 
     private function getCalendarDataForDateRange($user, $startDate, $endDate, $stats)
     {
-        $focusedSessions = $user->focusedSessions()
-            ->whereBetween('started_at', [$startDate, $endDate])
-            ->get()
-            ->groupBy(function ($session) {
-                return $session->started_at->format('Y-m-d');
-            });
+        $focusedSessions = $this->sessionsBetween($user, $startDate, $endDate, 'Y-m-d');
 
         $calendar = [];
 
@@ -186,13 +209,17 @@ class UserStatsController extends Controller
 
     /**
      * The sessions of one day, oldest first, for the day log. Days are
-     * grouped as in the calendar.
+     * grouped as in the calendar, in the user's time zone.
      */
     public function getDayLog(Request $request, string $date)
     {
+        $start = Carbon::parse($date, $this->timezone($request))->startOfDay();
         $sessions = $request->user()->focusedSessions()
             ->with('project:id,name')
-            ->whereDate('started_at', $date)
+            ->whereBetween('started_at', [
+                $start->copy()->setTimezone(config('app.timezone')),
+                $start->copy()->endOfDay()->setTimezone(config('app.timezone')),
+            ])
             ->whereNotNull('ended_at')
             ->orderBy('started_at')
             ->get();

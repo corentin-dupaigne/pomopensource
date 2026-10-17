@@ -8,6 +8,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\UserSettingsController;
 use App\Http\Controllers\UserStatsController;
 use App\Http\Controllers\FocusedSessionController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -15,6 +16,13 @@ Route::get('/', HomeController::class)->name('home');
 // Linked from the Discord Developer Portal, which needs both for a public Activity.
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/terms', 'legal.terms')->name('terms');
+
+// A page left open past the session lifetime holds a stale CSRF token, and
+// every write is refused until a reload. The client calls this for a fresh
+// one (any GET sets it as the XSRF-TOKEN cookie), and to learn whether the
+// remember-me cookie signed the user back in.
+Route::get('/session/refresh', fn () => response()->json(['authenticated' => Auth::check()]))
+    ->name('session.refresh');
 
 Route::post('/discord/token', [DiscordActivityController::class, 'token'])
     ->middleware('throttle:20,1')
