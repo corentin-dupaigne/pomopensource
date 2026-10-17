@@ -448,6 +448,7 @@ export default {
     const startSession = () => {
       sessionStartTime.value = new Date();
       sessionStartRemaining = time.value;
+      progressSent = 0;
       if (!props.isAuthenticated) return;
 
       const payload = {
@@ -539,8 +540,37 @@ export default {
 
       sessionStartTime.value = null;
       sessionStartRequest = null;
+      progressSent = 0;
       if (shared) localStorage.removeItem(TIMER_KEY);
     };
+
+    // The time focused so far goes to the server every minute, and when the
+    // page is hidden. A session only ended when its pomodoro did: one paused
+    // and left, or a call closed before the end, lost all its time.
+    const PROGRESS_INTERVAL_MS = 60 * 1000;
+    let progressSent = 0;
+    const sendProgress = () => {
+      if (!props.isAuthenticated || !sessionStartTime.value) return;
+      const focused = (sessionStartRemaining ?? initialTime.value) - time.value;
+      // Paused: sent once, not every minute.
+      if (focused <= progressSent) return;
+      progressSent = focused;
+      const payload = {
+        started_at: sessionStartTime.value,
+        project_id: projectIdOf(selectedId.value),
+        time_focused: focused,
+        note: note.value.trim() || null,
+        in_progress: true,
+      };
+      // The next one, or the end, carries it if this one fails.
+      Promise.resolve(sessionStartRequest)
+        .then(() => axios.patch('/focused-sessions/current', payload))
+        .catch((err) => console.error('Error saving session progress', err));
+    };
+    const progressInterval = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
+    const sendProgressIfHidden = () => { if (document.visibilityState === 'hidden') sendProgress(); };
+    document.addEventListener('visibilitychange', sendProgressIfHidden);
+    window.addEventListener('pagehide', sendProgress);
 
     const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
 
@@ -823,6 +853,9 @@ export default {
       callTimer.active = false;
       sharedTimer?.stop();
       clearInterval(timerInterval.value);
+      clearInterval(progressInterval);
+      document.removeEventListener('visibilitychange', sendProgressIfHidden);
+      window.removeEventListener('pagehide', sendProgress);
       window.removeEventListener('online', flushIfSignedIn);
     });
 
