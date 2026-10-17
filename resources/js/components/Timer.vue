@@ -568,6 +568,9 @@ export default {
         .catch((err) => console.error('Error saving session progress', err));
     };
     const progressInterval = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
+    // A pause is saved right away: the timer may stay paused for good. At
+    // the end of a pomodoro, the session has ended by the time this runs.
+    watch(isRunning, (running) => { if (!running) sendProgress(); });
     const sendProgressIfHidden = () => { if (document.visibilityState === 'hidden') sendProgress(); };
     document.addEventListener('visibilitychange', sendProgressIfHidden);
     window.addEventListener('pagehide', sendProgress);
