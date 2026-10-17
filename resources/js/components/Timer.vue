@@ -434,19 +434,24 @@ export default {
     // Time left when it started: in a shared timer, someone joining halfway
     // through only counts the part they were there for.
     let sessionStartRemaining = null;
+    // The start request, which the end request waits for: the server names
+    // a session by its start time, and must not see the end first.
+    let sessionStartRequest = null;
+    const projectIdOf = (selected) => selected.startsWith('project:rbNiqBehszLPVzMmR_')
+      ? extractAfterFirstUnderscore(selected)
+      : null;
+
     const startSession = () => {
       sessionStartTime.value = new Date();
       sessionStartRemaining = time.value;
       if (!props.isAuthenticated) return;
 
       const payload = {
-        project_id: selectedId.value.startsWith('project:rbNiqBehszLPVzMmR_')
-          ? extractAfterFirstUnderscore(selectedId.value)
-          : null,
+        project_id: projectIdOf(selectedId.value),
         started_at: sessionStartTime.value
       };
 
-      axios
+      sessionStartRequest = axios
         .post('/focused-sessions', payload)
         .catch((err) => {
           const status = err.response?.status;
@@ -513,8 +518,15 @@ export default {
       };
 
       if (props.isAuthenticated) {
-        axios
-          .patch('/focused-sessions/current', { ended_at: endedAt, time_focused: duration, note: sessionNote })
+        const payload = {
+          started_at: startedAt,
+          project_id: projectIdOf(selected),
+          ended_at: endedAt,
+          time_focused: duration,
+          note: sessionNote,
+        };
+        Promise.resolve(sessionStartRequest)
+          .then(() => axios.patch('/focused-sessions/current', payload))
           .catch((err) => {
             // Keep the time on this device rather than losing it.
             console.error('Error ending session', err);
@@ -525,6 +537,7 @@ export default {
       }
 
       sessionStartTime.value = null;
+      sessionStartRequest = null;
     };
 
     const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
