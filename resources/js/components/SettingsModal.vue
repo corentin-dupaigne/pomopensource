@@ -50,6 +50,7 @@
                         <p class="mb-6 text-sm text-white/60">
                             Everyone in the call shares this timer, and a change applies to everyone.
                             A timer already started keeps its time; the next one uses the new durations.
+                            The next call you open starts with them too.
                         </p>
                         <div v-for="field in CALL_FIELDS" :key="field.type" class="mb-6">
                             <label :for="`call-${field.type}`" class="block text-sm font-medium text-white/70">{{ field.label }}</label>
@@ -65,9 +66,8 @@
                         </div>
                     </div>
                     <div v-else-if="activeCategory">
-                        <p v-if="callTimer.active && activeCategory.toLowerCase() === 'timers'" class="mb-6 text-sm text-white/60">
-                            Your durations start new calls. This call's timer has its own, under
-                            <button type="button" class="underline hover:text-white" @click="activeCategory = CALL_CATEGORY.name">This call</button>.
+                        <p v-if="activeCategory === PERSONAL_CATEGORY.name" class="mb-6 text-sm text-white/60">
+                            Only you see these.
                         </p>
                         <div v-for="setting in getActiveCategorySettings()" :key="setting.id" class="mb-6">
 
@@ -161,8 +161,13 @@ import CustomSelect from './CustomSelect.vue';
 import { isEnabled, settingsCategories as loadedCategories, alertSoundUrl, audioVolume } from '../composables/settings.js';
 import { callTimer } from '../composables/callTimer.js';
 
-// Shown first while in a Discord call: the call's own timer.
+// In a Discord call, the settings are sorted by whom they affect: the
+// call's timer, shared by everyone, then what only affects this user. The
+// user's own durations and auto-start are for the website's timer: in a
+// call, the durations are the call's, and its timer does not auto-start.
 const CALL_CATEGORY = { name: 'This call', icon: 'fas fa-users' };
+const PERSONAL_CATEGORY = { name: 'Just for you', icon: 'fas fa-user' };
+const WEBSITE_ONLY = ['pomodoro_duration', 'short_break_duration', 'long_break_duration', 'auto_start_pomodoros'];
 const CALL_FIELDS = [
     { type: 'pomodoro', label: 'Pomodoro (minutes)' },
     { type: 'short_break', label: 'Short break (minutes)' },
@@ -187,8 +192,9 @@ export default {
         const isSaving = ref(false);
         const modalRef = ref(null);
 
+        const allSettings = () => settingsCategories.value.flatMap((category) => category.settings);
         const categories = computed(() => callTimer.active
-            ? [CALL_CATEGORY, ...settingsCategories.value]
+            ? [CALL_CATEGORY, { ...PERSONAL_CATEGORY, settings: allSettings().filter((s) => !WEBSITE_ONLY.includes(s.key)) }]
             : settingsCategories.value);
 
         const showCategories = (loaded) => {
@@ -197,10 +203,17 @@ export default {
         };
         if (callTimer.active) activeCategory.value = CALL_CATEGORY.name;
 
+        // A change to the call's durations is also saved as the user's own:
+        // the next call they open starts with what they used last.
         const setCallDuration = (type, input) => {
             const minutes = parseInt(input.value);
             if (minutes >= 1 && minutes <= 600) {
                 callTimer.setDurations({ [type]: minutes });
+                const own = allSettings().find((setting) => setting.key === `${type}_duration`);
+                if (own) {
+                    own.value = String(minutes);
+                    saveSetting(own);
+                }
             } else {
                 input.value = callTimer.durations?.[type] ?? '';
             }
@@ -220,7 +233,7 @@ export default {
         if (loadedCategories.value) showCategories(structuredClone(loadedCategories.value));
 
         const getActiveCategorySettings = () => {
-            const category = settingsCategories.value.find(cat => cat.name === activeCategory.value);
+            const category = categories.value.find(cat => cat.name === activeCategory.value);
             return category ? category.settings : [];
         };
 
@@ -273,6 +286,7 @@ export default {
             categories,
             callTimer,
             CALL_CATEGORY,
+            PERSONAL_CATEGORY,
             CALL_FIELDS,
             setCallDuration,
             activeCategory,
