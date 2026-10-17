@@ -17,6 +17,24 @@ class Discord
     }
 
     /**
+     * Where the website sends the user to let the app read their Discord
+     * identity. Discord sends them back to the redirect URI with a code and
+     * the state, unchanged.
+     */
+    public function authorizeUrl(string $redirectUri, string $state): string
+    {
+        return $this->apiUrl('/oauth2/authorize').'?'.http_build_query([
+            'client_id' => config('services.discord.client_id'),
+            'response_type' => 'code',
+            'scope' => 'identify',
+            'redirect_uri' => $redirectUri,
+            'state' => $state,
+            // Users who already allowed the app go straight back.
+            'prompt' => 'none',
+        ]);
+    }
+
+    /**
      * Exchange an OAuth2 code for an access token, or null when Discord
      * rejects it. The website sends the redirect URI it asked the code
      * with; Activities have none.

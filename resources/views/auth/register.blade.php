@@ -1,4 +1,6 @@
 <x-guest-layout>
+    <x-discord-login />
+
     <form method="POST" action="{{ route('register') }}" class="space-y-4">
         @csrf
 
