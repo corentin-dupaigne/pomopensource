@@ -220,7 +220,8 @@ class UserStatsController extends Controller
                 $start->copy()->setTimezone(config('app.timezone')),
                 $start->copy()->endOfDay()->setTimezone(config('app.timezone')),
             ])
-            ->whereNotNull('ended_at')
+            // One still going, or never ended, with the time focused so far.
+            ->where(fn ($query) => $query->whereNotNull('ended_at')->orWhere('minute_focused', '>', 0))
             ->orderBy('started_at')
             ->get();
 
