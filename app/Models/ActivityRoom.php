@@ -57,6 +57,12 @@ class ActivityRoom extends Model
         'completed_at_ms' => 'integer',
     ];
 
+    // Each call is recorded for the usage statistics, which outlive the room.
+    protected static function booted(): void
+    {
+        static::created(fn (ActivityRoom $room) => ActivityLaunch::record($room->instance_id));
+    }
+
     /**
      * Rooms of calls that ended a day ago.
      */
