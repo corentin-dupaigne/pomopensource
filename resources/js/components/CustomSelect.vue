@@ -38,7 +38,6 @@
                     ref="listboxRef"
                     :style="dropdownStyle"
                     class="fixed bg-white/15 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl overflow-hidden overflow-y-auto z-[200] scrollbar-dropdown"
-                    style="max-height: 14rem;"
                     role="listbox"
                     :aria-labelledby="triggerId"
                     @keydown="handleListKeydown"
@@ -98,13 +97,26 @@ export default {
         const triggerId = `custom-select-${Math.random().toString(36).slice(2)}`;
         const dropdownStyle = ref({});
 
+        // Below the trigger, or above it when a few options would not fit
+        // below and there is more room above: a Discord Activity can be under
+        // 400px tall. The list scrolls within the room it has.
+        const MAX_HEIGHT = 224;
+        const MIN_HEIGHT = 150;
+        const GAP = 4;
+        const MARGIN = 8;
         const updatePosition = () => {
             if (!triggerRef.value) return;
             const rect = triggerRef.value.getBoundingClientRect();
+            const below = window.innerHeight - rect.bottom - GAP - MARGIN;
+            const above = rect.top - GAP - MARGIN;
+            const openUp = below < MIN_HEIGHT && above > below;
             dropdownStyle.value = {
-                top: `${rect.bottom + 4}px`,
+                ...(openUp
+                    ? { bottom: `${window.innerHeight - rect.top + GAP}px` }
+                    : { top: `${rect.bottom + GAP}px` }),
                 left: `${rect.left}px`,
                 width: `${rect.width}px`,
+                maxHeight: `${Math.max(Math.min(MAX_HEIGHT, openUp ? above : below), 0)}px`,
             };
         };
 
@@ -190,8 +202,22 @@ export default {
             }
         };
 
-        onMounted(() => document.addEventListener('mousedown', handleOutsideClick));
-        onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick));
+        // The list is fixed to the window: it follows the trigger when the
+        // page or the modal scrolls, or the window is resized.
+        const followTrigger = (e) => {
+            if (isOpen.value && !listboxRef.value?.contains(e.target)) updatePosition();
+        };
+
+        onMounted(() => {
+            document.addEventListener('mousedown', handleOutsideClick);
+            window.addEventListener('scroll', followTrigger, true);
+            window.addEventListener('resize', followTrigger);
+        });
+        onUnmounted(() => {
+            document.removeEventListener('mousedown', handleOutsideClick);
+            window.removeEventListener('scroll', followTrigger, true);
+            window.removeEventListener('resize', followTrigger);
+        });
 
         return {
             isOpen, containerRef, triggerRef, listboxRef,
