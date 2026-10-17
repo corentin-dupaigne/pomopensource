@@ -151,6 +151,7 @@ import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
+import { saveSession, flushPendingSessions } from '../composables/pendingSessions.js';
 import { isEnabled, settingsSaved, alertSoundUrl, audioVolume } from '../composables/settings.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
@@ -506,17 +507,6 @@ export default {
       const selected = selectedId.value;
       const sessionNote = note.value.trim() || null;
       const startedAt = sessionStartTime.value;
-      const saveLocally = () => {
-        if (duration <= 0) return;
-        addLocalSession({
-          date: toLocalDateString(endedAt),
-          started_at: startedAt ? new Date(startedAt).toISOString() : null,
-          duration_seconds: duration,
-          selectedId: selected,
-          note: sessionNote,
-        });
-      };
-
       if (props.isAuthenticated) {
         const payload = {
           started_at: startedAt,
@@ -526,14 +516,20 @@ export default {
           note: sessionNote,
         };
         Promise.resolve(sessionStartRequest)
-          .then(() => axios.patch('/focused-sessions/current', payload))
-          .catch((err) => {
-            // Keep the time on this device rather than losing it.
-            console.error('Error ending session', err);
-            saveLocally();
+          .then(() => saveSession(payload))
+          .then((saved) => {
+            if (!saved && duration > 0) {
+              error('Could not save this session yet: it is kept on this device and will be sent later');
+            }
           });
-      } else {
-        saveLocally();
+      } else if (duration > 0) {
+        addLocalSession({
+          date: toLocalDateString(endedAt),
+          started_at: startedAt ? new Date(startedAt).toISOString() : null,
+          duration_seconds: duration,
+          selectedId: selected,
+          note: sessionNote,
+        });
       }
 
       sessionStartTime.value = null;
@@ -726,12 +722,18 @@ export default {
         }
       });
     }
+    // Sessions the server could not take earlier go as soon as it can.
+    const flushIfSignedIn = () => { if (props.isAuthenticated) flushPendingSessions(); };
+    window.addEventListener('online', flushIfSignedIn);
+
     onUnmounted(() => {
       sharedTimer?.stop();
       clearInterval(timerInterval.value);
+      window.removeEventListener('online', flushIfSignedIn);
     });
 
     onMounted(() => {
+      flushIfSignedIn();
       if (shared) {
         sharedTimer.start();
         return;
