@@ -242,7 +242,7 @@ export default {
   },
   emits: ['manageProjects'],
   setup(props) {
-    const { error } = useToast();
+    const { error, success } = useToast();
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
     const initialTime = ref(time.value);
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
@@ -684,7 +684,27 @@ export default {
     // The call's timer has its own durations, which everyone sees; acting
     // on it never changes them. They change when someone sets them in the
     // settings, or when a new call's timer takes those of whoever opens it.
-    const setCallDurations = (durations) => sharedTimer.send('durations', { durations });
+    // Changes made here are not announced back to this user.
+    let changingDurations = false;
+    const setCallDurations = (durations) => {
+      changingDurations = true;
+      sharedTimer.send('durations', { durations });
+    };
+
+    // Tell the others in the call who changed which duration.
+    const DURATION_NAMES = { pomodoro: 'pomodoro', short_break: 'short break', long_break: 'long break' };
+    const announceDurations = (state, previous) => {
+      if (changingDurations) {
+        changingDurations = false;
+        return;
+      }
+      const changes = Object.keys(DURATION_NAMES)
+        .filter((type) => previous?.[type] !== state.durations[type])
+        .map((type) => `${DURATION_NAMES[type]} to ${state.durations[type]} min`);
+      if (changes.length > 0) {
+        success(`${state.durations_changed_by ?? 'Someone'} set this call's ${changes.join(', ')}`);
+      }
+    };
 
     // A new call's timer waits for the account's settings: until they load
     // after the Discord sign-in, the app only has the copy cached on the
@@ -703,6 +723,7 @@ export default {
     const applySharedState = (state, { isNew, offset }) => {
       const joining = firstSharedState;
       firstSharedState = false;
+      if (isNew && !joining && state.event === 'durations') announceDurations(state, callTimer.durations);
       callTimer.active = true;
       callTimer.durations = state.durations;
       callTimer.setDurations = setCallDurations;
