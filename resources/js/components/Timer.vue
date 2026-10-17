@@ -156,7 +156,7 @@ import { isEnabled, settingsCategories as loadedSettings, alertSoundUrl, audioVo
 import { callTimer } from '../composables/callTimer.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
-import { setPresence, timerPresence, isDiscordActivity, discordInstanceId } from '../discord.js';
+import { setPresence, timerPresence, isDiscordActivity, discordInstanceId, discordSession } from '../discord.js';
 import ProjectSelect from './ProjectSelect.vue';
 import ConfirmModal from './ConfirmModal.vue';
 
@@ -684,25 +684,29 @@ export default {
     // The call's timer has its own durations, which everyone sees; acting
     // on it never changes them. They change when someone sets them in the
     // settings, or when a new call's timer takes those of whoever opens it.
-    // Changes made here are not announced back to this user.
-    let changingDurations = false;
-    const setCallDurations = (durations) => {
-      changingDurations = true;
+    // A change made here: 'announce' when the user made it in the settings,
+    // 'quiet' when a new call took their durations by itself.
+    let ownChange = null;
+    const setCallDurations = (durations, { announce = true } = {}) => {
+      ownChange = announce ? 'announce' : 'quiet';
       sharedTimer.send('durations', { durations });
     };
 
-    // Tell the others in the call who changed which duration.
+    // Tell everyone in the call who changed which duration. The one who
+    // changed it is told too, so they know the others were: unless alone.
     const DURATION_NAMES = { pomodoro: 'pomodoro', short_break: 'short break', long_break: 'long break' };
     const announceDurations = (state, previous) => {
-      if (changingDurations) {
-        changingDurations = false;
-        return;
-      }
+      const own = ownChange;
+      ownChange = null;
       const changes = Object.keys(DURATION_NAMES)
         .filter((type) => previous?.[type] !== state.durations[type])
-        .map((type) => `${DURATION_NAMES[type]} to ${state.durations[type]} min`);
-      if (changes.length > 0) {
-        success(`${state.durations_changed_by ?? 'Someone'} set this call's ${changes.join(', ')}`);
+        .map((type) => `${DURATION_NAMES[type]} to ${state.durations[type]} min`)
+        .join(', ');
+      if (!changes || own === 'quiet') return;
+      if (!own) {
+        success(`${state.durations_changed_by ?? 'Someone'} set this call's ${changes}`);
+      } else if (discordSession.participants.length > 1) {
+        success(`You set this call's ${changes} for everyone`);
       }
     };
 
@@ -713,7 +717,7 @@ export default {
     const seedCallDurations = () => {
       seedPending = false;
       const durations = durationsFromSettings();
-      if (Object.keys(durations).length > 0) setCallDurations(durations);
+      if (Object.keys(durations).length > 0) setCallDurations(durations, { announce: false });
     };
     if (shared) {
       watch(loadedSettings, () => { if (seedPending) seedCallDurations(); });
