@@ -36,6 +36,10 @@ class ActivityRoom extends Model
         'duration' => 25 * 60,
         'remaining' => 25 * 60,
         'run' => 0,
+        // Also in the database, but a room just created would say null: the
+        // client then never saw a new room, and the call kept 25 minutes.
+        'version' => 0,
+        'completed_pomodoros' => 0,
         'durations' => '{"pomodoro":25,"short_break":5,"long_break":15}',
     ];
 

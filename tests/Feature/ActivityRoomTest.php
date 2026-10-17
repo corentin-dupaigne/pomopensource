@@ -27,6 +27,13 @@ test('a new room starts as an idle pomodoro', function () {
         ]);
 });
 
+test('a new room says it is new', function () {
+    // Its first reader is who opens the call, whose durations it then takes.
+    $this->actingAs(discordUser())
+        ->getJson('/activity-rooms/i-1')
+        ->assertJsonPath('version', 0);
+});
+
 test('starting runs the timer until a shared end time', function () {
     $this->freezeTime();
     $user = discordUser();
