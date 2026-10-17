@@ -95,11 +95,13 @@
              the Activity's smaller frame it is narrower, though still wide
              enough for "General focus" and the whole placeholder.
              The note is kept from one pomodoro to the next: a long stretch on
-             the same thing should not mean typing it again. -->
+             the same thing should not mean typing it again.
+             In a call it stays while the pomodoro runs: the timer is everyone's,
+             so stopping it to change project is not an option. -->
         <div
-            v-if="currentTimerType === 'pomodoro' && !isRunning"
+            v-if="currentTimerType === 'pomodoro' && (!isRunning || shared)"
             class="hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
-            :class="isDiscordActivity ? 'w-96' : 'w-[28rem]'"
+            :class="[isDiscordActivity ? 'w-96' : 'w-[28rem]', { 'quiet-fade': isRunning }]"
         >
             <ProjectSelect
                 v-model="selectedId"
@@ -120,8 +122,8 @@
             >
         </div>
 
-        <!-- While it runs: the same information as quiet text. The project is
-             locked; the note can still be edited. -->
+        <!-- While it runs on the website: the same information as quiet text.
+             The project is locked; the note can still be edited. -->
         <div
             v-else-if="currentTimerType === 'pomodoro'"
             class="quiet-fade hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
@@ -501,12 +503,14 @@ export default {
       else resetTimer();
     };
 
-    const endSession = (endedAt = new Date()) => {
+    // The project and note are those picked now, unless the session was for
+    // others: in a call, the project can change mid-pomodoro.
+    const endSession = (endedAt = new Date(), { project = selectedId.value, noteText = note.value } = {}) => {
       const duration = (sessionStartRemaining ?? initialTime.value) - time.value;
       sessionStartRemaining = null;
 
-      const selected = selectedId.value;
-      const sessionNote = note.value.trim() || null;
+      const selected = project;
+      const sessionNote = noteText.trim() || null;
       const startedAt = sessionStartTime.value;
       if (props.isAuthenticated) {
         const payload = {
@@ -602,10 +606,26 @@ export default {
 
     // A note is about one project: picking another starts a blank one.
     // Synchronous, so restoring a saved project and its note keeps the note.
-    watch(selectedId, () => { note.value = ''; }, { flush: 'sync' });
+    // In a call, the timer runs on for everyone, so the project can change
+    // mid-pomodoro: this user's session on the previous project ends there,
+    // with its note, and one on the new project starts.
+    let resumingSharedSession = false;
+    watch(selectedId, (_, previous) => {
+      if (shared && sessionStartTime.value && !resumingSharedSession) {
+        endSession(new Date(), { project: previous, noteText: note.value });
+        // Paused, the next session starts when the timer runs again.
+        if (isRunning.value) {
+          startSession();
+          saveSharedSession(sharedRun);
+        }
+      }
+      note.value = '';
+    }, { flush: 'sync' });
 
     watch([selectedId, note], () => {
-      if (sessionStartTime.value) saveTimerStateToLocalStorage();
+      if (!sessionStartTime.value) return;
+      if (shared) saveSharedSession(sharedRun);
+      else saveTimerStateToLocalStorage();
     });
 
     const restoreTimerState = (stored) => {
@@ -662,10 +682,17 @@ export default {
     // is kept here, with the run of the pomodoro it follows: reloading or
     // rejoining mid-pomodoro carries on counting it, instead of dropping
     // the time before the reload.
+    let sharedRun = null;
     const saveSharedSession = (run) => {
       try {
         localStorage.setItem(TIMER_KEY, JSON.stringify({
-          sharedSession: { run, startTime: sessionStartTime.value, startRemaining: sessionStartRemaining },
+          sharedSession: {
+            run,
+            startTime: sessionStartTime.value,
+            startRemaining: sessionStartRemaining,
+            selectedId: selectedId.value,
+            note: note.value,
+          },
         }));
       } catch {
         // Storage unavailable: a reload starts a new session.
@@ -679,6 +706,11 @@ export default {
       if (!stored || stored.run !== run) return;
       sessionStartTime.value = new Date(stored.startTime);
       sessionStartRemaining = stored.startRemaining;
+      // The same session goes on: picking its project back is no switch.
+      resumingSharedSession = true;
+      selectedId.value = stored.selectedId?.startsWith('project:') ? stored.selectedId : '';
+      note.value = stored.note ?? '';
+      resumingSharedSession = false;
     };
 
     // The call's timer has its own durations, which everyone sees; acting
@@ -745,6 +777,8 @@ export default {
         }
         completedHere = false;
       }
+
+      sharedRun = state.run;
 
       // This user's focus session follows the shared pomodoro: it starts when
       // the pomodoro runs, and ends when it is reset or switched away.
