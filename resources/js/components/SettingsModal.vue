@@ -192,8 +192,13 @@ export default {
         const modalRef = ref(null);
 
         const allSettings = () => settingsCategories.value.flatMap((category) => category.settings);
+        // The general settings come first, under no heading.
         const personalGroups = () => settingsCategories.value
-            .map((category) => ({ ...category, settings: category.settings.filter((s) => !WEBSITE_ONLY.includes(s.key)) }))
+            .map((category) => ({
+                ...category,
+                name: category.name === 'General' ? null : category.name,
+                settings: category.settings.filter((s) => !WEBSITE_ONLY.includes(s.key)),
+            }))
             .filter((group) => group.settings.length > 0);
         const categories = computed(() => callTimer.active
             ? [CALL_CATEGORY, { ...PERSONAL_CATEGORY, groups: personalGroups() }]
@@ -235,7 +240,8 @@ export default {
         if (loadedCategories.value) showCategories(structuredClone(loadedCategories.value));
 
         // The active page's settings, in sections: one without a heading,
-        // except on the call's "Just for you" page.
+        // except on the call's "Just for you" page, where only the general
+        // settings have none.
         const getActiveGroups = () => {
             const category = categories.value.find(cat => cat.name === activeCategory.value);
             if (!category) return [];
