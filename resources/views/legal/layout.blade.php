@@ -18,7 +18,7 @@
 <body>
 <main>
     <h1>@yield('title')</h1>
-    <p class="updated">Last updated: October 9, 2026</p>
+    <p class="updated">Last updated: @yield('updated', 'October 9, 2026')</p>
     @yield('content')
 </main>
 </body>
