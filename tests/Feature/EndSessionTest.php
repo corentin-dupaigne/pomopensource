@@ -43,6 +43,7 @@ test('time whose start never reached the server goes on the day it was worked', 
     startSession($this->user, '2026-10-12 18:00:00');
 
     // Today's start request failed: the server only hears of the end.
+    $this->travelTo(Carbon::parse('2026-10-16 14:25:00'));
     endSession($this->user, '2026-10-16 14:00:00', ['note' => 'chapter 4'])->assertOk();
 
     $this->actingAs($this->user)
