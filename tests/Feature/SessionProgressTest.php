@@ -66,6 +66,7 @@ test('progress arriving after the end changes nothing', function () {
 
 test('progress on a session whose start never reached the server is kept', function () {
     $later = $this->startedAt->copy()->addHour();
+    $this->travelTo($later->copy()->addMinutes(5));
 
     sendProgress($this->user, $later, 5 * 60)->assertOk();
 

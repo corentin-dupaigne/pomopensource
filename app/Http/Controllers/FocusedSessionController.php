@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FocusedSession;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,9 @@ use Inertia\Inertia;
 
 class FocusedSessionController extends Controller
 {
+    // How far ahead of the server a client's clock may be.
+    private const CLOCK_TOLERANCE_MINUTES = 5;
+
     public function index(Request $request)
     {
         $focusedSessions = $request->user()->focusedSessions()
@@ -29,6 +33,12 @@ class FocusedSessionController extends Controller
             'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'started_at' => 'required|date',
         ]);
+
+        // A clock set in the future would date the session there: it starts
+        // now instead, and its end finds it as the latest open session.
+        if ($this->isInFuture($validated['started_at'])) {
+            $validated['started_at'] = now();
+        }
 
         $focusedSession = $request->user()->focusedSessions()->create($validated);
 
@@ -62,13 +72,14 @@ class FocusedSessionController extends Controller
             'note' => $validated['note'] ?? null,
         ];
         if (empty($validated['in_progress'])) {
-            $end['ended_at'] = $validated['ended_at'];
+            $end['ended_at'] = $this->isInFuture($validated['ended_at']) ? now() : $validated['ended_at'];
         }
 
         $sessions = $request->user()->focusedSessions();
 
-        // Pages loaded before sessions were named by their start.
-        if (empty($validated['started_at'])) {
+        // Pages loaded before sessions were named by their start, and clocks
+        // set in the future, whose sessions were started now.
+        if (empty($validated['started_at']) || $this->isInFuture($validated['started_at'])) {
             $sessions->whereNull('ended_at')->latest()->firstOrFail()->update($end);
 
             return;
@@ -88,6 +99,11 @@ class FocusedSessionController extends Controller
         }
         // Already ended: a retry of a request that went through, or progress
         // sent just before the end and arriving after it.
+    }
+
+    private function isInFuture(string $date): bool
+    {
+        return Carbon::parse($date)->isAfter(now()->addMinutes(self::CLOCK_TOLERANCE_MINUTES));
     }
 
     /**
