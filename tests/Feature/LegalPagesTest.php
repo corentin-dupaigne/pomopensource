@@ -22,3 +22,9 @@ test('the privacy policy says what is kept about calls, and for how long', funct
         ->assertSee('Usage statistics')
         ->assertSee('deleted a day after the call ends');
 });
+
+test('the privacy policy says sessions keep their server', function () {
+    $this->get('/privacy')
+        ->assertOk()
+        ->assertSee('the ID of the server whose call it was in');
+});

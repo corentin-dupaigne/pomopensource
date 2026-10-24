@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLaunch;
 use App\Models\FocusedSession;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -32,6 +33,7 @@ class FocusedSessionController extends Controller
         $validated = $request->validate([
             'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'started_at' => 'required|date',
+            'instance_id' => 'nullable|string|max:100',
         ]);
 
         // A clock set in the future would date the session there: it starts
@@ -40,7 +42,11 @@ class FocusedSessionController extends Controller
             $validated['started_at'] = now();
         }
 
-        $focusedSession = $request->user()->focusedSessions()->create($validated);
+        $focusedSession = $request->user()->focusedSessions()->create([
+            'project_id' => $validated['project_id'] ?? null,
+            'started_at' => $validated['started_at'],
+            'guild_id' => $this->guildOf($validated['instance_id'] ?? null),
+        ]);
 
         return response()->json(['message' => 'Correctly add session']);
     }
@@ -63,6 +69,7 @@ class FocusedSessionController extends Controller
             'ended_at' => 'exclude_if:in_progress,true|required|date',
             'time_focused' => 'required|integer|min:0',
             'note' => 'nullable|string|max:255',
+            'instance_id' => 'nullable|string|max:100',
         ]);
 
         // A session can span pauses, so count the time actually focused rather
@@ -93,12 +100,24 @@ class FocusedSessionController extends Controller
             $request->user()->focusedSessions()->create($end + [
                 'started_at' => $startedAt,
                 'project_id' => $validated['project_id'] ?? null,
+                'guild_id' => $this->guildOf($validated['instance_id'] ?? null),
             ]);
         } elseif ($focusedSession->ended_at === null) {
             $focusedSession->update($end);
         }
         // Already ended: a retry of a request that went through, or progress
         // sent just before the end and arriving after it.
+    }
+
+    /**
+     * The server of the Discord call a session was focused in, from the
+     * Activity instance the client names. The instance ID only says where
+     * the call was, so a client can claim another call: fine for now, as
+     * nothing is shown from it yet.
+     */
+    private function guildOf(?string $instanceId): ?string
+    {
+        return $instanceId ? ActivityLaunch::placeOf($instanceId)['guild_id'] : null;
     }
 
     private function isInFuture(string $date): bool

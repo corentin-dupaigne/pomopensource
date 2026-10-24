@@ -453,7 +453,9 @@ export default {
 
       const payload = {
         project_id: projectIdOf(selectedId.value),
-        started_at: sessionStartTime.value
+        started_at: sessionStartTime.value,
+        // The server keeps which Discord server the call was in.
+        instance_id: discordInstanceId,
       };
 
       sessionStartRequest = axios
@@ -520,6 +522,7 @@ export default {
           ended_at: endedAt,
           time_focused: duration,
           note: sessionNote,
+          instance_id: discordInstanceId,
         };
         Promise.resolve(sessionStartRequest)
           .then(() => saveSession(payload))
@@ -561,6 +564,7 @@ export default {
         time_focused: focused,
         note: note.value.trim() || null,
         in_progress: true,
+        instance_id: discordInstanceId,
       };
       // The next one, or the end, carries it if this one fails.
       Promise.resolve(sessionStartRequest)
