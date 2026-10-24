@@ -129,7 +129,7 @@
 
                                 <div v-else-if="setting.type === 'range'" class="mt-4">
                                     <div class="flex items-center mt-2">
-                                        <span class="text-white/70 text-xs w-8 shrink-0">{{ setting.value }}</span>
+                                        <span class="text-white/70 text-xs w-8 shrink-0">{{ setting.key === 'alert_volume' && Number(setting.value) === 0 ? 'Off' : setting.value }}</span>
                                         <input
                                             type="range"
                                             min="0"

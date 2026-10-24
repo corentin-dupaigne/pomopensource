@@ -121,15 +121,6 @@ class SettingsSeeder extends Seeder
                 'default_value' => '50',
                 'display_order' => 2,
             ],
-            [
-                'category_id' => 3,
-                'key' => 'play_sound',
-                'name' => 'Play sound when timer finishes',
-                'type' => 'checkbox',
-                'options' => null,
-                'default_value' => 'true',
-                'display_order' => 3,
-            ],
         ];
 
         foreach ($settings as $setting) {

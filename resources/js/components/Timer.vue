@@ -248,7 +248,6 @@ export default {
     const time = ref((props.settings?.timers?.settings?.pomodoro_duration ?? 25) * 60);
     const initialTime = ref(time.value);
     const alertVolume = ref(props.settings?.sound?.settings?.alert_volume ?? 50);
-    const playSound = ref(props.settings?.sound?.settings?.play_sound ?? 'true');
     const isRunning = ref(false);
     // Lets the page go quiet while the timer runs (see composables/focus.js).
     watch(isRunning, (running) => { timerRunning.value = running; });
@@ -275,13 +274,6 @@ export default {
       () => props.settings?.sound?.settings?.alert_volume,
       (newVolume) => {
         alertVolume.value = newVolume;
-      }
-    );
-
-    watch(
-      () => props.settings?.sound?.settings?.play_sound,
-      (newValue) => {
-        playSound.value = newValue;
       }
     );
 
@@ -364,7 +356,7 @@ export default {
     };
 
     const toggleTimer = () => {
-      if (!isRunning.value && isEnabled(playSound.value)) unlockAlarmSound();
+      if (!isRunning.value && soundOn()) unlockAlarmSound();
       if (shared) {
         sharedTimer.send(isRunning.value ? 'pause' : 'start');
       } else if (isRunning.value) {
@@ -392,7 +384,7 @@ export default {
     };
 
     const announceDone = (timerType) => {
-      if (isEnabled(playSound.value)) playAlarmSound();
+      if (soundOn()) playAlarmSound();
       notifyTimerDone(timerType);
       const { title, body } = doneMessage(timerType);
       justFinished.value = timerType;
@@ -580,6 +572,8 @@ export default {
     window.addEventListener('pagehide', sendProgress);
 
     const alarmSoundUrl = () => alertSoundUrl(props.settings?.sound?.settings?.alert_sound);
+    // A volume of 0 turns the alert off.
+    const soundOn = () => audioVolume(alertVolume.value ?? 50) > 0;
 
     // Mobile webviews, Discord's included, only let an audio element play
     // after it has played during a tap. The alarm fires later, from a timer,
