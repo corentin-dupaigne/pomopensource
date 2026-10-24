@@ -54,8 +54,10 @@
                                 min="1"
                                 max="600"
                                 :id="`call-${field.type}`"
-                                :value="callTimer.durations?.[field.type]"
-                                @change="setCallDuration(field.type, $event.target)"
+                                v-model="callDrafts[field.type]"
+                                @focus="editedCallField = field.type"
+                                @blur="editedCallField = null"
+                                @change="setCallDuration(field.type)"
                                 class="mt-1 block w-1/4 bg-white/10 text-white border border-white/20 rounded-lg py-2 px-3 leading-5 focus:ring-white/40 focus:border-white/40 transition duration-150 ease-in-out"
                             >
                         </div>
@@ -153,7 +155,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
 import CustomSelect from './CustomSelect.vue';
@@ -210,10 +212,21 @@ export default {
         };
         if (callTimer.active) activeCategory.value = CALL_CATEGORY.name;
 
+        // The call's state arrives again and again while the modal is open:
+        // it only updates the fields the user isn't typing in, or a
+        // backspace would bring the old value straight back.
+        const callDrafts = reactive({});
+        const editedCallField = ref(null);
+        watch(() => callTimer.durations, (durations) => {
+            for (const { type } of CALL_FIELDS) {
+                if (type !== editedCallField.value) callDrafts[type] = durations?.[type] ?? '';
+            }
+        }, { immediate: true });
+
         // A change to the call's durations is also saved as the user's own:
         // the next call they open starts with what they used last.
-        const setCallDuration = (type, input) => {
-            const minutes = parseInt(input.value);
+        const setCallDuration = (type) => {
+            const minutes = parseInt(callDrafts[type]);
             if (minutes >= 1 && minutes <= 600) {
                 callTimer.setDurations({ [type]: minutes });
                 const own = allSettings().find((setting) => setting.key === `${type}_duration`);
@@ -222,7 +235,7 @@ export default {
                     saveSetting(own);
                 }
             } else {
-                input.value = callTimer.durations?.[type] ?? '';
+                callDrafts[type] = callTimer.durations?.[type] ?? '';
             }
         };
 
@@ -298,6 +311,8 @@ export default {
             callTimer,
             CALL_CATEGORY,
             CALL_FIELDS,
+            callDrafts,
+            editedCallField,
             setCallDuration,
             activeCategory,
             isSaving,
