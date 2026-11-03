@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLaunch;
 use App\Models\FocusedSession;
+use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -33,6 +34,7 @@ class FocusedSessionController extends Controller
         $validated = $request->validate([
             'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'started_at' => 'required|date',
+            'subject' => 'nullable|string|max:255',
             'instance_id' => 'nullable|string|max:100',
         ]);
 
@@ -42,13 +44,14 @@ class FocusedSessionController extends Controller
             $validated['started_at'] = now();
         }
 
-        $focusedSession = $request->user()->focusedSessions()->create([
-            'project_id' => $validated['project_id'] ?? null,
+        $project = $this->subjectOf($request, $validated);
+        $request->user()->focusedSessions()->create([
+            'project_id' => $project ? $project->id : null,
             'started_at' => $validated['started_at'],
             'guild_id' => $this->guildOf($validated['instance_id'] ?? null),
         ]);
 
-        return response()->json(['message' => 'Correctly add session']);
+        return response()->json(['message' => 'Correctly add session', 'project' => $project ?: null]);
     }
 
     /**
@@ -68,16 +71,23 @@ class FocusedSessionController extends Controller
             'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'ended_at' => 'exclude_if:in_progress,true|required|date',
             'time_focused' => 'required|integer|min:0',
+            'subject' => 'nullable|string|max:255',
             'note' => 'nullable|string|max:255',
             'instance_id' => 'nullable|string|max:100',
         ]);
 
         // A session can span pauses, so count the time actually focused rather
         // than the wall-clock time between start and end.
-        $end = [
-            'minute_focused' => intdiv($validated['time_focused'] + 30, 60),
-            'note' => $validated['note'] ?? null,
-        ];
+        $end = ['minute_focused' => intdiv($validated['time_focused'] + 30, 60)];
+        // The timer no longer has a note: one written in the day log stays.
+        if (array_key_exists('note', $validated)) {
+            $end['note'] = $validated['note'];
+        }
+        // The subject can be changed while the pomodoro runs.
+        $project = $this->subjectOf($request, $validated);
+        if ($project !== false) {
+            $end['project_id'] = $project?->id;
+        }
         if (empty($validated['in_progress'])) {
             $end['ended_at'] = $this->isInFuture($validated['ended_at']) ? now() : $validated['ended_at'];
         }
@@ -89,7 +99,7 @@ class FocusedSessionController extends Controller
         if (empty($validated['started_at']) || $this->isInFuture($validated['started_at'])) {
             $sessions->whereNull('ended_at')->latest()->firstOrFail()->update($end);
 
-            return;
+            return response()->json(['project' => $project ?: null]);
         }
 
         // Stored to the second, like the start request saved it.
@@ -99,7 +109,6 @@ class FocusedSessionController extends Controller
         if (!$focusedSession) {
             $request->user()->focusedSessions()->create($end + [
                 'started_at' => $startedAt,
-                'project_id' => $validated['project_id'] ?? null,
                 'guild_id' => $this->guildOf($validated['instance_id'] ?? null),
             ]);
         } elseif ($focusedSession->ended_at === null) {
@@ -107,6 +116,27 @@ class FocusedSessionController extends Controller
         }
         // Already ended: a retry of a request that went through, or progress
         // sent just before the end and arriving after it.
+
+        return response()->json(['project' => $project ?: null]);
+    }
+
+    /**
+     * What the session is on: the subject typed, made the first time, or
+     * none when left blank. Older pages, and sessions kept on a device
+     * since, name a project by its ID instead. False when neither is sent.
+     */
+    private function subjectOf(Request $request, array $validated): Project|null|false
+    {
+        if (array_key_exists('subject', $validated)) {
+            $name = Project::clean($validated['subject']);
+
+            return $name === '' ? null : Project::named($request->user(), $name);
+        }
+        if (array_key_exists('project_id', $validated)) {
+            return $validated['project_id'] ? Project::find($validated['project_id']) : null;
+        }
+
+        return false;
     }
 
     /**

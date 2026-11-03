@@ -91,57 +91,26 @@
             @cancel="confirmReset = false"
         />
 
-        <!-- What this pomodoro is for: the project and a note, as one bar. In
-             the Activity's smaller frame it is narrower, though still wide
-             enough for "General focus" and the whole placeholder.
-             The note is kept from one pomodoro to the next: a long stretch on
-             the same thing should not mean typing it again.
-             In a call it stays while the pomodoro runs: the timer is everyone's,
-             so stopping it to change project is not an option. -->
+        <!-- What this pomodoro is for: one field, which suggests the subjects
+             typed before. It is kept from one pomodoro to the next: a long
+             stretch on the same thing should not mean typing it again. In the
+             Activity's smaller frame it is narrower. -->
         <div
             v-if="currentTimerType === 'pomodoro' && (!isRunning || shared)"
             class="hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
-            :class="[isDiscordActivity ? 'w-96' : 'w-[28rem]', { 'quiet-fade': isRunning }]"
+            :class="[isDiscordActivity ? 'w-80' : 'w-96', { 'quiet-fade': isRunning }]"
         >
-            <ProjectSelect
-                v-model="selectedId"
-                :projects="projects"
-                :createProject="createProject"
-                embedded
-                @manage="$emit('manageProjects')"
-            />
-            <span class="w-px my-2 bg-white/20" aria-hidden="true"></span>
-            <input
-                v-model="note"
-                @keydown.enter="$event.target.blur()"
-                type="text"
-                maxlength="255"
-                placeholder="What are you working on?"
-                aria-label="What are you working on? (optional note for this session)"
-                class="flex-1 min-w-0 bg-transparent border-0 px-3 py-2.5 short:py-2 text-sm text-white placeholder-white/60 focus:outline-none focus:ring-0"
-            >
+            <SubjectInput v-model="subject" :subjects="projects" @manage="$emit('manageProjects')" />
         </div>
 
-        <!-- While it runs on the website: the same information as quiet text.
-             The project is locked; the note can still be edited. -->
+        <!-- While it runs on the website: the same, as quiet text, which can
+             still be changed. -->
         <div
             v-else-if="currentTimerType === 'pomodoro'"
             class="quiet-fade hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
         >
-            <i :class="selectedId ? 'fas fa-folder' : 'fas fa-infinity'" class="text-white/40 text-xs" aria-hidden="true"></i>
-            <span class="truncate">{{ selectedLabel || 'General focus' }}</span>
-            <span class="text-white/30" aria-hidden="true">·</span>
             <label class="group flex items-center gap-1.5 min-w-0 cursor-text">
-                <input
-                    v-model="note"
-                    @keydown.enter="$event.target.blur()"
-                    type="text"
-                    maxlength="255"
-                    :size="Math.min(Math.max(note.length, 10), 32)"
-                    placeholder="Add a note"
-                    aria-label="Note for this session"
-                    class="min-w-0 [field-sizing:content] bg-transparent border-0 border-b border-transparent p-0 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-0 focus:border-white/50 group-hover:border-white/30 transition-colors"
-                >
+                <SubjectInput v-model="subject" :subjects="projects" inline @manage="$emit('manageProjects')" />
                 <i class="fas fa-pencil-alt text-[10px] text-white/40 group-hover:text-white/70" aria-hidden="true"></i>
             </label>
         </div>
@@ -152,14 +121,15 @@
 import { ref, computed, watch, watchEffect, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useToast } from '../composables/toast.js';
-import { addLocalSession, toLocalDateString } from '../composables/localStats.js';
+import { addLocalSession, toLocalDateString, PROJECT_PREFIX as LOCAL_SUBJECT_PREFIX } from '../composables/localStats.js';
 import { saveSession, flushPendingSessions } from '../composables/pendingSessions.js';
 import { isEnabled, settingsCategories as loadedSettings, alertSoundUrl, audioVolume } from '../composables/settings.js';
 import { callTimer } from '../composables/callTimer.js';
 import { useSharedTimer } from '../composables/sharedTimer.js';
 import { timerRunning } from '../composables/focus.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId, discordSession } from '../discord.js';
-import ProjectSelect from './ProjectSelect.vue';
+import SubjectInput from './SubjectInput.vue';
+import { cleanSubject } from '../composables/subjects.js';
 import ConfirmModal from './ConfirmModal.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -223,7 +193,7 @@ const notifyTimerDone = (timerType) => {
 };
 
 export default {
-  components: { ProjectSelect, ConfirmModal },
+  components: { SubjectInput, ConfirmModal },
   props: {
     projects: {
       type: Array,
@@ -237,9 +207,11 @@ export default {
       type: [Boolean, Number],
       default: false
     },
-    createProject: {
+    // (subject) => the account's subject: puts it first among the
+    // suggestions, made on this device for a guest.
+    rememberSubject: {
       type: Function,
-      default: null
+      default: () => null
     }
   },
   emits: ['manageProjects'],
@@ -253,8 +225,16 @@ export default {
     watch(isRunning, (running) => { timerRunning.value = running; });
     onUnmounted(() => { timerRunning.value = false; });
     const timerInterval = ref(null);
-    const selectedId = ref('');
-    const note = ref('');
+    const subject = ref('');
+    // What is sent: none for general focus.
+    const subjectSent = () => cleanSubject(subject.value) || null;
+    // A timer saved by a version with a project picker and a note: the
+    // project, or else the note, was what it was on.
+    const storedSubject = (stored) => {
+      if (typeof stored.subject === 'string') return stored.subject;
+      const project = props.projects.find((p) => stored.selectedId === LOCAL_SUBJECT_PREFIX + p.id);
+      return project?.name ?? stored.note ?? '';
+    };
     const sessionStartTime = ref(null);
     const currentTimerType = ref('pomodoro');
     const audio = ref(null);
@@ -320,12 +300,6 @@ export default {
     }, { immediate: true });
 
     const progress = computed(() => initialTime.value > 0 ? 1 - time.value / initialTime.value : 0);
-
-    const selectedLabel = computed(() => {
-      if (!selectedId.value) return '';
-      const project = props.projects.find((p) => selectedId.value === 'project:rbNiqBehszLPVzMmR_' + p.id);
-      return project?.name ?? '';
-    });
 
     const updateTimerFromSettings = () => {
       const duration = props.settings?.timers?.settings?.[`${currentTimerType.value}_duration`] ?? 25;
@@ -433,9 +407,10 @@ export default {
     // The start request, which the end request waits for: the server names
     // a session by its start time, and must not see the end first.
     let sessionStartRequest = null;
-    const projectIdOf = (selected) => selected.startsWith('project:rbNiqBehszLPVzMmR_')
-      ? extractAfterFirstUnderscore(selected)
-      : null;
+    // The server answers with the subject, made if it was new.
+    const remember = (response) => {
+      if (response?.data?.project) props.rememberSubject(response.data.project);
+    };
 
     const startSession = () => {
       sessionStartTime.value = new Date();
@@ -444,7 +419,7 @@ export default {
       if (!props.isAuthenticated) return;
 
       const payload = {
-        project_id: projectIdOf(selectedId.value),
+        subject: subjectSent(),
         started_at: sessionStartTime.value,
         // The server keeps which Discord server the call was in.
         instance_id: discordInstanceId,
@@ -452,6 +427,7 @@ export default {
 
       sessionStartRequest = axios
         .post('/focused-sessions', payload)
+        .then(remember)
         .catch((err) => {
           const status = err.response?.status;
           if (status !== 401 && status !== 403) {
@@ -498,22 +474,19 @@ export default {
       else resetTimer();
     };
 
-    // The project and note are those picked now, unless the session was for
-    // others: in a call, the project can change mid-pomodoro.
-    const endSession = (endedAt = new Date(), { project = selectedId.value, noteText = note.value } = {}) => {
+    // The session is on the subject typed when it ends.
+    const endSession = (endedAt = new Date()) => {
       const duration = (sessionStartRemaining ?? initialTime.value) - time.value;
       sessionStartRemaining = null;
 
-      const selected = project;
-      const sessionNote = noteText.trim() || null;
+      const name = subjectSent();
       const startedAt = sessionStartTime.value;
       if (props.isAuthenticated) {
         const payload = {
           started_at: startedAt,
-          project_id: projectIdOf(selected),
+          subject: name,
           ended_at: endedAt,
           time_focused: duration,
-          note: sessionNote,
           instance_id: discordInstanceId,
         };
         Promise.resolve(sessionStartRequest)
@@ -524,12 +497,12 @@ export default {
             }
           });
       } else if (duration > 0) {
+        const local = name ? props.rememberSubject({ name }) : null;
         addLocalSession({
           date: toLocalDateString(endedAt),
           started_at: startedAt ? new Date(startedAt).toISOString() : null,
           duration_seconds: duration,
-          selectedId: selected,
-          note: sessionNote,
+          selectedId: local ? LOCAL_SUBJECT_PREFIX + local.id : '',
         });
       }
 
@@ -552,15 +525,15 @@ export default {
       progressSent = focused;
       const payload = {
         started_at: sessionStartTime.value,
-        project_id: projectIdOf(selectedId.value),
+        subject: subjectSent(),
         time_focused: focused,
-        note: note.value.trim() || null,
         in_progress: true,
         instance_id: discordInstanceId,
       };
       // The next one, or the end, carries it if this one fails.
       Promise.resolve(sessionStartRequest)
         .then(() => axios.patch('/focused-sessions/current', payload))
+        .then(remember)
         .catch((err) => console.error('Error saving session progress', err));
     };
     const progressInterval = setInterval(sendProgress, PROGRESS_INTERVAL_MS);
@@ -605,11 +578,6 @@ export default {
       });
     };
 
-    function extractAfterFirstUnderscore(str) {
-      const index = str.indexOf('_');
-      return index !== -1 ? str.slice(index + 1) : '';
-    }
-
     // Persist running and paused timers so a reload resumes the same session.
     // A shared timer lives on the server instead.
     const saveTimerStateToLocalStorage = () => {
@@ -629,31 +597,12 @@ export default {
           initialTime: initialTime.value,
           currentTimerType: currentTimerType.value,
           sessionStartTime: sessionStartTime.value,
-          selectedId: selectedId.value,
-          note: note.value
+          subject: subject.value,
         })
       );
     };
 
-    // A note is about one project: picking another starts a blank one.
-    // Synchronous, so restoring a saved project and its note keeps the note.
-    // In a call, the timer runs on for everyone, so the project can change
-    // mid-pomodoro: this user's session on the previous project ends there,
-    // with its note, and one on the new project starts.
-    let resumingSharedSession = false;
-    watch(selectedId, (_, previous) => {
-      if (shared && sessionStartTime.value && !resumingSharedSession) {
-        endSession(new Date(), { project: previous, noteText: note.value });
-        // Paused, the next session starts when the timer runs again.
-        if (isRunning.value) {
-          startSession();
-          saveSharedSession(sharedRun);
-        }
-      }
-      note.value = '';
-    }, { flush: 'sync' });
-
-    watch([selectedId, note], () => {
+    watch(subject, () => {
       if (!sessionStartTime.value) return;
       if (shared) saveSharedSession(sharedRun);
       else saveTimerStateToLocalStorage();
@@ -663,9 +612,7 @@ export default {
       if (stored.currentTimerType) currentTimerType.value = stored.currentTimerType;
       updateTimerFromSettings();
       if (stored.initialTime) initialTime.value = stored.initialTime;
-      // Tasks were folded into their projects: a saved task is no longer picked.
-      selectedId.value = stored.selectedId?.startsWith('project:') ? stored.selectedId : '';
-      note.value = stored.note ?? '';
+      subject.value = storedSubject(stored);
 
       if (stored.sessionStartTime) {
         sessionStartTime.value = new Date(stored.sessionStartTime);
@@ -721,8 +668,7 @@ export default {
             run,
             startTime: sessionStartTime.value,
             startRemaining: sessionStartRemaining,
-            selectedId: selectedId.value,
-            note: note.value,
+            subject: subject.value,
           },
         }));
       } catch {
@@ -737,11 +683,7 @@ export default {
       if (!stored || stored.run !== run) return;
       sessionStartTime.value = new Date(stored.startTime);
       sessionStartRemaining = stored.startRemaining;
-      // The same session goes on: picking its project back is no switch.
-      resumingSharedSession = true;
-      selectedId.value = stored.selectedId?.startsWith('project:') ? stored.selectedId : '';
-      note.value = stored.note ?? '';
-      resumingSharedSession = false;
+      subject.value = storedSubject(stored);
     };
 
     // The call's timer has its own durations, which everyone sees; acting
@@ -884,15 +826,13 @@ export default {
       isRunning,
       formattedTime,
       currentTimerType,
-      selectedId,
-      note,
+      subject,
       setTimer,
       toggleTimer,
       resetTimer,
       confirmReset,
       requestReset,
       shared,
-      selectedLabel,
       justFinished,
       announcement,
       progress,

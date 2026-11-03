@@ -34,12 +34,17 @@ class User extends Authenticatable
     ];
 
 
+    protected $casts = [
+        'show_subjects_notice' => 'boolean',
+    ];
+
     /**
-     * Get the projects of a user.
+     * The user's subjects, the projects of before: what "What are you
+     * working on?" was answered with. The most recently used come first.
      */
     public function projects(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
-        return $this->hasMany(Project::class);
+        return $this->hasMany(Project::class)->orderByDesc('updated_at')->orderByDesc('id');
     }
 
     public function focusedSessions(): \Illuminate\Database\Eloquent\Relations\HasMany

@@ -80,7 +80,7 @@ import ActivitySummary from './ActivitySummary.vue';
 import Calendar from './Calendar.vue';
 import DayLog from './DayLog.vue';
 import ActivityDetail from './ActivityDetail.vue';
-import { getLocalSessions, getLocalProjects, computeStats, computeCalendarData, computeProjectStats, foldLocalTasks, toLocalDateString } from '../composables/localStats.js';
+import { getLocalSessions, getLocalProjects, computeStats, computeCalendarData, computeProjectStats, foldLocalTasks, foldLocalNotes, toLocalDateString } from '../composables/localStats.js';
 
 export default {
     components: {
@@ -121,6 +121,7 @@ export default {
 
         const loadLocalStats = () => {
             foldLocalTasks();
+            foldLocalNotes();
             const sessions = getLocalSessions();
             const computed = computeStats(sessions);
             stats.value = computed;

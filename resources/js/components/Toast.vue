@@ -8,16 +8,28 @@
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg pointer-events-auto text-white text-sm min-w-[220px] max-w-xs backdrop-blur-sm"
-                :class="toast.type === 'error' ? 'bg-red-600/90' : 'bg-green-600/90'"
-                role="alert"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg pointer-events-auto text-white text-sm min-w-[220px] backdrop-blur-sm"
+                :class="{
+                    'bg-red-600/90 max-w-xs': toast.type === 'error',
+                    'bg-green-600/90 max-w-xs': toast.type === 'success',
+                    'bg-neutral-900/90 border border-white/20 max-w-sm': toast.type === 'notice',
+                }"
+                :role="toast.type === 'notice' ? 'status' : 'alert'"
             >
                 <i
-                    :class="toast.type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle'"
+                    :class="{ error: 'fas fa-exclamation-circle', success: 'fas fa-check-circle', notice: 'fas fa-info-circle text-white/60' }[toast.type]"
                     class="shrink-0"
                     aria-hidden="true"
                 ></i>
                 <span>{{ toast.message }}</span>
+                <button
+                    v-if="toast.type === 'notice'"
+                    @click="dismiss(toast.id)"
+                    type="button"
+                    class="shrink-0 -my-1 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 font-semibold transition"
+                >
+                    Got it
+                </button>
             </div>
         </transition-group>
     </div>
@@ -28,8 +40,8 @@ import { useToast } from '../composables/toast.js';
 
 export default {
     setup() {
-        const { toasts } = useToast();
-        return { toasts };
+        const { toasts, dismiss } = useToast();
+        return { toasts, dismiss };
     }
 };
 </script>

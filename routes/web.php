@@ -42,6 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
     Route::patch('/projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+    Route::post('/subjects-notice/dismiss', [ProjectController::class, 'dismissNotice'])->name('subjects-notice.dismiss');
 
     // Routes for Focused Session
     Route::post('/focused-sessions', [FocusedSessionController::class, 'store'])->name('focused-sessions.store');

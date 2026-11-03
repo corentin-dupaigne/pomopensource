@@ -22,9 +22,8 @@ class ProjectController extends Controller
         'name' => 'required|string|max:255',
         ]);
 
-        $project = auth()->user()->projects()->create($validated);
-
-        return response()->json($project);
+        // A subject of the same name is the same one.
+        return response()->json(Project::named(auth()->user(), $validated['name']));
     }
 
 
@@ -39,10 +38,20 @@ class ProjectController extends Controller
         $project->update($validated);
     }
 
+    /**
+     * The notice that projects and notes became one field was read.
+     */
+    public function dismissNotice(Request $request)
+    {
+        $request->user()->forceFill(['show_subjects_notice' => false])->save();
+    }
+
     public function destroy(Request $request, Project $project)
     {
         $this->authorizeOwner($request, $project);
 
+        // Its time stays, as general focus.
+        $project->focusedSessions()->update(['project_id' => null]);
         $project->delete();
     }
 

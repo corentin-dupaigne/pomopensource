@@ -50,6 +50,7 @@ class DiscordActivityController extends Controller
             'logged_in' => $loggedIn,
             'user' => ['name' => $user->name],
             'projects' => $user->projects()->get(),
+            'subjects_notice' => (bool) $user->show_subjects_notice,
         ]);
     }
 
