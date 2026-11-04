@@ -40,7 +40,7 @@
         <!-- Real full screen, where the browser allows it. Not in the Activity,
              whose frame Discord can make full screen itself. -->
         <button
-            v-if="canFullscreen"
+            v-if="canFullscreen && !subjectsNotice"
             @click="toggleFullscreen"
             :aria-label="isFullscreen ? 'Exit full screen' : 'Full screen'"
             :title="isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'"
@@ -69,7 +69,7 @@ import axios from 'axios';
 import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
-import { useToast } from '../composables/toast.js';
+import { subjectsNotice, showSubjectsNotice } from '../composables/subjectsNotice.js';
 import { SUBJECTS_NOTICE_KEY } from '../composables/localStats.js';
 
 export default {
@@ -301,11 +301,7 @@ export default {
                 try { show = localStorage.getItem(SUBJECTS_NOTICE_KEY) === '1'; } catch { show = false; }
                 dismiss = () => { try { localStorage.removeItem(SUBJECTS_NOTICE_KEY); } catch { /* shown again */ } };
             }
-            if (!show) return;
-            useToast().notice(
-                'Projects and notes are now one field: "What are you working on?". Your notes became subjects, with their time in your stats.',
-                dismiss,
-            );
+            if (show) showSubjectsNotice(dismiss);
         };
 
         onMounted(async () => {
@@ -315,6 +311,9 @@ export default {
         });
 
         return {
+            // The notice under the field would run under the full-screen
+            // button on a phone: it waits until the notice is read.
+            subjectsNotice,
             showStatsModal,
             showSettingsModal,
             toggleStatsModal,

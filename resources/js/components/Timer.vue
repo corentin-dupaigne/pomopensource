@@ -97,10 +97,37 @@
              Activity's smaller frame it is narrower. -->
         <div
             v-if="currentTimerType === 'pomodoro' && (!isRunning || shared)"
-            class="hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
-            :class="[isDiscordActivity ? 'w-80' : 'w-96', { 'quiet-fade': isRunning }]"
+            class="relative hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border focus-within:border-white/70 transition-colors"
+            :class="[isDiscordActivity ? 'w-80' : 'w-96', { 'quiet-fade': isRunning }, subjectsNotice ? 'notice-glow border-white/70' : 'border-white/30']"
+            @focusin="dismissSubjectsNotice"
         >
             <SubjectInput v-model="subject" :subjects="projects" @commit="subjectCommitted" @manage="$emit('manageProjects')" />
+
+            <!-- Told once, where the change is: projects and notes became this
+                 field. Over the page, so nothing moves; it never blocks the
+                 timer, and goes once read or once the field is used. -->
+            <transition name="notice">
+                <div
+                    v-if="subjectsNotice"
+                    role="status"
+                    class="absolute left-1/2 top-full mt-3 -translate-x-1/2 z-30 w-80 max-w-[calc(100vw-2rem)] p-3.5 rounded-lg bg-neutral-900/95 backdrop-blur-lg border border-white/20 shadow-2xl text-left text-sm text-white"
+                >
+                    <span class="notice-arrow" aria-hidden="true"></span>
+                    <p>
+                        <span class="mr-1.5 px-1.5 py-0.5 rounded bg-white text-neutral-900 text-[10px] font-bold tracking-wider align-[1px]">NEW</span>
+                        Projects and notes are now this one field. Your notes became subjects, with their time in your stats.
+                    </p>
+                    <div class="mt-2.5 flex justify-end">
+                        <button
+                            type="button"
+                            @click="dismissSubjectsNotice"
+                            class="px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 font-semibold transition"
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            </transition>
         </div>
 
         <!-- While it runs on the website: the same, as quiet text, which can
@@ -130,6 +157,7 @@ import { timerRunning } from '../composables/focus.js';
 import { setPresence, timerPresence, isDiscordActivity, discordInstanceId, discordSession } from '../discord.js';
 import SubjectInput from './SubjectInput.vue';
 import { cleanSubject } from '../composables/subjects.js';
+import { subjectsNotice, dismissSubjectsNotice } from '../composables/subjectsNotice.js';
 import ConfirmModal from './ConfirmModal.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -836,6 +864,8 @@ export default {
       currentTimerType,
       subject,
       subjectCommitted,
+      subjectsNotice,
+      dismissSubjectsNotice,
       setTimer,
       toggleTimer,
       resetTimer,
@@ -855,6 +885,34 @@ export default {
 </script>
 
 <style scoped>
+/* The new field, while the notice about it shows. */
+.notice-glow {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 0 24px rgba(255, 255, 255, 0.25);
+}
+
+/* Points from the notice to the field. */
+.notice-arrow {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    transform: translateX(-50%) rotate(45deg);
+    background: rgb(23 23 23 / 0.95);
+    border-left: 1px solid rgb(255 255 255 / 0.2);
+    border-top: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.notice-enter-active,
+.notice-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.notice-enter-from,
+.notice-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -4px);
+}
+
 .timer-button {
     padding: 0.5rem 0.875rem;
     border: 1px solid white;
