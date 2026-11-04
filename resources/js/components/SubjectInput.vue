@@ -81,7 +81,8 @@ export default {
         // Quiet text under a running timer, rather than part of the bar.
         inline: { type: Boolean, default: false },
     },
-    emits: ['update:modelValue', 'manage'],
+    // commit: the text is done being typed (left, Enter, or a suggestion picked).
+    emits: ['update:modelValue', 'manage', 'commit'],
     setup(props, { emit }) {
         const listId = `subject-list-${++instances}`;
         const containerRef = ref(null);
@@ -144,6 +145,7 @@ export default {
             close();
             const cleaned = props.modelValue.replace(/\s+/g, ' ').trim();
             if (cleaned !== props.modelValue) emit('update:modelValue', cleaned);
+            emit('commit');
         };
 
         const manage = () => {

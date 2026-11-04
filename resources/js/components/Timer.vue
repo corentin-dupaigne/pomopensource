@@ -100,7 +100,7 @@
             class="hide-when-minimal mb-4 flex items-stretch max-w-[calc(100vw-2rem)] rounded-lg bg-white/10 backdrop-blur-sm border border-white/30 focus-within:border-white/70 transition-colors"
             :class="[isDiscordActivity ? 'w-80' : 'w-96', { 'quiet-fade': isRunning }]"
         >
-            <SubjectInput v-model="subject" :subjects="projects" @manage="$emit('manageProjects')" />
+            <SubjectInput v-model="subject" :subjects="projects" @commit="subjectCommitted" @manage="$emit('manageProjects')" />
         </div>
 
         <!-- While it runs on the website: the same, as quiet text, which can
@@ -110,7 +110,7 @@
             class="quiet-fade hide-when-minimal mb-4 flex items-center justify-center gap-2 max-w-[calc(100vw-2rem)] text-sm text-white/70"
         >
             <label class="group flex items-center gap-1.5 min-w-0 cursor-text">
-                <SubjectInput v-model="subject" :subjects="projects" inline @manage="$emit('manageProjects')" />
+                <SubjectInput v-model="subject" :subjects="projects" inline @commit="subjectCommitted" @manage="$emit('manageProjects')" />
                 <i class="fas fa-pencil-alt text-[10px] text-white/40 group-hover:text-white/70" aria-hidden="true"></i>
             </label>
         </div>
@@ -228,6 +228,13 @@ export default {
     const subject = ref('');
     // What is sent: none for general focus.
     const subjectSent = () => cleanSubject(subject.value) || null;
+    // A guest's subject is made on this device as soon as the pomodoro runs
+    // on it, started, resumed or changed while it runs, as an account's is
+    // on the server.
+    const rememberGuestSubject = () => {
+      if (!props.isAuthenticated && subjectSent()) props.rememberSubject({ name: subjectSent() });
+    };
+    const subjectCommitted = () => { if (sessionStartTime.value) rememberGuestSubject(); };
     // A timer saved by a version with a project picker and a note: the
     // project, or else the note, was what it was on.
     const storedSubject = (stored) => {
@@ -416,12 +423,7 @@ export default {
       sessionStartTime.value = new Date();
       sessionStartRemaining = time.value;
       progressSent = 0;
-      // A guest's subject is made on this device when the pomodoro starts,
-      // as an account's is on the server.
-      if (!props.isAuthenticated) {
-        if (subjectSent()) props.rememberSubject({ name: subjectSent() });
-        return;
-      }
+      if (!props.isAuthenticated) return;
 
       const payload = {
         subject: subjectSent(),
@@ -447,6 +449,7 @@ export default {
       justFinished.value = null;
       announcement.value = '';
       if (currentTimerType.value === 'pomodoro' && !sessionStartTime.value) startSession();
+      if (currentTimerType.value === 'pomodoro') rememberGuestSubject();
       isRunning.value = true;
       requestNotificationPermission();
       runInterval();
@@ -832,6 +835,7 @@ export default {
       formattedTime,
       currentTimerType,
       subject,
+      subjectCommitted,
       setTimer,
       toggleTimer,
       resetTimer,
