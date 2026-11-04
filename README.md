@@ -217,39 +217,6 @@ If you'd like to use the application directly, visit [pomopensource.com](https:/
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Running as a Discord Activity
-
-Pomopensource can run inside Discord as an [Activity](https://docs.discord.com/developers/activities/overview). Users are signed in with their Discord account automatically, and their Discord status shows the timer. The same application lets users sign in on the website with Discord, into the same account.
-
-1. **Create a Discord application** in the [Developer Portal](https://discord.com/developers/applications).
-2. **OAuth2:** copy the **Client ID** and **Client Secret**, and add `https://<your-host>/auth/discord/callback` as a redirect URI, e.g. `https://pomopensource.example.com/auth/discord/callback`. The website's **Continue with Discord** comes back there; the Activity doesn't use it.
-3. **Activities → URL Mappings:** map the root prefix `/` to your app's host without the scheme, e.g. `pomopensource.example.com`, and the prefix `/discord-cdn` to `cdn.discordapp.com` for avatars. Without the second mapping, avatars fall back to initials.
-4. **Activities → Settings:** tick **Enable Activities**. This also creates the default Entry Point command used to launch it.
-5. **Configure the deployment.** Store the client secret in a Kubernetes Secret and point the chart at it:
-   ```bash
-   kubectl create secret generic pomopensource-discord \
-     --from-literal=DISCORD_CLIENT_SECRET=<client-secret>
-
-   helm upgrade pomopensource ./pomopensource \
-     --set discord.clientId=<client-id> \
-     --set discord.existingSecret=pomopensource-discord
-   ```
-   This also switches session cookies to `SameSite=None; Secure; Partitioned`, which Discord's iframe requires. Without the chart, set these environment variables:
-   ```dotenv
-   DISCORD_CLIENT_ID=<client-id>
-   DISCORD_CLIENT_SECRET=<client-secret>
-   SESSION_SAME_SITE=none
-   SESSION_SECURE_COOKIE=true
-   SESSION_PARTITIONED_COOKIE=true
-   ```
-6. **Launch it** from a voice channel: open the Activities (rocket) menu and pick your application. Until the app is verified, only you and the users listed under **App Testers** can launch it.
-
-The shared timer of each call is kept for a day after its last change; `php artisan schedule:run` (e.g. from cron) prunes older ones. If the browser blocks the session cookie anyway, the Activity still works on the device and shows **not synced** in its header.
-
-For local development, expose the app over HTTPS with a tunnel (e.g. `cloudflared tunnel --url http://localhost:8080`) and use the tunnel's host as the URL mapping.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- LICENSE -->
 ## License
 
