@@ -23,11 +23,11 @@ function sendProgress(User $user, Carbon $startedAt, int $seconds, array $values
 
 test('time focused so far is kept when the session never ends', function () {
     // The pomodoro was paused, then everyone left the call.
-    sendProgress($this->user, $this->startedAt, 88 * 60, ['note' => 'chapter 4'])->assertOk();
+    sendProgress($this->user, $this->startedAt, 88 * 60, ['subject' => 'chapter 4'])->assertOk();
 
     $session = $this->user->focusedSessions()->sole();
     expect($session->minute_focused)->toBe(88)
-        ->and($session->note)->toBe('chapter 4')
+        ->and($session->project->name)->toBe('chapter 4')
         ->and($session->ended_at)->toBeNull();
 
     $this->actingAs($this->user)

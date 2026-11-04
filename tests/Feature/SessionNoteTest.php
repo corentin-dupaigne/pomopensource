@@ -9,9 +9,11 @@ beforeEach(function () {
         ->assertOk();
 });
 
-test('ending a session saves its note', function () {
+test('ending a session saves its note, next to its project', function () {
+    $project = $this->user->projects()->create(['name' => 'Maths']);
     $this->actingAs($this->user)
         ->patchJson('/focused-sessions/current', [
+            'project_id' => $project->id,
             'ended_at' => now(),
             'time_focused' => 25 * 60,
             'note' => 'chapter 3 integrals',

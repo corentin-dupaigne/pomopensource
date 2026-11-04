@@ -83,6 +83,14 @@ class FocusedSessionController extends Controller
         if (array_key_exists('note', $validated)) {
             $end['note'] = $validated['note'];
         }
+        // A page loaded before the subject field, still open, sends a note
+        // and no project: like the migration, the note is the subject.
+        if (!array_key_exists('subject', $validated) && empty($validated['project_id'])
+            && Project::clean($validated['note'] ?? '') !== '') {
+            $validated['subject'] = $validated['note'];
+            $end['note'] = null;
+        }
+
         // The subject can be changed while the pomodoro runs.
         $project = $this->subjectOf($request, $validated);
         if ($project !== false) {

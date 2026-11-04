@@ -127,3 +127,22 @@ test('typing a removed subject again brings it back', function () {
 
     expect($this->user->suggestedSubjects()->pluck('id')->all())->toBe([$project->id]);
 });
+
+test('a page from before the subject field files its note as the subject', function () {
+    $this->actingAs($this->user)
+        ->patchJson('/focused-sessions/current', endWith(['started_at' => $this->startedAt, 'project_id' => null, 'note' => 'biochem ']))
+        ->assertOk();
+
+    $session = $this->user->focusedSessions()->first();
+    expect($session->project->name)->toBe('biochem')->and($session->note)->toBeNull();
+});
+
+test('a page from before keeps the note next to a project', function () {
+    $project = $this->user->projects()->create(['name' => 'Chemistry']);
+
+    $this->actingAs($this->user)
+        ->patchJson('/focused-sessions/current', endWith(['started_at' => $this->startedAt, 'project_id' => $project->id, 'note' => 'Unit 2']));
+
+    $session = $this->user->focusedSessions()->first();
+    expect($session->project_id)->toEqual($project->id)->and($session->note)->toBe('Unit 2');
+});
