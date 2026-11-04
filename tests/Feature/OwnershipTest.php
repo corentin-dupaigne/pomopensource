@@ -20,7 +20,7 @@ test('someone else cannot rename or delete a project', function () {
     expect(Project::find($this->project->id)->name)->toBe('Maths');
 });
 
-test('the owner can rename and delete their project', function () {
+test('the owner can rename and remove their project', function () {
     $this->actingAs($this->owner)
         ->patchJson("/projects/{$this->project->id}", ['name' => 'Algebra'])
         ->assertOk();
@@ -29,7 +29,7 @@ test('the owner can rename and delete their project', function () {
     $this->actingAs($this->owner)
         ->deleteJson("/projects/{$this->project->id}")
         ->assertOk();
-    expect(Project::find($this->project->id))->toBeNull();
+    expect($this->project->fresh()->removed_at)->not->toBeNull();
 });
 
 test('a session cannot be filed under someone else\'s project', function () {

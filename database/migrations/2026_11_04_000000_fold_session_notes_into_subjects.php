@@ -23,6 +23,10 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->boolean('show_subjects_notice')->default(false);
         });
+        // A subject no longer current leaves the suggestions, not the history.
+        Schema::table('projects', function (Blueprint $table) {
+            $table->timestamp('removed_at')->nullable();
+        });
 
         $clean = fn (string $name) => trim(preg_replace('/\s+/u', ' ', $name));
         $key = fn (string $name) => mb_strtolower($clean($name));
@@ -78,6 +82,9 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->dropColumn('show_subjects_notice');
+        });
+        Schema::table('projects', function (Blueprint $table) {
+            $table->dropColumn('removed_at');
         });
     }
 };

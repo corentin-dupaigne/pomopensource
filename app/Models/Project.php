@@ -66,7 +66,8 @@ class Project extends Model
         $key = self::keyOf($name);
         $project = $user->projects()->get()->first(fn ($p) => self::keyOf($p->name) === $key)
             ?? $user->projects()->create(['name' => $name]);
-        $project->touch();
+        // Removed from the suggestions before: typed again, it is back.
+        $project->forceFill(['removed_at' => null])->touch();
 
         return $project;
     }

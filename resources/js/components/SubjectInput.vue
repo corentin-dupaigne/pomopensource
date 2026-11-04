@@ -54,7 +54,7 @@
                         class="w-full text-left px-4 py-2 text-xs flex items-center gap-2.5 text-white/50 hover:bg-white/10 hover:text-white transition"
                     >
                         <i class="fas fa-sliders-h w-3" aria-hidden="true"></i>
-                        <span>Rename or delete subjects…</span>
+                        <span>Rename or remove subjects…</span>
                     </button>
                 </template>
             </div>

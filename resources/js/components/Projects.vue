@@ -1,15 +1,6 @@
 <template>
-    <ConfirmModal
-        :visible="confirmDialog.visible"
-        :title="confirmDialog.title"
-        :message="confirmDialog.message"
-        :confirmLabel="confirmDialog.confirmLabel"
-        @confirm="handleConfirm"
-        @cancel="handleCancel"
-    />
-
     <Timer
-        :projects="localProjects"
+        :projects="shownProjects"
         :settings="settings"
         :isAuthenticated="isAuthenticated"
         :rememberSubject="rememberSubject"
@@ -54,7 +45,7 @@
              background fits without a sideways scroll. -->
         <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden" @scroll="menuId = null">
 
-        <p v-if="localProjects.length === 0" class="text-white/50 text-sm py-3">
+        <p v-if="shownProjects.length === 0" class="text-white/50 text-sm py-3">
             Type what you are working on under the timer: it shows up here.
         </p>
 
@@ -62,7 +53,7 @@
              actions wait in a menu. -->
         <ul class="-mx-2" aria-label="Subjects">
             <li
-                v-for="project in localProjects"
+                v-for="project in shownProjects"
                 :key="project.id"
                 class="project-row group relative flex items-center gap-1 min-h-11 px-2 rounded-lg hover:bg-white/5 transition-colors"
             >
@@ -116,10 +107,10 @@
                         </button>
                         <button
                             role="menuitem"
-                            @click="menuId = null; openDeleteProject(project.id, project.name)"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
+                            @click="menuId = null; removeProject(project)"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
                         >
-                            <i class="fas fa-trash w-3 text-xs" aria-hidden="true"></i>Delete
+                            <i class="fas fa-eye-slash w-3 text-xs" aria-hidden="true"></i>Remove
                         </button>
                     </div>
                     </teleport>
@@ -134,10 +125,9 @@
 </template>
 
 <script>
-import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import Timer from './Timer.vue';
-import ConfirmModal from './ConfirmModal.vue';
 import { useToast } from '../composables/toast.js';
 import { isDiscordActivity } from '../discord.js';
 import { foldLocalTasks, foldLocalNotes } from '../composables/localStats.js';
@@ -148,7 +138,7 @@ let localIdCounter = Date.now();
 const localId = () => `local_${localIdCounter++}`;
 
 export default {
-    components: { Timer, ConfirmModal },
+    components: { Timer },
     props: {
         projects: { type: Array, required: true },
         settings: { type: Object },
@@ -195,6 +185,8 @@ export default {
                 if (props.isAuthenticated && id === null) return null;
                 subject = { id: id ?? localId(), name };
             }
+            // Typed again: back among the suggestions.
+            delete subject.removed;
             localProjects.value = [subject, ...localProjects.value.filter((p) => p !== subject)];
             persistLocal();
             return subject;
@@ -260,21 +252,6 @@ export default {
         // Name before editing started, to put back on Escape or when cleared.
         const renaming = reactive({});
 
-        const confirmDialog = reactive({
-            visible: false, title: '', message: '', confirmLabel: 'Delete', onConfirm: null
-        });
-
-        const showConfirm = (title, message, onConfirm) => {
-            Object.assign(confirmDialog, { title, message, onConfirm, visible: true });
-        };
-
-        const handleConfirm = async () => {
-            confirmDialog.visible = false;
-            if (confirmDialog.onConfirm) await confirmDialog.onConfirm();
-        };
-
-        const handleCancel = () => { confirmDialog.visible = false; };
-
         const updateProject = async (project) => {
             const previous = renaming[project.id];
             delete renaming[project.id];
@@ -294,25 +271,29 @@ export default {
             event.target.blur();
         };
 
-        const openDeleteProject = (projectId, projectName) => {
-            showConfirm('Delete subject', `Delete "${projectName}"? Its time stays in your stats, as general focus.`, () => deleteProject(projectId));
-        };
-
-        const deleteProject = async (projectId) => {
+        /**
+         * A subject no longer current leaves the suggestions and this list,
+         * but its sessions keep it in the history and stats. Typing it again
+         * brings it back, so nothing to confirm. A guest's stays on the
+         * device, marked, for the stats to name it.
+         */
+        const removeProject = async (project) => {
             try {
-                if (props.isAuthenticated) await axios.delete(`/projects/${projectId}`);
-                localProjects.value = localProjects.value.filter(p => p.id !== projectId);
+                if (props.isAuthenticated) await axios.delete(`/projects/${project.id}`);
+                project.removed = true;
+                if (props.isAuthenticated) localProjects.value = localProjects.value.filter((p) => p !== project);
                 persistLocal();
-                success('Subject deleted');
+                success(`"${project.name}" removed from your suggestions`);
             } catch (err) {
-                error('Failed to delete the subject');
+                error('Failed to remove the subject');
             }
         };
 
+        const shownProjects = computed(() => localProjects.value.filter((p) => !p.removed));
+
         return {
-            localProjects, confirmDialog,
-            handleConfirm, handleCancel,
-            rememberSubject, updateProject, cancelRename, openDeleteProject, renaming,
+            localProjects, shownProjects,
+            rememberSubject, updateProject, cancelRename, removeProject, renaming,
             isDiscordActivity, closePanelRef, renamingId, menuId, menuPosition, toggleMenu,
             startRename, finishRename,
         };

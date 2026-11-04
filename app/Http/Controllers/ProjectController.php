@@ -10,7 +10,7 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = auth()->user()->projects()->get();
+        $projects = auth()->user()->suggestedSubjects()->get();
 
         return Inertia::render('App', ['projects' => $projects]);
     }
@@ -50,9 +50,9 @@ class ProjectController extends Controller
     {
         $this->authorizeOwner($request, $project);
 
-        // Its time stays, as general focus.
-        $project->focusedSessions()->update(['project_id' => null]);
-        $project->delete();
+        // No longer current: out of the suggestions, still named in the
+        // history and stats. Typing it again brings it back.
+        $project->forceFill(['removed_at' => now()])->save();
     }
 
     /**

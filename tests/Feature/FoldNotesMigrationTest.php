@@ -8,6 +8,7 @@ beforeEach(function () {
     $this->migration = require database_path('migrations/2026_11_04_000000_fold_session_notes_into_subjects.php');
     // The test database already has the column: run up() from before it.
     Schema::table('users', fn ($table) => $table->dropColumn('show_subjects_notice'));
+    Schema::table('projects', fn ($table) => $table->dropColumn('removed_at'));
 });
 
 test('notes become subjects, and projects that differ only by case become one', function () {

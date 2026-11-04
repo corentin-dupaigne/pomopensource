@@ -49,7 +49,7 @@ class DiscordActivityController extends Controller
             'access_token' => $accessToken,
             'logged_in' => $loggedIn,
             'user' => ['name' => $user->name],
-            'projects' => $user->projects()->get(),
+            'projects' => $user->suggestedSubjects()->get(),
             'subjects_notice' => (bool) $user->show_subjects_notice,
         ]);
     }

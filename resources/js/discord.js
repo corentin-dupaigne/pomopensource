@@ -163,8 +163,11 @@ async function importGuestProjects() {
     try {
         while (remaining.length > 0) {
             const guest = remaining[0];
-            const { data: project } = await axios.post('/projects', { name: guest.name });
-            imported.push(project);
+            // One removed from the suggestions is not brought back.
+            if (!guest.removed) {
+                const { data: project } = await axios.post('/projects', { name: guest.name });
+                imported.push(project);
+            }
             remaining.shift();
             localStorage.setItem(GUEST_PROJECTS_KEY, JSON.stringify(remaining));
         }

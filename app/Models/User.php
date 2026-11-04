@@ -47,6 +47,15 @@ class User extends Authenticatable
         return $this->hasMany(Project::class)->orderByDesc('updated_at')->orderByDesc('id');
     }
 
+    /**
+     * Those the field suggests: all but the ones removed as no longer
+     * current, which the history and stats still name.
+     */
+    public function suggestedSubjects(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->projects()->whereNull('removed_at');
+    }
+
     public function focusedSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(FocusedSession::class);

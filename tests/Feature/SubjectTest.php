@@ -100,3 +100,30 @@ test('the notice is dismissed for good', function () {
 
     expect($this->user->fresh()->show_subjects_notice)->toBeFalse();
 });
+
+test('a removed subject leaves the suggestions, not the history', function () {
+    $project = $this->user->projects()->create(['name' => 'Maths']);
+    $this->user->focusedSessions()->create([
+        'project_id' => $project->id, 'started_at' => $this->startedAt, 'ended_at' => now(), 'minute_focused' => 25,
+    ]);
+
+    $this->actingAs($this->user)->deleteJson("/projects/{$project->id}")->assertOk();
+
+    expect($this->user->suggestedSubjects()->count())->toBe(0)
+        ->and($this->user->focusedSessions()->first()->project_id)->toEqual($project->id);
+    $this->actingAs($this->user)->getJson('/projects-stats')
+        ->assertJsonPath('projects.0.name', 'Maths');
+    $this->actingAs($this->user)->getJson('/user-stats/day/'.$this->startedAt->toDateString())
+        ->assertJsonPath('sessions.0.project.name', 'Maths');
+});
+
+test('typing a removed subject again brings it back', function () {
+    $project = $this->user->projects()->create(['name' => 'Maths']);
+    $project->forceFill(['removed_at' => now()])->save();
+
+    $this->actingAs($this->user)
+        ->postJson('/focused-sessions', ['started_at' => $this->startedAt, 'subject' => 'maths'])
+        ->assertJsonPath('project.id', $project->id);
+
+    expect($this->user->suggestedSubjects()->pluck('id')->all())->toBe([$project->id]);
+});
