@@ -105,27 +105,34 @@
 
             <!-- Told once, where the change is: projects and notes became this
                  field. Over the page, so nothing moves; it never blocks the
-                 timer, and goes once read or once the field is used. -->
+                 timer, and goes once read or once the field is used. In a
+                 frame with no room below (a Discord Activity), where it would
+                 only be reached by scrolling, it goes beside the field, or
+                 else over it. -->
             <transition name="notice">
                 <div
                     v-if="subjectsNotice"
+                    ref="noticeRef"
                     role="status"
-                    class="absolute left-1/2 top-full mt-3 -translate-x-1/2 z-30 w-80 max-w-[calc(100vw-2rem)] p-3.5 rounded-lg bg-neutral-900/95 backdrop-blur-lg border border-white/20 shadow-2xl text-left text-sm text-white"
+                    class="absolute z-30 w-80 max-w-[calc(100vw-2rem)] flex items-end gap-3 p-3 rounded-lg bg-neutral-900/95 backdrop-blur-lg border border-white/20 shadow-2xl text-left text-[13px] leading-snug text-white"
+                    :class="{
+                        below: 'left-1/2 -translate-x-1/2 top-full mt-3',
+                        side: 'notice-side left-full ml-3 top-1/2 -translate-y-1/2',
+                        above: 'notice-up left-1/2 -translate-x-1/2 bottom-full mb-3',
+                    }[noticePlace]"
                 >
                     <span class="notice-arrow" aria-hidden="true"></span>
-                    <p>
-                        <span class="mr-1.5 px-1.5 py-0.5 rounded bg-white text-neutral-900 text-[10px] font-bold tracking-wider align-[1px]">NEW</span>
+                    <p class="flex-1">
+                        <span class="mr-1 px-1.5 py-0.5 rounded bg-white text-neutral-900 text-[10px] font-bold tracking-wider align-[1px]">NEW</span>
                         Projects and notes are now this one field. Your notes became subjects, with their time in your stats.
                     </p>
-                    <div class="mt-2.5 flex justify-end">
-                        <button
-                            type="button"
-                            @click="dismissSubjectsNotice"
-                            class="px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 font-semibold transition"
-                        >
-                            Got it
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        @click="dismissSubjectsNotice"
+                        class="shrink-0 px-3 py-1.5 rounded-md bg-white/15 hover:bg-white/25 font-semibold transition"
+                    >
+                        Got it
+                    </button>
                 </div>
             </transition>
         </div>
@@ -254,6 +261,24 @@ export default {
     onUnmounted(() => { timerRunning.value = false; });
     const timerInterval = ref(null);
     const subject = ref('');
+
+    // The notice about the merged field opens under it; when the frame has
+    // no room there, beside it, or else over it.
+    const noticeRef = ref(null);
+    const noticePlace = ref('below');
+    const NOTICE_GAP = 12;
+    const EDGE = 8;
+    const placeNotice = () => {
+      const notice = noticeRef.value;
+      if (!notice) return;
+      const field = notice.parentElement.getBoundingClientRect();
+      if (window.innerHeight - field.bottom >= notice.offsetHeight + NOTICE_GAP + EDGE) noticePlace.value = 'below';
+      else if (window.innerWidth - field.right >= notice.offsetWidth + NOTICE_GAP + EDGE) noticePlace.value = 'side';
+      else noticePlace.value = 'above';
+    };
+    watch(noticeRef, (notice) => { if (notice) placeNotice(); }, { flush: 'post' });
+    window.addEventListener('resize', placeNotice);
+    onUnmounted(() => window.removeEventListener('resize', placeNotice));
     // What is sent: none for general focus.
     const subjectSent = () => cleanSubject(subject.value) || null;
     // A guest's subject is made on this device as soon as the pomodoro runs
@@ -866,6 +891,8 @@ export default {
       subjectCommitted,
       subjectsNotice,
       dismissSubjectsNotice,
+      noticeRef,
+      noticePlace,
       setTimer,
       toggleTimer,
       resetTimer,
@@ -890,7 +917,7 @@ export default {
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 0 24px rgba(255, 255, 255, 0.25);
 }
 
-/* Points from the notice to the field. */
+/* Points from the notice to the field, under it or over it. */
 .notice-arrow {
     position: absolute;
     top: -6px;
@@ -902,6 +929,18 @@ export default {
     border-left: 1px solid rgb(255 255 255 / 0.2);
     border-top: 1px solid rgb(255 255 255 / 0.2);
 }
+.notice-side .notice-arrow {
+    top: 50%;
+    left: -6px;
+    transform: translateY(-50%) rotate(-45deg);
+}
+.notice-up .notice-arrow {
+    top: auto;
+    bottom: -6px;
+    border: 0;
+    border-right: 1px solid rgb(255 255 255 / 0.2);
+    border-bottom: 1px solid rgb(255 255 255 / 0.2);
+}
 
 .notice-enter-active,
 .notice-leave-active {
@@ -910,7 +949,6 @@ export default {
 .notice-enter-from,
 .notice-leave-to {
     opacity: 0;
-    transform: translate(-50%, -4px);
 }
 
 .timer-button {
