@@ -29,14 +29,6 @@
                 <span>not synced</span>
             </button>
             <button
-                @click="$emit('toggleProjects')"
-                aria-label="Open projects"
-                class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
-            >
-                <i class="fas fa-folder w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm">projects</span>
-            </button>
-            <button
                 @click="$emit('toggleStats')"
                 aria-label="Open statistics"
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -91,7 +83,7 @@ export default {
             return discordDisplayName(this.discordSession.user);
         },
     },
-    emits: ['toggleStats', 'toggleSettings', 'toggleProjects'],
+    emits: ['toggleStats', 'toggleSettings'],
     props: {
         auth: { default: false },
         // Inside Discord, when sign-in failed and nothing reaches the account.
@@ -99,7 +91,7 @@ export default {
     },
     methods: {
         explainNotSynced() {
-            useToast().error('Discord sign-in did not work: your sessions and projects are only saved on this device. Reopen the Activity to try again.');
+            useToast().error('Discord sign-in did not work: your sessions and subjects are only saved on this device. Reopen the Activity to try again.');
         },
         async logout() {
             try {

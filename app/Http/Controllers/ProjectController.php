@@ -10,7 +10,7 @@ class ProjectController extends Controller
 {
     public function index()
     {
-        $projects = auth()->user()->projects()->get();
+        $projects = auth()->user()->suggestedSubjects()->get();
 
         return Inertia::render('App', ['projects' => $projects]);
     }
@@ -22,9 +22,8 @@ class ProjectController extends Controller
         'name' => 'required|string|max:255',
         ]);
 
-        $project = auth()->user()->projects()->create($validated);
-
-        return response()->json($project);
+        // A subject of the same name is the same one.
+        return response()->json(Project::named(auth()->user(), $validated['name']));
     }
 
 
@@ -39,11 +38,21 @@ class ProjectController extends Controller
         $project->update($validated);
     }
 
+    /**
+     * The notice that projects and notes became one field was read.
+     */
+    public function dismissNotice(Request $request)
+    {
+        $request->user()->forceFill(['show_subjects_notice' => false])->save();
+    }
+
     public function destroy(Request $request, Project $project)
     {
         $this->authorizeOwner($request, $project);
 
-        $project->delete();
+        // No longer current: out of the suggestions, still named in the
+        // history and stats. Typing it again brings it back.
+        $project->forceFill(['removed_at' => now()])->save();
     }
 
     /**

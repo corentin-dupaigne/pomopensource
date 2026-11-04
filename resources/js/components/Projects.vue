@@ -1,24 +1,15 @@
 <template>
-    <ConfirmModal
-        :visible="confirmDialog.visible"
-        :title="confirmDialog.title"
-        :message="confirmDialog.message"
-        :confirmLabel="confirmDialog.confirmLabel"
-        @confirm="handleConfirm"
-        @cancel="handleCancel"
-    />
-
     <Timer
-        :projects="localProjects"
+        :projects="shownProjects"
         :settings="settings"
         :isAuthenticated="isAuthenticated"
-        :createProject="createProject"
+        :rememberSubject="rememberSubject"
         @manageProjects="$emit('openPanel')"
     />
 
-    <!-- Managing projects is occasional: it opens as a dialog like Settings and
-         the Report, from the header or from the picker, instead of sitting
-         under the timer. -->
+    <!-- Subjects are made by typing them under the timer. Renaming or
+         deleting one is occasional: a dialog like Settings and the Report,
+         opened from the field's suggestions. -->
     <teleport to="body">
     <div
         v-if="panelOpen"
@@ -34,7 +25,7 @@
     >
         <div class="shrink-0 flex justify-between items-start pb-4 short:pb-2 border-b border-white/20">
             <div>
-                <h2 id="projects-title" class="text-2xl short:text-xl font-bold font-display text-white">Projects</h2>
+                <h2 id="projects-title" class="text-2xl short:text-xl font-bold font-display text-white">Subjects</h2>
                 <p v-if="!isAuthenticated" class="mt-0.5 text-xs text-white/50">
                     Saved on this device<template v-if="!isDiscordActivity"> ·
                     <a href="/login" class="underline hover:text-white/80 transition">Sign in to sync</a></template>
@@ -43,7 +34,7 @@
             <button
                 ref="closePanelRef"
                 @click="$emit('closePanel')"
-                aria-label="Close projects"
+                aria-label="Close subjects"
                 class="w-11 h-11 -mr-3 -mt-2.5 flex items-center justify-center text-white hover:text-gray-300 transition"
             >
                 <i class="fas fa-times" aria-hidden="true"></i>
@@ -54,15 +45,15 @@
              background fits without a sideways scroll. -->
         <div class="modal-body flex-1 min-h-0 -mx-2 px-2 pt-3 overflow-y-auto overflow-x-hidden" @scroll="menuId = null">
 
-        <p v-if="localProjects.length === 0" class="text-white/50 text-sm py-3">
-            Group your focus sessions by project, then pick one under the timer.
+        <p v-if="shownProjects.length === 0" class="text-white/50 text-sm py-3">
+            Type what you are working on under the timer: it shows up here.
         </p>
 
         <!-- A calm list: names are text, renamed by clicking them; the rarer
              actions wait in a menu. -->
-        <ul class="-mx-2" aria-label="Projects">
+        <ul class="-mx-2" aria-label="Subjects">
             <li
-                v-for="project in localProjects"
+                v-for="project in shownProjects"
                 :key="project.id"
                 class="project-row group relative flex items-center gap-1 min-h-11 px-2 rounded-lg hover:bg-white/5 transition-colors"
             >
@@ -75,7 +66,7 @@
                     @keydown.esc.stop="cancelRename(project, $event)"
                     @blur="finishRename(project)"
                     maxlength="255"
-                    :aria-label="`Rename project ${project.name}`"
+                    :aria-label="`Rename subject ${project.name}`"
                     class="flex-1 min-w-0 my-1 bg-white/10 border-0 rounded-md px-2 py-1.5 text-sm font-semibold text-white focus:outline-none focus:ring-1 focus:ring-white/60"
                 >
                 <button
@@ -116,10 +107,10 @@
                         </button>
                         <button
                             role="menuitem"
-                            @click="menuId = null; openDeleteProject(project.id, project.name)"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
+                            @click="menuId = null; removeProject(project)"
+                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
                         >
-                            <i class="fas fa-trash w-3 text-xs" aria-hidden="true"></i>Delete
+                            <i class="fas fa-eye-slash w-3 text-xs" aria-hidden="true"></i>Remove
                         </button>
                     </div>
                     </teleport>
@@ -127,28 +118,6 @@
             </li>
         </ul>
 
-        <!-- One quiet row to add a project, a field only once asked for. -->
-        <form v-if="adding" @submit.prevent="addProject" class="-mx-2 px-2 py-1">
-            <input
-                ref="newProjectRef"
-                v-model="newProjectName"
-                @keydown.esc.stop="stopAdding"
-                @blur="!newProjectName.trim() && stopAdding()"
-                type="text"
-                maxlength="255"
-                placeholder="Project name, then Enter"
-                aria-label="New project name"
-                :disabled="isAddingProject"
-                class="w-full bg-white/10 border-0 rounded-md px-2 py-2 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/60"
-            >
-        </form>
-        <button
-            v-else
-            @click="startAdding"
-            class="-mx-2 w-[calc(100%+1rem)] flex items-center gap-2.5 min-h-11 px-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-        >
-            <i class="fas fa-plus w-3 text-xs" aria-hidden="true"></i>New project
-        </button>
         </div>
     </div>
     </div>
@@ -156,20 +125,20 @@
 </template>
 
 <script>
-import { ref, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import Timer from './Timer.vue';
-import ConfirmModal from './ConfirmModal.vue';
 import { useToast } from '../composables/toast.js';
 import { isDiscordActivity } from '../discord.js';
-import { foldLocalTasks } from '../composables/localStats.js';
+import { foldLocalTasks, foldLocalNotes } from '../composables/localStats.js';
+import { subjectKey } from '../composables/subjects.js';
 
 const LOCAL_KEY = 'localProjects';
 let localIdCounter = Date.now();
 const localId = () => `local_${localIdCounter++}`;
 
 export default {
-    components: { Timer, ConfirmModal },
+    components: { Timer },
     props: {
         projects: { type: Array, required: true },
         settings: { type: Object },
@@ -185,7 +154,10 @@ export default {
             catch { return []; }
         };
 
-        if (!props.isAuthenticated) foldLocalTasks();
+        if (!props.isAuthenticated) {
+            foldLocalTasks();
+            foldLocalNotes();
+        }
         const localProjects = ref(
             props.isAuthenticated ? [...props.projects] : loadLocal()
         );
@@ -196,17 +168,38 @@ export default {
             }
         };
 
+        // In the Activity, the account's subjects arrive after sign-in.
+        watch(() => props.projects, (projects) => {
+            if (props.isAuthenticated) localProjects.value = [...projects];
+        });
+
+        /**
+         * Put a subject first among the suggestions: the one the server
+         * answered with, or, for a guest, the one of this name, made on this
+         * device the first time. Returns it.
+         */
+        const rememberSubject = ({ id = null, name }) => {
+            const key = subjectKey(name);
+            let subject = localProjects.value.find((p) => (id !== null && p.id === id) || subjectKey(p.name) === key);
+            if (!subject) {
+                if (props.isAuthenticated && id === null) return null;
+                subject = { id: id ?? localId(), name };
+            }
+            // Typed again: back among the suggestions.
+            delete subject.removed;
+            localProjects.value = [subject, ...localProjects.value.filter((p) => p !== subject)];
+            persistLocal();
+            return subject;
+        };
+
         const closePanelRef = ref(null);
         const renamingId = ref(null);
         const menuId = ref(null);
-        const adding = ref(false);
-        const newProjectRef = ref(null);
 
         watch(() => props.panelOpen, async (open) => {
             if (!open) {
                 renamingId.value = null;
                 menuId.value = null;
-                adding.value = false;
                 return;
             }
             await nextTick();
@@ -256,63 +249,8 @@ export default {
             updateProject(project);
         };
 
-        const startAdding = async () => {
-            adding.value = true;
-            await nextTick();
-            newProjectRef.value?.focus();
-        };
-
-        const stopAdding = () => {
-            adding.value = false;
-            newProjectName.value = '';
-        };
-
-        const newProjectName = ref('');
-        const isAddingProject = ref(false);
         // Name before editing started, to put back on Escape or when cleared.
         const renaming = reactive({});
-
-        const confirmDialog = reactive({
-            visible: false, title: '', message: '', confirmLabel: 'Delete', onConfirm: null
-        });
-
-        const showConfirm = (title, message, onConfirm) => {
-            Object.assign(confirmDialog, { title, message, onConfirm, visible: true });
-        };
-
-        const handleConfirm = async () => {
-            confirmDialog.visible = false;
-            if (confirmDialog.onConfirm) await confirmDialog.onConfirm();
-        };
-
-        const handleCancel = () => { confirmDialog.visible = false; };
-
-        // Shared by the panel and the picker under the timer.
-        const createProject = async (rawName) => {
-            const name = rawName.trim();
-            if (!name) return null;
-            try {
-                const project = props.isAuthenticated
-                    ? (await axios.post('/projects', { name })).data
-                    : { id: localId(), name };
-                localProjects.value.push(project);
-                persistLocal();
-                success('Project added');
-                return project;
-            } catch (err) {
-                error('Failed to add project');
-                return null;
-            }
-        };
-
-        // The field stays open after Enter, to add several in a row.
-        const addProject = async () => {
-            isAddingProject.value = true;
-            if (await createProject(newProjectName.value)) newProjectName.value = '';
-            isAddingProject.value = false;
-            await nextTick();
-            newProjectRef.value?.focus();
-        };
 
         const updateProject = async (project) => {
             const previous = renaming[project.id];
@@ -322,7 +260,7 @@ export default {
             if (project.name === previous) return;
             if (props.isAuthenticated) {
                 try { await axios.patch(`/projects/${project.id}`, { name: project.name }); }
-                catch { error('Failed to update project'); }
+                catch { error('Failed to rename the subject'); }
             } else {
                 persistLocal();
             }
@@ -333,28 +271,31 @@ export default {
             event.target.blur();
         };
 
-        const openDeleteProject = (projectId, projectName) => {
-            showConfirm('Delete project', `Delete "${projectName}"? This cannot be undone.`, () => deleteProject(projectId));
-        };
-
-        const deleteProject = async (projectId) => {
+        /**
+         * A subject no longer current leaves the suggestions and this list,
+         * but its sessions keep it in the history and stats. Typing it again
+         * brings it back, so nothing to confirm. A guest's stays on the
+         * device, marked, for the stats to name it.
+         */
+        const removeProject = async (project) => {
             try {
-                if (props.isAuthenticated) await axios.delete(`/projects/${projectId}`);
-                localProjects.value = localProjects.value.filter(p => p.id !== projectId);
+                if (props.isAuthenticated) await axios.delete(`/projects/${project.id}`);
+                project.removed = true;
+                if (props.isAuthenticated) localProjects.value = localProjects.value.filter((p) => p !== project);
                 persistLocal();
-                success('Project deleted');
+                success(`"${project.name}" removed from your suggestions`);
             } catch (err) {
-                error('Failed to delete project');
+                error('Failed to remove the subject');
             }
         };
 
+        const shownProjects = computed(() => localProjects.value.filter((p) => !p.removed));
+
         return {
-            localProjects, newProjectName,
-            isAddingProject, confirmDialog,
-            handleConfirm, handleCancel,
-            addProject, createProject, updateProject, cancelRename, openDeleteProject, renaming,
+            localProjects, shownProjects,
+            rememberSubject, updateProject, cancelRename, removeProject, renaming,
             isDiscordActivity, closePanelRef, renamingId, menuId, menuPosition, toggleMenu,
-            startRename, finishRename, adding, newProjectRef, startAdding, stopAdding,
+            startRename, finishRename,
         };
     }
 };

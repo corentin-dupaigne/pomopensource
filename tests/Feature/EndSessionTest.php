@@ -44,13 +44,13 @@ test('time whose start never reached the server goes on the day it was worked', 
 
     // Today's start request failed: the server only hears of the end.
     $this->travelTo(Carbon::parse('2026-10-16 14:25:00'));
-    endSession($this->user, '2026-10-16 14:00:00', ['note' => 'chapter 4'])->assertOk();
+    endSession($this->user, '2026-10-16 14:00:00', ['subject' => 'chapter 4'])->assertOk();
 
     $this->actingAs($this->user)
         ->getJson('/user-stats/day/2026-10-16')
         ->assertJsonCount(1, 'sessions')
         ->assertJsonPath('sessions.0.minutes_focused', 25)
-        ->assertJsonPath('sessions.0.note', 'chapter 4');
+        ->assertJsonPath('sessions.0.project.name', 'chapter 4');
     $this->actingAs($this->user)
         ->getJson('/user-stats/day/2026-10-12')
         ->assertJsonCount(0, 'sessions');

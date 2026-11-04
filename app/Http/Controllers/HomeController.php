@@ -13,12 +13,13 @@ class HomeController extends Controller
         $projects = [];
 
         if (Auth::check()) {
-            $projects = Auth::user()->projects()->get();
+            $projects = Auth::user()->suggestedSubjects()->get();
         }
 
         return Inertia::render('App', [
             'projects' => $projects,
             'isAuthenticated' => Auth::check(),
+            'subjectsNotice' => (bool) Auth::user()?->show_subjects_notice,
             'discordClientId' => config('services.discord.client_id'),
         ]);
     }

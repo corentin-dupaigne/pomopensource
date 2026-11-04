@@ -1,6 +1,9 @@
+import { cleanSubject, subjectKey } from './subjects.js';
+
 const LOCAL_SESSIONS_KEY = 'localSessions';
 const LOCAL_PROJECTS_KEY = 'localProjects';
-const PROJECT_PREFIX = 'project:rbNiqBehszLPVzMmR_';
+// Guest sessions name their subject (a project kept on the device) so.
+export const PROJECT_PREFIX = 'project:rbNiqBehszLPVzMmR_';
 const TASK_PREFIX = 'task:rbNiqBehszLPVzMmR_';
 
 // Dates are stored as local 'YYYY-MM-DD' strings. toISOString() and
@@ -58,6 +61,44 @@ export function foldLocalTasks() {
 
     localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
     localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(projects.map(({ id, name }) => ({ id, name }))));
+}
+
+const NOTES_FOLDED_KEY = 'notesFoldedIntoSubjects';
+// Set when there was something to fold: the notice is shown once.
+export const SUBJECTS_NOTICE_KEY = 'subjectsNotice';
+
+/**
+ * Projects and the note became one field, the subject, kept as a project.
+ * Like the server's migration, a session with a note and no project takes
+ * the note as its subject, the same one for the same text; one with both
+ * keeps its note. Does nothing once done.
+ */
+export function foldLocalNotes() {
+    try {
+        if (localStorage.getItem(NOTES_FOLDED_KEY)) return;
+        const projects = getLocalProjects();
+        const byKey = Object.fromEntries(projects.map((p) => [subjectKey(p.name), p]));
+        let nextId = Date.now();
+        let folded = false;
+
+        const sessions = getLocalSessions().map((session) => {
+            const onProject = session.selectedId?.startsWith(PROJECT_PREFIX)
+                && projects.some((p) => PROJECT_PREFIX + p.id === session.selectedId);
+            const name = cleanSubject(session.note);
+            if (onProject || !name) return onProject ? session : { ...session, selectedId: '', note: null };
+            folded = true;
+            const key = subjectKey(name);
+            byKey[key] ??= projects[projects.push({ id: `local_${nextId++}`, name }) - 1];
+            return { ...session, selectedId: PROJECT_PREFIX + byKey[key].id, note: null };
+        });
+
+        localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+        localStorage.setItem(LOCAL_PROJECTS_KEY, JSON.stringify(projects));
+        if (folded || projects.length > 0) localStorage.setItem(SUBJECTS_NOTICE_KEY, '1');
+        localStorage.setItem(NOTES_FOLDED_KEY, '1');
+    } catch {
+        // Storage unavailable: nothing to fold.
+    }
 }
 
 export function computeStats(sessions) {

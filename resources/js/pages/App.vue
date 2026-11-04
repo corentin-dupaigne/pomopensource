@@ -14,7 +14,7 @@
 
         <template v-else>
         <div class="header quiet-fade hide-when-minimal">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-projects="showProjectsPanel = !showProjectsPanel" :auth="isAuthenticated" :notSynced="notSynced" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" :notSynced="notSynced" />
         </div>
 
         <!-- In the Activity, scroll rather than cut off when the frame is too
@@ -40,7 +40,7 @@
         <!-- Real full screen, where the browser allows it. Not in the Activity,
              whose frame Discord can make full screen itself. -->
         <button
-            v-if="canFullscreen"
+            v-if="canFullscreen && !subjectsNotice"
             @click="toggleFullscreen"
             :aria-label="isFullscreen ? 'Exit full screen' : 'Full screen'"
             :title="isFullscreen ? 'Exit full screen (F)' : 'Full screen (F)'"
@@ -69,6 +69,8 @@ import axios from 'axios';
 import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
+import { subjectsNotice, showSubjectsNotice } from '../composables/subjectsNotice.js';
+import { SUBJECTS_NOTICE_KEY } from '../composables/localStats.js';
 
 export default {
     components: {
@@ -91,6 +93,11 @@ export default {
         discordClientId: {
             type: String,
             default: null
+        },
+        // Tell this account, once, that projects and notes became one field.
+        subjectsNotice: {
+            type: Boolean,
+            default: false
         },
     },
     setup(props) {
@@ -283,12 +290,30 @@ export default {
 
         // Settings depend on the account, so the Activity loads them after sign-in.
         const loadAccountData = () => Promise.all([fetchSettings(), fetchBackgroundImage()]);
+        // Accounts and devices that had projects or notes are told, once.
+        const tellSubjectsMerged = () => {
+            let show;
+            let dismiss;
+            if (isAuthenticated.value) {
+                show = signedInWithDiscord.value ? discordSession.subjectsNotice : props.subjectsNotice;
+                dismiss = () => axios.post('/subjects-notice/dismiss').catch(() => {});
+            } else {
+                try { show = localStorage.getItem(SUBJECTS_NOTICE_KEY) === '1'; } catch { show = false; }
+                dismiss = () => { try { localStorage.removeItem(SUBJECTS_NOTICE_KEY); } catch { /* shown again */ } };
+            }
+            if (show) showSubjectsNotice(dismiss);
+        };
+
         onMounted(async () => {
             await startDiscordActivity(props.discordClientId);
             loadAccountData();
+            tellSubjectsMerged();
         });
 
         return {
+            // The notice under the field would run under the full-screen
+            // button on a phone: it waits until the notice is read.
+            subjectsNotice,
             showStatsModal,
             showSettingsModal,
             toggleStatsModal,
