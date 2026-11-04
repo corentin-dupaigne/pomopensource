@@ -416,7 +416,12 @@ export default {
       sessionStartTime.value = new Date();
       sessionStartRemaining = time.value;
       progressSent = 0;
-      if (!props.isAuthenticated) return;
+      // A guest's subject is made on this device when the pomodoro starts,
+      // as an account's is on the server.
+      if (!props.isAuthenticated) {
+        if (subjectSent()) props.rememberSubject({ name: subjectSent() });
+        return;
+      }
 
       const payload = {
         subject: subjectSent(),
