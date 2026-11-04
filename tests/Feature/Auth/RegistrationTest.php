@@ -15,5 +15,6 @@ test('new users can register', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    // The app opens on the timer, not on Breeze's dashboard.
+    $response->assertRedirect('/');
 });
