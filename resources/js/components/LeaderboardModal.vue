@@ -46,7 +46,7 @@
                 id="leaderboard-list"
                 ref="bodyRef"
                 role="tabpanel"
-                class="modal-body flex-1 min-h-0 pt-4 short:pt-2 overflow-y-auto text-white"
+                class="modal-body flex-auto min-h-0 pt-4 short:pt-2 overflow-y-auto text-white"
                 :class="{ 'more-below': moreBelow }"
                 @scroll="checkMoreBelow"
             >
@@ -86,7 +86,7 @@
                     <!-- Podium: 2nd, 1st, 3rd. Height and size follow the rank, so equal time stands level.
                          Smaller in a short frame, to leave the list some room. A place nobody
                          holds yet asks to bring a friend: most calls have one person. -->
-                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
+                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2 border-b border-white/20" aria-label="Top 3">
                         <li
                             v-for="slot in podium"
                             :key="slot.entry ? slot.entry.user.id : `free-${slot.place}`"
@@ -299,6 +299,20 @@ export default {
     .pedestal-0 { height: 1.75rem; font-size: 0.9rem; }
     .pedestal-1 { height: 1.375rem; }
     .pedestal-2 { height: 1.125rem; }
+}
+
+/* As in the stats: Windows draws a wide grey scrollbar otherwise. */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .more-below {
