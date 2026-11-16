@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activity simulator</title>
+<style>
+    :root { color-scheme: dark; --bg: #1e1f22; --panel: #2b2d31; --line: #3f4147; --text: #dbdee1; --muted: #949ba4; --accent: #5865f2; --warn: #f0b232; --error: #f23f43; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+    header { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+    header h1 { margin: 0 8px 0 0; font-size: 14px; }
+    label { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
+    select, input, button { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+    input[type=number] { width: 70px; }
+    button { cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    main { display: flex; flex-wrap: wrap; gap: 24px; padding: 16px; align-items: flex-start; }
+    .participant { display: flex; flex-direction: column; gap: 6px; max-width: 100%; }
+    .bar { display: flex; gap: 8px; align-items: center; color: var(--muted); }
+    .bar strong { color: var(--text); }
+    .stage { position: relative; resize: both; overflow: hidden; background: #000; outline: 1px solid var(--line); border-radius: 8px; max-width: calc(100vw - 32px); }
+    .stage iframe { display: block; width: 100%; height: 100%; border: 0; }
+    .presence { min-height: 18px; color: var(--muted); }
+    .presence b { color: var(--text); font-weight: 600; }
+    .log { width: 100%; max-height: 140px; overflow: auto; margin: 0; padding: 6px 8px; background: #111214; border-radius: 4px; font: 11px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+    .log:empty { display: none; }
+    .warn { color: var(--warn); } .error { color: var(--error); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+    .dot.on { background: #23a55a; }
+    .hint { color: var(--muted); padding: 0 16px; }
+</style>
+</head>
+<body>
+<header>
+    <h1>Activity simulator</h1>
+    <label>Frame
+        <select id="preset"></select>
+    </label>
+    <label>W <input id="width" type="number" min="100" max="4000"></label>
+    <label>H <input id="height" type="number" min="100" max="4000"></label>
+    <label>Participants
+        <select id="count"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+    </label>
+    <label>Call
+        <select id="place"><option value="gc">Server voice channel</option><option value="pc">Private call</option></select>
+    </label>
+    <label>Sign-in
+        <select id="signin">
+            <option value="ok">Accepted</option>
+            <option value="refused">Refused</option>
+            <option value="silent">Never answers</option>
+        </select>
+    </label>
+    <button id="relaunch" title="A new instance: what launching the Activity again in a new call does">New call</button>
+</header>
+<p class="hint">
+    Sizes are approximations of Discord's frames: drag a frame's corner to try others.
+    Sign-in, layout and participants go through the real Embedded App SDK.
+    Each participant is its own account (and cookies), as on separate devices.
+</p>
+<main id="stages"></main>
+
+<script>
+// Approximate frame sizes. layout: 0 focused, 1 picture-in-picture, 2 grid tile.
+const PRESETS = [
+    { name: 'Desktop · focused', width: 1280, height: 720, platform: 'desktop', layout: 0 },
+    { name: 'Desktop · small window', width: 900, height: 480, platform: 'desktop', layout: 0 },
+    { name: 'Desktop · picture-in-picture', width: 400, height: 225, platform: 'desktop', layout: 1 },
+    { name: 'Desktop · grid tile', width: 480, height: 270, platform: 'desktop', layout: 2 },
+    { name: 'Mobile · portrait', width: 390, height: 750, platform: 'mobile', layout: 0 },
+    { name: 'Mobile · landscape', width: 750, height: 340, platform: 'mobile', layout: 0 },
+];
+
+const $ = (id) => document.getElementById(id);
+const state = { config: null, preset: PRESETS[0], instanceId: null, participants: [] };
+
+const snowflake = () => String(BigInt(Date.now() - 1420070400000) << 22n);
+
+function newInstanceId() {
+    const channel = '200000000000000002';
+    return $('place').value === 'gc'
+        ? `i-${snowflake()}-gc-200000000000000001-${channel}`
+        : `i-${snowflake()}-pc-${channel}`;
+}
+
+// Everyone with the Activity open, as the SDK describes them.
+const participantList = () => state.participants.filter((p) => p.ready).map((p) => ({
+    id: p.user.id, username: p.user.username, global_name: p.user.global_name,
+    discriminator: '0', avatar: null, flags: 0, bot: false,
+}));
+
+function dispatch(p, evt, data) {
+    if (!p.subscriptions.has(evt)) return;
+    p.frame.contentWindow.postMessage([1, { cmd: 'DISPATCH', evt, nonce: null, data }], p.origin);
+}
+
+function reply(p, cmd, nonce, data) {
+    p.frame.contentWindow.postMessage([1, { cmd, evt: null, nonce, data }], p.origin);
+}
+
+function fail(p, cmd, nonce, code, message) {
+    p.frame.contentWindow.postMessage([1, { cmd, evt: 'ERROR', nonce, data: { code, message } }], p.origin);
+}
+
+const participantsChanged = () => state.participants.forEach((p) =>
+    dispatch(p, 'ACTIVITY_INSTANCE_PARTICIPANTS_UPDATE', { participants: participantList() }));
+
+function log(p, level, message) {
+    const line = document.createElement('div');
+    line.className = level;
+    line.textContent = `${new Date().toLocaleTimeString()} ${level.padEnd(5)} ${message}`;
+    p.log.append(line);
+    p.log.scrollTop = p.log.scrollHeight;
+}
+
+function handle(p, [opcode, payload]) {
+    if (opcode === 0) {
+        if (payload.client_id !== state.config.clientId) {
+            log(p, 'error', `Handshake with client id ${payload.client_id}, expected ${state.config.clientId}`);
+            return;
+        }
+        p.ready = true;
+        p.dot.classList.add('on');
+        p.frame.contentWindow.postMessage([1, { cmd: 'DISPATCH', evt: 'READY', nonce: null, data: {
+            v: 1,
+            config: { cdn_host: 'cdn.discordapp.com', api_endpoint: '//discord.com/api', environment: 'production' },
+            user: { id: p.user.id, username: p.user.username, discriminator: '0' },
+        } }], p.origin);
+        participantsChanged();
+        return;
+    }
+    if (opcode !== 1) return;
+
+    const { cmd, nonce, args = {}, evt } = payload;
+    switch (cmd) {
+        case 'SUBSCRIBE':
+            p.subscriptions.add(evt);
+            reply(p, cmd, nonce, { evt });
+            if (evt === 'ACTIVITY_LAYOUT_MODE_UPDATE') dispatch(p, evt, { layout_mode: state.preset.layout });
+            return;
+        case 'UNSUBSCRIBE':
+            p.subscriptions.delete(evt);
+            return reply(p, cmd, nonce, { evt });
+        case 'AUTHORIZE':
+            log(p, 'info', `authorize ${(args.scope ?? []).join(' ')}`);
+            if ($('signin').value === 'refused') return fail(p, cmd, nonce, 5000, 'Authorization refused (simulated)');
+            if ($('signin').value === 'silent') return;
+            return reply(p, cmd, nonce, { code: `sim.${p.user.id}` });
+        case 'AUTHENTICATE':
+            if (args.access_token !== `sim.${p.user.id}`) return fail(p, cmd, nonce, 4009, 'Invalid access token');
+            return reply(p, cmd, nonce, {
+                access_token: args.access_token,
+                user: { id: p.user.id, username: p.user.username, global_name: p.user.global_name, discriminator: '0', avatar: null, public_flags: 0 },
+                scopes: ['identify', 'rpc.activities.write'],
+                expires: new Date(Date.now() + 7 * 864e5).toISOString(),
+                application: { id: state.config.clientId, name: 'Pomopensource', description: '', icon: null },
+            });
+        case 'GET_ACTIVITY_INSTANCE_CONNECTED_PARTICIPANTS':
+            return reply(p, cmd, nonce, { participants: participantList() });
+        case 'SET_ACTIVITY':
+            p.activity = args.activity;
+            renderPresence(p);
+            return reply(p, cmd, nonce, { name: 'Pomopensource', type: args.activity?.type ?? 0 });
+        case 'CAPTURE_LOG':
+            log(p, args.level === 'warn' || args.level === 'error' ? args.level : 'log', args.message);
+            return reply(p, cmd, nonce, null);
+        default:
+            log(p, 'warn', `${cmd} is not simulated`);
+            return fail(p, cmd, nonce, 4002, `${cmd} is not simulated`);
+    }
+}
+
+// What friends see in the user's Discord status.
+function renderPresence(p) {
+    const a = p.activity;
+    if (!a) { p.presence.textContent = ''; return; }
+    const end = a.timestamps?.end;
+    const left = end ? Math.max(0, Math.round((end - Date.now()) / 1000)) : null;
+    const clock = left === null ? '' : ` · ${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')} left`;
+    p.presence.innerHTML = '';
+    const b = document.createElement('b');
+    b.textContent = 'Status: ';
+    p.presence.append(b, `${a.details ?? ''}${a.state ? ` · ${a.state}` : ''}${clock}`);
+}
+setInterval(() => state.participants.forEach(renderPresence), 1000);
+
+function frameUrl(p) {
+    const query = new URLSearchParams({
+        frame_id: crypto.randomUUID(),
+        instance_id: state.instanceId,
+        platform: state.preset.platform,
+        channel_id: '200000000000000002',
+        location_id: state.instanceId,
+    });
+    if ($('place').value === 'gc') query.set('guild_id', '200000000000000001');
+    if (state.preset.platform === 'mobile') query.set('mobile_app_version', '260.0');
+    return `${p.origin}/?${query}`;
+}
+
+function launch(p) {
+    p.ready = false;
+    p.subscriptions = new Set();
+    p.activity = null;
+    p.dot.classList.remove('on');
+    renderPresence(p);
+    p.frame.src = frameUrl(p);
+}
+
+function build() {
+    $('stages').innerHTML = '';
+    state.participants = state.config.users.slice(0, Number($('count').value)).map((user, index) => {
+        const p = { user, origin: `http://127.0.0.${index + 1}:3333` };
+        const box = document.createElement('section');
+        box.className = 'participant';
+        box.innerHTML = `
+            <div class="bar"><span class="dot"></span><strong></strong><span class="host"></span>
+                <button class="reload" title="Close and reopen the Activity for this participant">Reopen</button></div>
+            <div class="stage"><iframe allow="autoplay; clipboard-write; fullscreen"></iframe></div>
+            <div class="presence"></div>
+            <pre class="log"></pre>`;
+        box.querySelector('strong').textContent = user.global_name ?? user.username;
+        box.querySelector('.host').textContent = p.origin.replace('http://', '');
+        p.dot = box.querySelector('.dot');
+        p.stage = box.querySelector('.stage');
+        p.frame = box.querySelector('iframe');
+        p.presence = box.querySelector('.presence');
+        p.log = box.querySelector('.log');
+        box.querySelector('.reload').onclick = () => { p.ready = false; participantsChanged(); p.log.textContent = ''; launch(p); };
+        // Dragging the corner changes the size, as resizing Discord would.
+        new ResizeObserver(() => {
+            if (state.participants[0] !== p) return;
+            $('width').value = Math.round(p.stage.clientWidth);
+            $('height').value = Math.round(p.stage.clientHeight);
+        }).observe(p.stage);
+        $('stages').append(box);
+        return p;
+    });
+    resize();
+    state.participants.forEach(launch);
+}
+
+function resize() {
+    state.participants.forEach((p) => {
+        p.stage.style.width = `${$('width').value}px`;
+        p.stage.style.height = `${$('height').value}px`;
+    });
+}
+
+function choosePreset() {
+    const previous = state.preset;
+    state.preset = PRESETS[Number($('preset').value)];
+    $('width').value = state.preset.width;
+    $('height').value = state.preset.height;
+    resize();
+    // Discord reloads the Activity when the platform changes (another
+    // device), but only tells it about a new layout.
+    if (previous.platform !== state.preset.platform) return state.participants.forEach(launch);
+    state.participants.forEach((p) => dispatch(p, 'ACTIVITY_LAYOUT_MODE_UPDATE', { layout_mode: state.preset.layout }));
+}
+
+window.addEventListener('message', (event) => {
+    const p = state.participants.find((x) => x.frame.contentWindow === event.source);
+    if (!p || event.origin !== p.origin || !Array.isArray(event.data)) return;
+    handle(p, event.data);
+});
+
+(async () => {
+    state.config = await (await fetch('/config.json')).json();
+    PRESETS.forEach((preset, index) => $('preset').add(new Option(`${preset.name} (${preset.width}×${preset.height})`, index)));
+    $('width').value = state.preset.width;
+    $('height').value = state.preset.height;
+    state.instanceId = newInstanceId();
+    $('preset').onchange = choosePreset;
+    $('width').oninput = $('height').oninput = resize;
+    $('count').onchange = build;
+    $('place').onchange = $('relaunch').onclick = () => { state.instanceId = newInstanceId(); build(); };
+    build();
+})();
+</script>
+</body>
+</html>
