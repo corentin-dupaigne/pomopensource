@@ -17,7 +17,7 @@ Then open http://localhost:3333. After changing the app, rebuild it with
   Drag a frame's corner, or type a size, to try others.
 - **The Embedded App SDK**: the app runs the real SDK, which talks to this
   page as it would to Discord: handshake, sign-in (`authorize`,
-  `authenticate`), participants, layout changes, status (`setActivity`)
+  `authenticate`), participants, layout changes, status (`setActivity`), the invite window
   and the logs the SDK forwards.
 - **Sign-in**: the server exchanges the code with a fake Discord API
   (`DISCORD_API_URL`), so each participant gets an account in the local

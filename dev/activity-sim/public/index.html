@@ -162,6 +162,11 @@ function handle(p, [opcode, payload]) {
             p.activity = args.activity;
             renderPresence(p);
             return reply(p, cmd, nonce, { name: 'Pomopensource', type: args.activity?.type ?? 0 });
+        case 'OPEN_INVITE_DIALOG':
+            // Discord refuses it in private calls.
+            if ($('place').value !== 'gc') return fail(p, cmd, nonce, 4005, 'Invites need a server channel');
+            log(p, 'info', "opened Discord's invite window");
+            return reply(p, cmd, nonce, null);
         case 'CAPTURE_LOG':
             log(p, args.level === 'warn' || args.level === 'error' ? args.level : 'log', args.message);
             return reply(p, cmd, nonce, null);
