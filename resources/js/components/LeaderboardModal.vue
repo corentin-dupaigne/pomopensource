@@ -52,7 +52,7 @@
                     <div v-else :class="{ 'opacity-60': loading }">
                     <!-- The server's time together comes first: the board is
                          a group's, not a contest between strangers. -->
-                    <p class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-white/10 px-3 py-2 short:py-1.5 text-sm text-white/60">
+                    <p class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-lg bg-white/10 px-3 py-2 short:py-1.5 text-sm text-white/60">
                         <span class="flex items-center gap-1.5">
                             <i class="fas fa-clock text-xs" aria-hidden="true"></i>
                             <span><strong class="font-bold text-white tabular-nums">{{ hours(board.together.minutes) }} h</strong> focused together</span>
