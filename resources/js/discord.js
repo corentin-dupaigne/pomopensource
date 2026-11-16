@@ -70,8 +70,12 @@ export const discordSession = reactive({
 // through a URL mapping: /discord-cdn -> cdn.discordapp.com (see README).
 const DISCORD_CDN = '/discord-cdn';
 
+// Discord's CDN only serves some sizes (72, for one, is refused): ask for
+// the power of two at or above the one wanted, between 16 and 4096.
+const cdnSize = (size) => Math.min(4096, Math.max(16, 2 ** Math.ceil(Math.log2(size))));
+
 export function discordAvatarUrl(user, size = 64) {
-    if (user.avatar) return `${DISCORD_CDN}/avatars/${user.id}/${user.avatar}.png?size=${size}`;
+    if (user.avatar) return `${DISCORD_CDN}/avatars/${user.id}/${user.avatar}.png?size=${cdnSize(size)}`;
     // Default avatars, as Discord picks them for accounts without discriminators.
     const index = Number((BigInt(user.id) >> 22n) % 6n);
     return `${DISCORD_CDN}/embed/avatars/${index}.png`;
