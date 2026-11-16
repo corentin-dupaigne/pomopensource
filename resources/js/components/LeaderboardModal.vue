@@ -77,7 +77,7 @@
                             </span>
                             <span class="tabular-nums text-white/60" :class="entry.rank === 1 ? 'text-sm short:text-xs' : 'text-xs'">{{ duration(entry.minutes) }}</span>
                             <div
-                                class="pedestal mt-2 short:mt-1 w-full flex items-start justify-center rounded-t-lg font-bold text-white"
+                                class="pedestal mt-2 short:mt-1 w-full flex items-center justify-center rounded-t-lg font-bold text-white"
                                 :class="[entry.rank === 1 ? 'bg-white/20' : 'bg-white/10', `pedestal-${entry.rank - 1}`]"
                             >
                                 <span class="flex items-center gap-1.5">
@@ -209,16 +209,16 @@ export default {
     overflow: hidden;
 }
 
-.pedestal { padding-top: 0.375rem; font-size: 1.125rem; }
+.pedestal { font-size: 1.125rem; }
 .pedestal-trophy { font-size: 0.85em; }
 .pedestal-0 { height: 3.5rem; font-size: 1.5rem; }
-.pedestal-1 { height: 2.5rem; }
-.pedestal-2 { height: 1.75rem; }
+.pedestal-1 { height: 2.75rem; }
+.pedestal-2 { height: 2.25rem; }
 
 @media (max-height: 500px) {
-    .pedestal { padding-top: 0; font-size: 0.875rem; }
-    .pedestal-0 { height: 2rem; font-size: 1rem; }
-    .pedestal-1 { height: 1.5rem; }
-    .pedestal-2 { height: 1.125rem; }
+    .pedestal { font-size: 0.875rem; }
+    .pedestal-0 { height: 2.25rem; font-size: 1rem; }
+    .pedestal-1 { height: 1.875rem; }
+    .pedestal-2 { height: 1.5rem; }
 }
 </style>
