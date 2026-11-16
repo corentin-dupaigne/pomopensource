@@ -52,25 +52,16 @@
                     <div v-else :class="{ 'opacity-60': loading }">
                     <!-- The server's time together comes first: the board is
                          a group's, not a contest between strangers. -->
-                    <dl class="grid grid-cols-2 divide-x divide-white/10 rounded-xl bg-white/10 py-4 short:py-2">
-                        <div class="flex flex-col-reverse items-center gap-1 px-2 text-center">
-                            <dt class="flex items-center gap-1.5 text-sm text-white/60">
-                                <i class="fas fa-clock text-xs" aria-hidden="true"></i>
-                                Focused together
-                            </dt>
-                            <dd class="text-white tabular-nums">
-                                <span class="text-3xl short:text-2xl font-bold">{{ hours(board.together.minutes) }}</span>
-                                <span class="ml-1 text-base short:text-sm font-medium text-white/60">h</span>
-                            </dd>
-                        </div>
-                        <div class="flex flex-col-reverse items-center gap-1 px-2 text-center">
-                            <dt class="flex items-center gap-1.5 text-sm text-white/60">
-                                <i class="fas fa-users text-xs" aria-hidden="true"></i>
-                                {{ board.together.members === 1 ? 'Member' : 'Members' }}
-                            </dt>
-                            <dd class="text-white tabular-nums text-3xl short:text-2xl font-bold">{{ board.together.members }}</dd>
-                        </div>
-                    </dl>
+                    <p class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-xl bg-white/10 px-3 py-2 short:py-1.5 text-sm text-white/60">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-clock text-xs" aria-hidden="true"></i>
+                            <span><strong class="font-bold text-white tabular-nums">{{ hours(board.together.minutes) }} h</strong> focused together</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="fas fa-users text-xs" aria-hidden="true"></i>
+                            <span><strong class="font-bold text-white tabular-nums">{{ board.together.members }}</strong> {{ board.together.members === 1 ? 'member' : 'members' }}</span>
+                        </span>
+                    </p>
 
                     <!-- Podium: 2nd, 1st, 3rd, the first standing tallest. -->
                     <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
