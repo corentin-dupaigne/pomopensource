@@ -15,18 +15,7 @@
             <!-- Title, periods and close share one row: short frames need the height. -->
             <div class="shrink-0 pb-4 short:pb-2 border-b border-white/20">
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div class="flex items-center gap-2">
-                        <h2 id="leaderboard-title" class="text-2xl short:text-xl font-bold font-display text-white">Leaderboard</h2>
-                        <button
-                            @click="showInfo = !showInfo"
-                            :aria-expanded="showInfo"
-                            aria-controls="leaderboard-info"
-                            aria-label="What counts, and how to stay off leaderboards"
-                            class="text-white/50 hover:text-white transition"
-                        >
-                            <i class="fas fa-circle-info" aria-hidden="true"></i>
-                        </button>
-                    </div>
+                    <h2 id="leaderboard-title" class="text-2xl short:text-xl font-bold font-display text-white">Leaderboard</h2>
                     <div class="flex gap-2 mr-auto" role="tablist" aria-label="Period" @keydown="onTabKey">
                         <button
                             v-for="(label, key) in PERIODS"
@@ -51,11 +40,6 @@
                         <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
-                <p v-if="showInfo" id="leaderboard-info" class="mt-3 short:mt-2 text-xs text-white/60">
-                    Time focused in this server's calls only: not on the website, in private calls or in other servers.
-                    At most 12 hours a day count. To stay off every leaderboard, turn off
-                    <em>Show me in server leaderboards</em> in settings.
-                </p>
             </div>
 
             <div
@@ -201,7 +185,6 @@ export default {
         const board = ref(null);
         const loading = ref(false);
         const failed = ref(false);
-        const showInfo = ref(false);
 
         let latest = 0;
         const load = async () => {
@@ -270,7 +253,7 @@ export default {
             const body = bodyRef.value;
             moreBelow.value = Boolean(body) && body.scrollHeight - body.scrollTop - body.clientHeight > 4;
         };
-        watch([board, short, showInfo], () => nextTick(checkMoreBelow));
+        watch([board, short], () => nextTick(checkMoreBelow));
         window.addEventListener('resize', checkMoreBelow);
         onUnmounted(() => window.removeEventListener('resize', checkMoreBelow));
 
@@ -290,7 +273,7 @@ export default {
         };
 
         return {
-            PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed, showInfo,
+            PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed,
             load, tabRefs, onTabKey, podium, rows, sizes, short, bodyRef, moreBelow, checkMoreBelow,
             rowClass, invite, duration, name: discordDisplayName,
         };
