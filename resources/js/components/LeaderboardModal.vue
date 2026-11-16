@@ -71,8 +71,8 @@
                     </p>
 
                     <!-- Podium: 2nd, 1st, 3rd. Height and size follow the rank, so equal time stands level.
-                         A short frame has no room for it: the top 3 lead the list, with their trophies. -->
-                    <ol v-if="!short" class="podium mt-4 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
+                         Smaller in a short frame, to leave the list some room. -->
+                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
                         <li
                             v-for="entry in podium"
                             :key="entry.user.id"
@@ -80,10 +80,10 @@
                             :style="{ order: PODIUM_ORDER[entry.place] }"
                         >
                             <DiscordAvatar :user="entry.user" :size="entry.rank === 1 ? sizes.first : sizes.other" :class="entry.rank === 1 ? 'ring-2 ring-white/40' : ''" />
-                            <span class="mt-2 short:mt-1 max-w-full truncate font-semibold" :class="entry.rank === 1 ? 'text-base short:text-sm' : 'text-sm'">
+                            <span class="mt-2 short:mt-1 max-w-full truncate font-semibold" :class="entry.rank === 1 ? 'text-base short:text-sm' : 'text-sm short:text-xs'">
                                 {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60 font-normal"> (you)</span>
                             </span>
-                            <span class="tabular-nums text-white/60" :class="entry.rank === 1 ? 'text-sm short:text-xs' : 'text-xs'">{{ duration(entry.minutes) }}</span>
+                            <span class="tabular-nums text-white/60" :class="entry.rank === 1 ? 'text-sm short:text-xs' : 'text-xs short:text-[11px]'">{{ duration(entry.minutes) }}</span>
                             <div
                                 class="pedestal mt-2 short:mt-1 w-full flex items-center justify-center rounded-t-lg font-bold text-white"
                                 :class="[entry.rank === 1 ? 'bg-white/20' : 'bg-white/10', `pedestal-${entry.rank - 1}`]"
@@ -96,7 +96,7 @@
                         </li>
                     </ol>
 
-                    <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1 short:space-y-0.5" :aria-label="short ? 'Ranking' : 'Everyone else'">
+                    <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1 short:space-y-0.5" aria-label="Everyone else">
                         <li v-for="entry in rows" :key="entry.user.id" :class="rowClass(entry)">
                             <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums text-white/60">
                                 <template v-if="entry.rank <= 3">
@@ -176,18 +176,17 @@ export default {
 
         const podium = computed(() => (board.value?.entries ?? []).slice(0, 3).map((entry, place) => ({ ...entry, place })));
 
-        // A short frame (Discord in a small window) has no room for the podium.
+        // A short frame (Discord in a small window) gets a smaller podium.
         const shortQuery = window.matchMedia('(max-height: 500px)');
         const short = ref(shortQuery.matches);
         const onShortChange = (event) => { short.value = event.matches; };
         shortQuery.addEventListener('change', onShortChange);
         onUnmounted(() => shortQuery.removeEventListener('change', onShortChange));
-        const sizes = { first: 64, other: 48 };
+        const sizes = computed(() => short.value ? { first: 36, other: 28 } : { first: 64, other: 48 });
 
-        // After the podium, or all of them without one; the viewer's own row
-        // comes last when they are below the top.
+        // After the podium; the viewer's own row comes last when they are below the top.
         const rows = computed(() => board.value
-            ? [...board.value.entries.slice(short.value ? 0 : 3), ...(board.value.me ? [board.value.me] : [])]
+            ? [...board.value.entries.slice(3), ...(board.value.me ? [board.value.me] : [])]
             : []);
 
         // Fade the bottom while there is more to scroll to: a list cut at the
@@ -239,6 +238,13 @@ export default {
 .pedestal-0 { height: 3.5rem; font-size: 1.5rem; }
 .pedestal-1 { height: 2.75rem; }
 .pedestal-2 { height: 2.25rem; }
+
+@media (max-height: 500px) {
+    .pedestal { margin-top: 0.25rem; font-size: 0.8rem; }
+    .pedestal-0 { height: 1.75rem; font-size: 0.9rem; }
+    .pedestal-1 { height: 1.375rem; }
+    .pedestal-2 { height: 1.125rem; }
+}
 
 .more-below {
     mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent);
