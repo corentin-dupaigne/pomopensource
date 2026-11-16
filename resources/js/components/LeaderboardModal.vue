@@ -15,7 +15,7 @@
             <!-- Title, periods and close share one row: short frames need the height. -->
             <div class="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 short:pb-2 border-b border-white/20">
                 <h2 id="leaderboard-title" class="text-2xl short:text-xl font-bold font-display text-white">Leaderboard</h2>
-                <div class="flex p-0.5 mr-auto rounded-full bg-white/10" role="tablist" aria-label="Period">
+                <div class="flex gap-2 mr-auto" role="tablist" aria-label="Period">
                     <button
                         v-for="(label, key) in PERIODS"
                         :key="key"
@@ -23,8 +23,8 @@
                         role="tab"
                         :aria-selected="period === key"
                         aria-controls="leaderboard-list"
-                        :class="['px-2.5 py-1 rounded-full text-xs font-semibold transition',
-                                 period === key ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white']"
+                        :class="['px-3 py-1.5 rounded-lg text-sm font-semibold transition',
+                                 period === key ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
                     >
                         {{ label }}
                     </button>
@@ -52,34 +52,45 @@
                     <div v-else :class="{ 'opacity-60': loading }">
                     <!-- The server's time together comes first: the board is
                          a group's, not a contest between strangers. -->
-                    <p class="flex w-fit mx-auto items-center gap-2 px-3.5 py-1.5 short:py-1 rounded-full bg-white/10 ring-1 ring-white/10 text-xs sm:text-sm text-center text-white/80">
-                        <i class="fas fa-users text-white/70" aria-hidden="true"></i>
-                        <span>
-                            Together, <strong class="text-white whitespace-nowrap">{{ board.together.members }} {{ board.together.members === 1 ? 'member' : 'members' }}</strong>
-                            focused <strong class="text-white whitespace-nowrap">{{ duration(board.together.minutes) }}</strong>
-                        </span>
-                    </p>
+                    <dl class="grid grid-cols-2 divide-x divide-white/10 rounded-xl bg-white/10 py-4 short:py-2">
+                        <div class="flex flex-col-reverse items-center gap-1 px-2 text-center">
+                            <dt class="flex items-center gap-1.5 text-sm text-white/60">
+                                <i class="fas fa-clock text-xs" aria-hidden="true"></i>
+                                Focused together
+                            </dt>
+                            <dd class="text-white tabular-nums">
+                                <span class="text-3xl short:text-2xl font-bold">{{ hours(board.together.minutes) }}</span>
+                                <span class="ml-1 text-base short:text-sm font-medium text-white/60">h</span>
+                            </dd>
+                        </div>
+                        <div class="flex flex-col-reverse items-center gap-1 px-2 text-center">
+                            <dt class="flex items-center gap-1.5 text-sm text-white/60">
+                                <i class="fas fa-users text-xs" aria-hidden="true"></i>
+                                {{ board.together.members === 1 ? 'Member' : 'Members' }}
+                            </dt>
+                            <dd class="text-white tabular-nums text-3xl short:text-2xl font-bold">{{ board.together.members }}</dd>
+                        </div>
+                    </dl>
 
                     <!-- Podium: 2nd, 1st, 3rd, the first standing tallest. -->
-                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-1.5 border-b border-white/20" aria-label="Top 3">
+                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
                         <li
                             v-for="entry in podium"
                             :key="entry.user.id"
                             class="flex flex-col items-center min-w-0"
                             :style="{ order: PODIUM_ORDER[entry.place] }"
                         >
-                            <DiscordAvatar :user="entry.user" :size="entry.rank === 1 ? sizes.first : sizes.other" :class="['ring-2', MEDALS[entry.rank - 1].ring]" />
+                            <DiscordAvatar :user="entry.user" :size="entry.rank === 1 ? sizes.first : sizes.other" :class="entry.rank === 1 ? 'ring-2 ring-white/40' : ''" />
                             <span class="mt-2 short:mt-1 max-w-full truncate font-semibold" :class="entry.rank === 1 ? 'text-base short:text-sm' : 'text-sm'">
                                 {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60 font-normal"> (you)</span>
                             </span>
-                            <span class="tabular-nums text-white/85" :class="entry.rank === 1 ? 'text-sm short:text-xs font-semibold' : 'text-xs'">{{ duration(entry.minutes) }}</span>
+                            <span class="tabular-nums text-white/60" :class="entry.rank === 1 ? 'text-sm short:text-xs' : 'text-xs'">{{ duration(entry.minutes) }}</span>
                             <div
-                                class="pedestal mt-2 short:mt-1 w-full flex items-start justify-center rounded-t-lg border-t-2 font-display font-bold"
-                                :class="[MEDALS[entry.rank - 1].border, MEDALS[entry.rank - 1].text, `pedestal-${entry.rank - 1}`]"
-                                :style="{ background: `linear-gradient(to bottom, rgb(${MEDALS[entry.rank - 1].rgb} / 0.3), rgb(${MEDALS[entry.rank - 1].rgb} / 0.04))` }"
+                                class="pedestal mt-2 short:mt-1 w-full flex items-start justify-center rounded-t-lg font-bold text-white"
+                                :class="[entry.rank === 1 ? 'bg-white/20' : 'bg-white/10', `pedestal-${entry.rank - 1}`]"
                             >
                                 <span class="flex items-center gap-1.5">
-                                    <i class="fas fa-trophy pedestal-trophy" aria-hidden="true"></i>
+                                    <i class="fas fa-trophy pedestal-trophy" :class="MEDALS[entry.rank - 1]" aria-hidden="true"></i>
                                     <span><span class="sr-only">Rank</span>{{ entry.rank }}</span>
                                 </span>
                             </div>
@@ -121,12 +132,9 @@ import { discordInstanceId, discordDisplayName } from '../discord.js';
 const PERIODS = { day: '24 hours', week: '7 days', all: 'All time' };
 const EMPTY = { day: 'in the last 24 hours', week: 'in the last 7 days', all: 'yet' };
 
-// Gold, silver and bronze, by rank: two first at equal time both get gold.
-const MEDALS = [
-    { text: 'text-amber-300', ring: 'ring-amber-300', border: 'border-amber-300', rgb: '252 211 77' },
-    { text: 'text-slate-300', ring: 'ring-slate-300', border: 'border-slate-300', rgb: '203 213 225' },
-    { text: 'text-orange-400', ring: 'ring-orange-400', border: 'border-orange-400', rgb: '251 146 60' },
-];
+// The trophies are the one accent, gold, silver and bronze by rank: two
+// first at equal time both get gold.
+const MEDALS = ['text-amber-300', 'text-slate-300', 'text-orange-400'];
 // The first in the middle, the second on its left, the third on its right.
 const PODIUM_ORDER = [2, 1, 3];
 
@@ -191,7 +199,11 @@ export default {
             return rest ? `${hours} h ${rest} min` : `${hours} h`;
         };
 
+        // As the stats summary writes it: 2.3 h.
+        const hours = (minutes) => Math.round(minutes / 6) / 10;
+
         return {
+            hours,
             PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed,
             podium, rows, sizes, rowClass, duration, name: discordDisplayName,
         };
