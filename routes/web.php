@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityRoomController;
+use App\Http\Controllers\ClickCountController;
 use App\Http\Controllers\DiscordActivityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
@@ -23,6 +24,11 @@ Route::view('/terms', 'legal.terms')->name('terms');
 // remember-me cookie signed the user back in.
 Route::get('/session/refresh', fn () => response()->json(['authenticated' => Auth::check()]))
     ->name('session.refresh');
+
+// Anonymous counts of what is opened in the interface, guests included.
+Route::post('/usage/clicks', [ClickCountController::class, 'store'])
+    ->middleware('throttle:60,1')
+    ->name('usage.clicks');
 
 Route::post('/discord/token', [DiscordActivityController::class, 'token'])
     ->middleware('throttle:20,1')

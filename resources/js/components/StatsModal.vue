@@ -21,7 +21,7 @@
                         :key="tab"
                         :class="['px-3 py-1.5 rounded-lg text-sm font-semibold transition',
                                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
-                        @click="activeTab = tab"
+                        @click="selectTab(tab)"
                         role="tab"
                         :aria-selected="activeTab === tab"
                         :aria-controls="`tab-panel-${tab.toLowerCase()}`"
@@ -76,6 +76,7 @@
 <script>
 import { ref, onMounted, watch, nextTick } from 'vue';
 import axios from 'axios';
+import { countClick } from '../composables/clicks.js';
 import ActivitySummary from './ActivitySummary.vue';
 import Calendar from './Calendar.vue';
 import DayLog from './DayLog.vue';
@@ -141,8 +142,15 @@ export default {
             modalRef.value?.focus();
         });
 
+        // Whether the detail tab is worth its place: count who opens it.
+        const selectTab = (tab) => {
+            if (tab === 'Detail' && activeTab.value !== 'Detail') countClick('stats_detail');
+            activeTab.value = tab;
+        };
+
         return {
             activeTab,
+            selectTab,
             modalRef,
             isLoadingStats,
             stats,

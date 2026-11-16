@@ -65,6 +65,7 @@
 <script>
 import { ref, computed } from 'vue';
 import { subjectKey } from '../composables/subjects.js';
+import { countClick } from '../composables/clicks.js';
 
 const MAX_SUGGESTIONS = 6;
 const MAX_LIST_HEIGHT = 256;
@@ -151,6 +152,7 @@ export default {
         const manage = () => {
             close();
             inputRef.value?.blur();
+            countClick('manage_subjects');
             emit('manage');
         };
 

@@ -66,6 +66,7 @@ import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
+import { countClick } from '../composables/clicks.js';
 import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
@@ -164,7 +165,10 @@ export default {
         const isFullscreen = ref(false);
         const toggleFullscreen = () => {
             if (document.fullscreenElement) document.exitFullscreen();
-            else document.documentElement.requestFullscreen().catch(() => {});
+            else {
+                countClick('fullscreen');
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
         };
         const syncFullscreen = () => { isFullscreen.value = Boolean(document.fullscreenElement); };
 
@@ -248,12 +252,15 @@ export default {
             }
         };
 
+        // Opening, not closing, is what is counted.
         const toggleStatsModal = () => {
             showStatsModal.value = !showStatsModal.value;
+            if (showStatsModal.value) countClick('stats');
         };
 
         const toggleSettingsModal = () => {
             showSettingsModal.value = !showSettingsModal.value;
+            if (showSettingsModal.value) countClick('settings');
         };
 
         const handleSettingsSaved = async () => {
@@ -305,6 +312,7 @@ export default {
         };
 
         onMounted(async () => {
+            countClick('app_open');
             await startDiscordActivity(props.discordClientId);
             loadAccountData();
             tellSubjectsMerged();
