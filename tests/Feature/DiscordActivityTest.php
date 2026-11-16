@@ -87,3 +87,11 @@ test('the endpoint reports when Discord is not configured', function () {
 test('a code is required', function () {
     $this->postJson('/discord/token', [])->assertUnprocessable();
 });
+
+test('signing in keeps the Discord avatar, for the server leaderboards', function () {
+    fakeDiscord(['id' => '1234', 'username' => 'pomo', 'global_name' => 'Pomo Fan', 'avatar' => 'a1b2c3']);
+
+    $this->postJson('/discord/token', ['code' => 'abc'])->assertOk();
+
+    expect(User::firstWhere('discord_id', '1234')->discord_avatar)->toBe('a1b2c3');
+});

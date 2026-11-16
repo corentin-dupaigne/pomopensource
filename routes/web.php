@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityRoomController;
 use App\Http\Controllers\DiscordActivityController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\UserSettingsController;
@@ -68,6 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->where('instance', '[A-Za-z0-9_-]{1,100}')
         ->middleware('throttle:120,1')
         ->name('activity-rooms.update');
+
+    // Who focused the most in the calls of the server this call is in
+    Route::get('/leaderboard/{instance}', [LeaderboardController::class, 'show'])
+        ->where('instance', '[A-Za-z0-9_-]{1,100}')
+        ->middleware('throttle:60,1')
+        ->name('leaderboard.show');
 
 });
 

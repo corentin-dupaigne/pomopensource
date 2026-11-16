@@ -10,6 +10,10 @@ export const isDiscordActivity = ['frame_id', 'instance_id', 'platform'].every((
 // Identifies this run of the Activity, shared by everyone in the call.
 export const discordInstanceId = isDiscordActivity ? params.get('instance_id') : null;
 
+// A call in a server's voice channel, as opposed to a private call: Discord
+// writes the server into the instance ID (see ActivityLaunch::placeOf).
+export const isServerCall = /-gc-\d+-\d+$/.test(discordInstanceId ?? '');
+
 // Give up waiting for Discord after this long and continue as a guest.
 const SIGN_IN_TIMEOUT_MS = 20000;
 

@@ -29,6 +29,15 @@
                 <span>not synced</span>
             </button>
             <button
+                v-if="leaderboard"
+                @click="$emit('toggleLeaderboard')"
+                aria-label="Open this server's leaderboard"
+                class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            >
+                <i class="fas fa-trophy" aria-hidden="true"></i>
+                <span class="hidden md:inline-block text-sm">leaderboard</span>
+            </button>
+            <button
                 @click="$emit('toggleStats')"
                 aria-label="Open statistics"
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -83,11 +92,13 @@ export default {
             return discordDisplayName(this.discordSession.user);
         },
     },
-    emits: ['toggleStats', 'toggleSettings'],
+    emits: ['toggleStats', 'toggleSettings', 'toggleLeaderboard'],
     props: {
         auth: { default: false },
         // Inside Discord, when sign-in failed and nothing reaches the account.
         notSynced: { type: Boolean, default: false },
+        // In a server's call, signed in with Discord.
+        leaderboard: { type: Boolean, default: false },
     },
     methods: {
         explainNotSynced() {
