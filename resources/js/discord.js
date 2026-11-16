@@ -60,6 +60,8 @@ export const discordSession = reactive({
     projects: [],
     // Whether to tell this account that projects and notes became one field.
     subjectsNotice: false,
+    // Whether this account never opened a leaderboard: its icon says "new".
+    leaderboardNew: false,
     // Set when the account's session expires after signing in.
     expired: false,
 });
@@ -143,6 +145,7 @@ async function signIn(clientId) {
     const imported = (await importGuestProjects()).filter((p) => !data.projects.some((own) => own.id === p.id));
     discordSession.projects = [...data.projects, ...imported];
     discordSession.subjectsNotice = Boolean(data.subjects_notice);
+    discordSession.leaderboardNew = Boolean(data.leaderboard_new);
     watchForExpiredSession();
     return 'signed-in';
 }

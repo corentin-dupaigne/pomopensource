@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('activity-rooms.update');
 
     // Who focused the most in the calls of the server this call is in
+    Route::post('/leaderboard/seen', [LeaderboardController::class, 'seen'])->name('leaderboard.seen');
     Route::get('/leaderboard/{instance}', [LeaderboardController::class, 'show'])
         ->where('instance', '[A-Za-z0-9_-]{1,100}')
         ->middleware('throttle:60,1')

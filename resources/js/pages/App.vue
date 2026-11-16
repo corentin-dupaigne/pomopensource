@@ -260,6 +260,10 @@ export default {
 
         const toggleLeaderboardModal = () => {
             showLeaderboardModal.value = !showLeaderboardModal.value;
+            if (showLeaderboardModal.value && discordSession.leaderboardNew) {
+                discordSession.leaderboardNew = false;
+                axios.post('/leaderboard/seen').catch((error) => console.warn('Could not mark the leaderboard as seen.', error));
+            }
         };
 
         const toggleSettingsModal = () => {

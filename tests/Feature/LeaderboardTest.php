@@ -141,3 +141,16 @@ test('it is for accounts signed in through Discord', function () {
 test('the period must be one of the three', function () {
     leaderboard($this, 'month')->assertUnprocessable();
 });
+
+test('opening a leaderboard once stops its icon saying new', function () {
+    expect($this->viewer->leaderboard_seen_at)->toBeNull();
+
+    $this->actingAs($this->viewer)->postJson('/leaderboard/seen')->assertNoContent();
+    $first = $this->viewer->fresh()->leaderboard_seen_at;
+
+    $this->travel(1)->days();
+    $this->actingAs($this->viewer)->postJson('/leaderboard/seen')->assertNoContent();
+
+    expect($first)->not->toBeNull()
+        ->and($this->viewer->fresh()->leaderboard_seen_at->equalTo($first))->toBeTrue();
+});

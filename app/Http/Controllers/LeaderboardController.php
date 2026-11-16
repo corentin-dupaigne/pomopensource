@@ -58,6 +58,19 @@ class LeaderboardController extends Controller
     }
 
     /**
+     * The account opened a leaderboard: its icon no longer says it is new.
+     */
+    public function seen(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->leaderboard_seen_at) {
+            $user->forceFill(['leaderboard_seen_at' => now()])->save();
+        }
+
+        return response()->noContent();
+    }
+
+    /**
      * Accounts with focus time in the server's calls over the period, most
      * first, each day capped. Nobody is listed with nothing, nor those who
      * chose not to appear.

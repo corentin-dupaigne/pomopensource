@@ -95,3 +95,12 @@ test('signing in keeps the Discord avatar, for the server leaderboards', functio
 
     expect(User::firstWhere('discord_id', '1234')->discord_avatar)->toBe('a1b2c3');
 });
+
+test('the Activity learns whether the account has seen a leaderboard yet', function () {
+    fakeDiscord();
+    $this->postJson('/discord/token', ['code' => 'abc'])->assertJson(['leaderboard_new' => true]);
+
+    User::firstWhere('discord_id', '1234')->forceFill(['leaderboard_seen_at' => now()])->save();
+
+    $this->postJson('/discord/token', ['code' => 'abc'])->assertJson(['leaderboard_new' => false]);
+});
