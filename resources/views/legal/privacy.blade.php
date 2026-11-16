@@ -1,7 +1,7 @@
 @extends('legal.layout')
 
 @section('title', 'Privacy Policy')
-@section('updated', 'October 24, 2026')
+@section('updated', 'November 16, 2026')
 
 @section('content')
     <p>Pomopensource is an open-source pomodoro timer, available at <a href="{{ url('/') }}">{{ parse_url(url('/'), PHP_URL_HOST) }}</a> and as a Discord Activity. It is run by Corentin Dupaigne. Its <a href="https://github.com/corentin-dupaigne/pomopensource">source code</a> is public.</p>
@@ -14,6 +14,7 @@
         <li><strong>What you create:</strong> projects, focus sessions (start and end times, duration, project, an optional note and, in the Activity, the ID of the server whose call it was in) and settings.</li>
         <li><strong>Shared timer:</strong> for each Discord call using the Activity, the call's ID, the timer's state, the display name of whoever last changed its durations, and which accounts used it.</li>
         <li><strong>Usage statistics:</strong> for each Discord call using the Activity, the IDs of its server and voice channel (or that it was a private call), when it started, and how many accounts used its timer. Which accounts they were is not kept here.</li>
+        <li><strong>Interface use:</strong> how many times each day the app is opened and parts of it are used (such as the stats, settings or leaderboard), in the Activity or on the website. Only counts are kept: not who clicked.</li>
         <li><strong>Technical data:</strong> a cookie keeps you signed in, and your IP address and browser type are stored with that session. Our server logs record IP addresses to keep the service running and secure.</li>
     </ul>
 
