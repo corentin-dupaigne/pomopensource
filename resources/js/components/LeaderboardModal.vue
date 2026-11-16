@@ -13,29 +13,49 @@
             @keydown.esc="$emit('close')"
         >
             <!-- Title, periods and close share one row: short frames need the height. -->
-            <div class="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 pb-4 short:pb-2 border-b border-white/20">
-                <h2 id="leaderboard-title" class="text-2xl short:text-xl font-bold font-display text-white">Leaderboard</h2>
-                <div class="flex gap-2 mr-auto" role="tablist" aria-label="Period">
+            <div class="shrink-0 pb-4 short:pb-2 border-b border-white/20">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div class="flex items-center gap-2">
+                        <h2 id="leaderboard-title" class="text-2xl short:text-xl font-bold font-display text-white">Leaderboard</h2>
+                        <button
+                            @click="showInfo = !showInfo"
+                            :aria-expanded="showInfo"
+                            aria-controls="leaderboard-info"
+                            aria-label="What counts, and how to stay off leaderboards"
+                            class="text-white/50 hover:text-white transition"
+                        >
+                            <i class="fas fa-circle-info" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mr-auto" role="tablist" aria-label="Period" @keydown="onTabKey">
+                        <button
+                            v-for="(label, key) in PERIODS"
+                            :key="key"
+                            :ref="(el) => { if (el) tabRefs[key] = el; }"
+                            @click="period = key"
+                            role="tab"
+                            :aria-selected="period === key"
+                            :tabindex="period === key ? 0 : -1"
+                            aria-controls="leaderboard-list"
+                            :class="['px-3 py-1.5 rounded-lg text-sm font-semibold transition',
+                                     period === key ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
+                        >
+                            {{ label }}
+                        </button>
+                    </div>
                     <button
-                        v-for="(label, key) in PERIODS"
-                        :key="key"
-                        @click="period = key"
-                        role="tab"
-                        :aria-selected="period === key"
-                        aria-controls="leaderboard-list"
-                        :class="['px-3 py-1.5 rounded-lg text-sm font-semibold transition',
-                                 period === key ? 'bg-white/20 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20']"
+                        @click="$emit('close')"
+                        aria-label="Close leaderboard"
+                        class="text-white hover:text-gray-300 transition"
                     >
-                        {{ label }}
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
-                <button
-                    @click="$emit('close')"
-                    aria-label="Close leaderboard"
-                    class="text-white hover:text-gray-300 transition"
-                >
-                    <i class="fas fa-times" aria-hidden="true"></i>
-                </button>
+                <p v-if="showInfo" id="leaderboard-info" class="mt-3 short:mt-2 text-xs text-white/60">
+                    Time focused in this server's calls only: not on the website, in private calls or in other servers.
+                    At most 12 hours a day count. To stay off every leaderboard, turn off
+                    <em>Show me in server leaderboards</em> in settings.
+                </p>
             </div>
 
             <div
@@ -49,48 +69,82 @@
                 <div v-if="loading && !board" class="flex justify-center py-8">
                     <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading the leaderboard"></i>
                 </div>
-                <p v-else-if="failed" class="py-8 text-center text-sm text-white/70">
-                    The leaderboard could not load. Try again in a moment.
-                </p>
+                <div v-else-if="failed" class="flex flex-col items-center gap-3 py-8 text-center text-sm text-white/70">
+                    <p>The leaderboard could not load.</p>
+                    <button @click="load" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition">
+                        <i class="fas fa-rotate-right mr-1.5" aria-hidden="true"></i>Try again
+                    </button>
+                </div>
                 <template v-else-if="board">
-                    <p v-if="board.entries.length === 0" class="py-8 text-center text-sm text-white/70">
-                        Nobody has focused in this server's calls {{ EMPTY[period] }}. Start a pomodoro to be first.
-                    </p>
+                    <div v-if="board.entries.length === 0" class="flex flex-col items-center gap-3 py-8 text-center text-sm text-white/70">
+                        <p>Nobody has focused in this server's calls {{ EMPTY[period] }}. Start a pomodoro to be first.</p>
+                        <button @click="invite" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition">
+                            <i class="fas fa-user-plus mr-1.5" aria-hidden="true"></i>Invite a friend
+                        </button>
+                    </div>
                     <div v-else :class="{ 'opacity-60': loading }">
                     <!-- The server's time together comes first: the board is
                          a group's, not a contest between strangers. -->
                     <p class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-lg bg-white/10 px-3 py-2 short:py-1.5 text-sm text-white/60">
                         <span class="flex items-center gap-1.5">
                             <i class="fas fa-clock text-xs" aria-hidden="true"></i>
-                            <span><strong class="font-bold text-white tabular-nums">{{ hours(board.together.minutes) }} h</strong> focused together</span>
+                            <span><strong class="font-bold text-white tabular-nums">{{ duration(board.together.minutes) }}</strong> focused together</span>
                         </span>
                         <span class="flex items-center gap-1.5">
                             <i class="fas fa-users text-xs" aria-hidden="true"></i>
                             <span><strong class="font-bold text-white tabular-nums">{{ board.together.members }}</strong> {{ board.together.members === 1 ? 'member' : 'members' }}</span>
                         </span>
                     </p>
+                    <p v-if="board.hidden" class="mt-2 text-center text-xs text-white/50">
+                        <i class="fas fa-eye-slash mr-1" aria-hidden="true"></i>You are hidden from leaderboards (settings).
+                    </p>
 
                     <!-- Podium: 2nd, 1st, 3rd. Height and size follow the rank, so equal time stands level.
-                         Smaller in a short frame, to leave the list some room. -->
+                         Smaller in a short frame, to leave the list some room. A place nobody
+                         holds yet asks to bring a friend: most calls have one person. -->
                     <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
                         <li
-                            v-for="entry in podium"
-                            :key="entry.user.id"
+                            v-for="slot in podium"
+                            :key="slot.entry ? slot.entry.user.id : `free-${slot.place}`"
                             class="flex flex-col items-center min-w-0"
-                            :style="{ order: PODIUM_ORDER[entry.place] }"
+                            :style="{ order: PODIUM_ORDER[slot.place] }"
                         >
-                            <DiscordAvatar :user="entry.user" :size="entry.rank === 1 ? sizes.first : sizes.other" :class="entry.rank === 1 ? 'ring-2 ring-white/40' : ''" />
-                            <span class="mt-2 short:mt-1 max-w-full truncate font-semibold" :class="entry.rank === 1 ? 'text-base short:text-sm' : 'text-sm short:text-xs'">
-                                {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60 font-normal"> (you)</span>
-                            </span>
-                            <span class="tabular-nums text-white/60" :class="entry.rank === 1 ? 'text-sm short:text-xs' : 'text-xs short:text-[11px]'">{{ duration(entry.minutes) }}</span>
+                            <template v-if="slot.entry">
+                                <DiscordAvatar
+                                    :user="slot.entry.user"
+                                    :size="slot.rank === 1 ? sizes.first : sizes.other"
+                                    :class="slot.rank === 1 ? 'ring-2 ring-white/40' : ''"
+                                />
+                                <span class="mt-2 short:mt-1 max-w-full truncate font-semibold" :class="slot.rank === 1 ? 'text-base short:text-sm' : 'text-sm short:text-xs'">
+                                    {{ name(slot.entry.user) }}<span v-if="slot.entry.me" class="text-white/60 font-normal"> (you)</span>
+                                </span>
+                                <span class="tabular-nums text-white/60" :class="slot.rank === 1 ? 'text-sm short:text-xs' : 'text-xs short:text-[11px]'">{{ duration(slot.entry.minutes) }}</span>
+                            </template>
+                            <button
+                                v-else
+                                @click="invite"
+                                class="group flex flex-col items-center min-w-0 max-w-full text-white/50 hover:text-white transition"
+                            >
+                                <span
+                                    class="flex items-center justify-center rounded-full border-2 border-dashed border-white/25 group-hover:border-white/60 transition"
+                                    :style="{ width: `${sizes.other}px`, height: `${sizes.other}px` }"
+                                    aria-hidden="true"
+                                >
+                                    <i class="fas fa-user-plus text-xs"></i>
+                                </span>
+                                <span class="mt-2 short:mt-1 max-w-full truncate text-sm short:text-xs font-semibold">Free spot</span>
+                                <span class="text-xs short:text-[11px]">Invite a friend</span>
+                            </button>
                             <div
-                                class="pedestal mt-2 short:mt-1 w-full flex items-center justify-center rounded-t-lg font-bold text-white"
-                                :class="[entry.rank === 1 ? 'bg-white/20' : 'bg-white/10', `pedestal-${entry.rank - 1}`]"
+                                class="pedestal mt-2 short:mt-1 w-full flex items-center justify-center rounded-t-lg font-bold"
+                                :class="[
+                                    slot.entry ? (slot.rank === 1 ? 'bg-white/20 text-white' : 'bg-white/10 text-white') : 'border border-b-0 border-dashed border-white/20 text-white/30',
+                                    `pedestal-${slot.rank - 1}`,
+                                ]"
                             >
                                 <span class="flex items-center gap-1.5">
-                                    <i class="fas fa-trophy pedestal-trophy" :class="MEDALS[entry.rank - 1]" aria-hidden="true"></i>
-                                    <span><span class="sr-only">Rank</span>{{ entry.rank }}</span>
+                                    <i v-if="slot.entry" class="fas fa-trophy pedestal-trophy" :class="MEDALS[slot.rank - 1]" aria-hidden="true"></i>
+                                    <span><span class="sr-only">Rank</span>{{ slot.rank }}</span>
                                 </span>
                             </div>
                         </li>
@@ -98,13 +152,7 @@
 
                     <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1 short:space-y-0.5" aria-label="Everyone else">
                         <li v-for="entry in rows" :key="entry.user.id" :class="rowClass(entry)">
-                            <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums text-white/60">
-                                <template v-if="entry.rank <= 3">
-                                    <i class="fas fa-trophy" :class="MEDALS[entry.rank - 1]" aria-hidden="true"></i>
-                                    <span class="sr-only">{{ entry.rank }}</span>
-                                </template>
-                                <template v-else>{{ entry.rank }}</template>
-                            </span>
+                            <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums text-white/60">{{ entry.rank }}</span>
                             <DiscordAvatar :user="entry.user" :size="short ? 24 : 28" />
                             <span class="flex-1 min-w-0 truncate text-sm">
                                 {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60"> (you)</span>
@@ -114,12 +162,6 @@
                     </ol>
                     </div>
                 </template>
-
-                <p class="mt-4 short:mt-2 text-xs text-white/50">
-                    Time focused in this server's calls.
-                    <template v-if="board?.hidden">You are hidden from leaderboards; you can change it in settings.</template>
-                    <template v-else>To stay off leaderboards, turn it off in settings.</template>
-                </p>
             </div>
         </div>
     </div>
@@ -129,7 +171,8 @@
 import axios from 'axios';
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import DiscordAvatar from './DiscordAvatar.vue';
-import { discordInstanceId, discordDisplayName } from '../discord.js';
+import { discordInstanceId, discordDisplayName, inviteToActivity } from '../discord.js';
+import { useToast } from '../composables/toast.js';
 
 // Rolling windows, so "today" means the same for members everywhere.
 const PERIODS = { day: '24 hours', week: '7 days', all: 'All time' };
@@ -141,6 +184,14 @@ const MEDALS = ['text-amber-300', 'text-slate-300', 'text-orange-400'];
 // The first in the middle, the second on its left, the third on its right.
 const PODIUM_ORDER = [2, 1, 3];
 
+// As the day log and the stats detail write durations: 1h 15m, 40m.
+const duration = (minutes) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}m`;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+};
+
 export default {
     components: { DiscordAvatar },
     emits: ['close'],
@@ -150,6 +201,7 @@ export default {
         const board = ref(null);
         const loading = ref(false);
         const failed = ref(false);
+        const showInfo = ref(false);
 
         let latest = 0;
         const load = async () => {
@@ -174,7 +226,28 @@ export default {
             modalRef.value?.focus();
         });
 
-        const podium = computed(() => (board.value?.entries ?? []).slice(0, 3).map((entry, place) => ({ ...entry, place })));
+        // Arrow keys move between periods, as in any set of tabs.
+        const tabRefs = {};
+        const onTabKey = (event) => {
+            const keys = Object.keys(PERIODS);
+            const index = keys.indexOf(period.value);
+            const next = {
+                ArrowRight: (index + 1) % keys.length,
+                ArrowLeft: (index - 1 + keys.length) % keys.length,
+                Home: 0,
+                End: keys.length - 1,
+            }[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            period.value = keys[next];
+            tabRefs[keys[next]]?.focus();
+        };
+
+        // Three places, held or free. A free place takes the rank it stands for.
+        const podium = computed(() => {
+            const entries = board.value?.entries ?? [];
+            return [0, 1, 2].map((place) => ({ place, entry: entries[place], rank: entries[place]?.rank ?? place + 1 }));
+        });
 
         // A short frame (Discord in a small window) gets a smaller podium.
         const shortQuery = window.matchMedia('(max-height: 500px)');
@@ -197,7 +270,7 @@ export default {
             const body = bodyRef.value;
             moreBelow.value = Boolean(body) && body.scrollHeight - body.scrollTop - body.clientHeight > 4;
         };
-        watch([board, short], () => nextTick(checkMoreBelow));
+        watch([board, short, showInfo], () => nextTick(checkMoreBelow));
         window.addEventListener('resize', checkMoreBelow);
         onUnmounted(() => window.removeEventListener('resize', checkMoreBelow));
 
@@ -207,20 +280,19 @@ export default {
             board.value.me === entry ? 'mt-3 border-t border-white/10' : '',
         ];
 
-        const duration = (minutes) => {
-            const hours = Math.floor(minutes / 60);
-            const rest = minutes % 60;
-            if (hours === 0) return `${rest} min`;
-            return rest ? `${hours} h ${rest} min` : `${hours} h`;
+        const invite = async () => {
+            try {
+                await inviteToActivity();
+            } catch (error) {
+                console.warn('Could not open the invite window.', error);
+                useToast().error("Discord's invite window did not open. Invite friends from the call instead.");
+            }
         };
 
-        // As the stats summary writes it: 2.3 h.
-        const hours = (minutes) => Math.round(minutes / 6) / 10;
-
         return {
-            hours,
-            PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed,
-            podium, rows, sizes, short, bodyRef, moreBelow, checkMoreBelow, rowClass, duration, name: discordDisplayName,
+            PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed, showInfo,
+            load, tabRefs, onTabKey, podium, rows, sizes, short, bodyRef, moreBelow, checkMoreBelow,
+            rowClass, invite, duration, name: discordDisplayName,
         };
     },
 };

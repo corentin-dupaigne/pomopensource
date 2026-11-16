@@ -203,6 +203,15 @@ function watchForExpiredSession() {
     });
 }
 
+/**
+ * Discord's window to invite friends to this call's Activity. Only in a
+ * server's call, and it fails without the permission to invite.
+ */
+export async function inviteToActivity() {
+    if (!authenticated || !isServerCall) throw new Error('Inviting needs a server call, signed in.');
+    await sdk.commands.openInviteDialog();
+}
+
 const flushPresence = () => {
     if (!authenticated || !pendingPresence) return;
     const activity = pendingPresence;
