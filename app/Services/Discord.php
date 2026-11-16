@@ -55,7 +55,7 @@ class Discord
     /**
      * The Discord user the access token belongs to, or null.
      *
-     * @return array{id: string, name: string}|null
+     * @return array{id: string, name: string, avatar: ?string}|null
      */
     public function profile(string $accessToken): ?array
     {
@@ -67,18 +67,20 @@ class Discord
         return [
             'id' => (string) $response->json('id'),
             'name' => $response->json('global_name') ?? $response->json('username'),
+            'avatar' => $response->json('avatar'),
         ];
     }
 
     /**
      * The account of a Discord user, created on their first sign-in.
      *
-     * @param  array{id: string, name: string}  $profile
+     * @param  array{id: string, name: string, avatar?: ?string}  $profile
      */
     public function accountFor(array $profile): User
     {
         $user = User::firstOrNew(['discord_id' => $profile['id']]);
         $user->name = $profile['name'];
+        $user->discord_avatar = $profile['avatar'] ?? null;
         $user->save();
 
         return $user;

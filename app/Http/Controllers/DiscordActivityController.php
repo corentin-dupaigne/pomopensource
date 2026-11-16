@@ -51,6 +51,7 @@ class DiscordActivityController extends Controller
             'user' => ['name' => $user->name],
             'projects' => $user->suggestedSubjects()->get(),
             'subjects_notice' => (bool) $user->show_subjects_notice,
+            'leaderboard_new' => $user->leaderboard_seen_at === null,
         ]);
     }
 

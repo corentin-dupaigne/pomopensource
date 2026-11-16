@@ -14,7 +14,7 @@
 
         <template v-else>
         <div class="header quiet-fade hide-when-minimal">
-            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" :auth="isAuthenticated" :notSynced="notSynced" />
+            <Header @toggleStats="toggleStatsModal" @toggle-settings="toggleSettingsModal" @toggle-leaderboard="toggleLeaderboardModal" :auth="isAuthenticated" :notSynced="notSynced" :leaderboard="hasLeaderboard" />
         </div>
 
         <!-- In the Activity, scroll rather than cut off when the frame is too
@@ -51,6 +51,7 @@
         </button>
 
         <StatsModal v-if="showStatsModal" :isAuthenticated="isAuthenticated" @close="toggleStatsModal" />
+        <LeaderboardModal v-if="showLeaderboardModal" @close="toggleLeaderboardModal" />
         <SettingsModal v-if="showSettingsModal" @close="toggleSettingsModal" @saved="handleSettingsSaved" />
         </template>
         <Toast />
@@ -64,12 +65,13 @@ import Projects from '../components/Projects.vue';
 import Footer from '../components/Footer.vue';
 import StatsModal from '../components/StatsModal.vue';
 import SettingsModal from '../components/SettingsModal.vue';
+import LeaderboardModal from '../components/LeaderboardModal.vue';
 import Toast from '../components/Toast.vue';
 import axios from 'axios';
 import { countClick } from '../composables/clicks.js';
 import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
-import { startDiscordActivity, isDiscordActivity, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
+import { startDiscordActivity, isDiscordActivity, isServerCall, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 import { subjectsNotice, showSubjectsNotice } from '../composables/subjectsNotice.js';
 import { SUBJECTS_NOTICE_KEY } from '../composables/localStats.js';
 
@@ -80,6 +82,7 @@ export default {
         Footer,
         StatsModal,
         SettingsModal,
+        LeaderboardModal,
         Toast,
     },
     props: {
@@ -104,6 +107,7 @@ export default {
     setup(props) {
         const showStatsModal = ref(false);
         const showSettingsModal = ref(false);
+        const showLeaderboardModal = ref(false);
         const showProjectsPanel = ref(false);
 
         const backgroundImage = ref(localStorage.getItem('userBackground') || '');
@@ -112,6 +116,8 @@ export default {
         const signedInWithDiscord = computed(() => discordSession.status === 'signed-in');
         const isAuthenticated = computed(() => props.isAuthenticated || signedInWithDiscord.value);
         const accountProjects = computed(() => signedInWithDiscord.value ? discordSession.projects : props.projects);
+        // Only a server's call has one, and it lists accounts.
+        const hasLeaderboard = computed(() => isServerCall && signedInWithDiscord.value && !discordSession.expired);
         const notSynced = computed(() => discordSession.expired || (discordSession.status === 'guest' && !props.isAuthenticated));
         const settings = ref({});
 
@@ -176,7 +182,7 @@ export default {
         const handleKeydown = (e) => {
             if (!canFullscreen || e.key.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey) return;
             if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
-            if (showStatsModal.value || showSettingsModal.value || showProjectsPanel.value) return;
+            if (showStatsModal.value || showSettingsModal.value || showLeaderboardModal.value || showProjectsPanel.value) return;
             e.preventDefault();
             toggleFullscreen();
         };
@@ -193,7 +199,7 @@ export default {
         // window is open.
         const quiet = useQuietWhileFocusing({
             enabled: computed(() => isEnabled(settings.value?.timers?.settings?.hide_controls_while_focusing ?? true)),
-            blocked: computed(() => showStatsModal.value || showSettingsModal.value || showProjectsPanel.value),
+            blocked: computed(() => showStatsModal.value || showSettingsModal.value || showLeaderboardModal.value || showProjectsPanel.value),
         });
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
@@ -256,6 +262,15 @@ export default {
         const toggleStatsModal = () => {
             showStatsModal.value = !showStatsModal.value;
             if (showStatsModal.value) countClick('stats');
+        };
+
+        const toggleLeaderboardModal = () => {
+            showLeaderboardModal.value = !showLeaderboardModal.value;
+            if (showLeaderboardModal.value) countClick('leaderboard');
+            if (showLeaderboardModal.value && discordSession.leaderboardNew) {
+                discordSession.leaderboardNew = false;
+                axios.post('/leaderboard/seen').catch((error) => console.warn('Could not mark the leaderboard as seen.', error));
+            }
         };
 
         const toggleSettingsModal = () => {
@@ -326,6 +341,9 @@ export default {
             showSettingsModal,
             toggleStatsModal,
             toggleSettingsModal,
+            showLeaderboardModal,
+            toggleLeaderboardModal,
+            hasLeaderboard,
             handleSettingsSaved,
             bgA,
             bgB,

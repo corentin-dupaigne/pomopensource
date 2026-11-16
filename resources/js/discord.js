@@ -10,6 +10,10 @@ export const isDiscordActivity = ['frame_id', 'instance_id', 'platform'].every((
 // Identifies this run of the Activity, shared by everyone in the call.
 export const discordInstanceId = isDiscordActivity ? params.get('instance_id') : null;
 
+// A call in a server's voice channel, as opposed to a private call: Discord
+// writes the server into the instance ID (see ActivityLaunch::placeOf).
+export const isServerCall = /-gc-\d+-\d+$/.test(discordInstanceId ?? '');
+
 // Give up waiting for Discord after this long and continue as a guest.
 const SIGN_IN_TIMEOUT_MS = 20000;
 
@@ -56,6 +60,8 @@ export const discordSession = reactive({
     projects: [],
     // Whether to tell this account that projects and notes became one field.
     subjectsNotice: false,
+    // Whether this account never opened a leaderboard: its icon says "new".
+    leaderboardNew: false,
     // Set when the account's session expires after signing in.
     expired: false,
 });
@@ -139,6 +145,7 @@ async function signIn(clientId) {
     const imported = (await importGuestProjects()).filter((p) => !data.projects.some((own) => own.id === p.id));
     discordSession.projects = [...data.projects, ...imported];
     discordSession.subjectsNotice = Boolean(data.subjects_notice);
+    discordSession.leaderboardNew = Boolean(data.leaderboard_new);
     watchForExpiredSession();
     return 'signed-in';
 }
@@ -194,6 +201,15 @@ function watchForExpiredSession() {
         }
         return Promise.reject(error);
     });
+}
+
+/**
+ * Discord's window to invite friends to this call's Activity. Only in a
+ * server's call, and it fails without the permission to invite.
+ */
+export async function inviteToActivity() {
+    if (!authenticated || !isServerCall) throw new Error('Inviting needs a server call, signed in.');
+    await sdk.commands.openInviteDialog();
 }
 
 const flushPresence = () => {

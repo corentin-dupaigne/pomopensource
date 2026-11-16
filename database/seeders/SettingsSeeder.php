@@ -56,6 +56,17 @@ class SettingsSeeder extends Seeder
                 'default_value' => 'Lofi Cafe',
                 'display_order' => 1,
             ],
+            // In the Activity, a server's leaderboard lists who focused in
+            // its calls; this keeps an account off every one of them.
+            [
+                'category_id' => 1,
+                'key' => 'show_in_leaderboards',
+                'name' => 'Show me in server leaderboards',
+                'type' => 'checkbox',
+                'options' => null,
+                'default_value' => 'true',
+                'display_order' => 2,
+            ],
             // Timer settings
             [
                 'category_id' => 2,

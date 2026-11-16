@@ -29,6 +29,21 @@
                 <span>not synced</span>
             </button>
             <button
+                v-if="leaderboard"
+                @click="$emit('toggleLeaderboard')"
+                :aria-label="discordSession.leaderboardNew ? 'Open this server\'s leaderboard (new)' : 'Open this server\'s leaderboard'"
+                class="relative flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
+            >
+                <i class="fas fa-trophy" aria-hidden="true"></i>
+                <span class="hidden md:inline-block text-sm">leaderboard</span>
+                <!-- Until the account first opens one. -->
+                <span
+                    v-if="discordSession.leaderboardNew"
+                    class="new-badge absolute -top-1.5 -right-1.5 px-1.5 rounded-full bg-amber-400 text-neutral-900 text-[10px] font-bold uppercase leading-4 shadow"
+                    aria-hidden="true"
+                >new</span>
+            </button>
+            <button
                 @click="$emit('toggleStats')"
                 aria-label="Open statistics"
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
@@ -83,11 +98,13 @@ export default {
             return discordDisplayName(this.discordSession.user);
         },
     },
-    emits: ['toggleStats', 'toggleSettings'],
+    emits: ['toggleStats', 'toggleSettings', 'toggleLeaderboard'],
     props: {
         auth: { default: false },
         // Inside Discord, when sign-in failed and nothing reaches the account.
         notSynced: { type: Boolean, default: false },
+        // In a server's call, signed in with Discord.
+        leaderboard: { type: Boolean, default: false },
     },
     methods: {
         explainNotSynced() {
@@ -119,6 +136,19 @@ export default {
         min-width: 2.25rem;
         min-height: 2.25rem;
     }
+}
+
+/* Draws the eye once, then stays still. */
+.new-badge {
+    animation: new-pop 0.6s ease-out 1s 2;
+}
+
+@keyframes new-pop {
+    50% { transform: scale(1.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .new-badge { animation: none; }
 }
 
 .activity-nav > button.not-synced {
