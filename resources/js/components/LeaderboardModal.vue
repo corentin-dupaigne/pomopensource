@@ -49,9 +49,45 @@
                     <p v-if="board.entries.length === 0" class="py-8 text-center text-sm text-white/70">
                         Nobody has focused in this server's calls {{ EMPTY[period] }}. Start a pomodoro to be first.
                     </p>
-                    <ol v-else class="space-y-1" :class="{ 'opacity-60': loading }">
+                    <div v-else :class="{ 'opacity-60': loading }">
+                    <!-- The server's time together comes first: the board is
+                         a group's, not a contest between strangers. -->
+                    <p class="flex items-center justify-center gap-2 text-sm text-white/80">
+                        <i class="fas fa-users text-white/60" aria-hidden="true"></i>
+                        <span>
+                            Together, <strong class="text-white">{{ board.together.members }} {{ board.together.members === 1 ? 'member' : 'members' }}</strong>
+                            focused <strong class="text-white">{{ duration(board.together.minutes) }}</strong>
+                        </span>
+                    </p>
+
+                    <!-- Podium: 2nd, 1st, 3rd, the first standing tallest. -->
+                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
+                        <li
+                            v-for="entry in podium"
+                            :key="entry.user.id"
+                            class="flex flex-col items-center min-w-0"
+                            :style="{ order: PODIUM_ORDER[entry.place] }"
+                        >
+                            <DiscordAvatar :user="entry.user" :size="entry.place === 0 ? sizes.first : sizes.other" :class="['ring-2', MEDALS[entry.rank - 1].ring]" />
+                            <span class="mt-2 short:mt-1 max-w-full truncate text-sm font-semibold">
+                                {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60 font-normal"> (you)</span>
+                            </span>
+                            <span class="text-xs text-white/70 tabular-nums">{{ duration(entry.minutes) }}</span>
+                            <div
+                                class="pedestal mt-2 short:mt-1 w-full flex items-start justify-center rounded-t-lg border-t-2 bg-white/10 font-display font-bold"
+                                :class="[MEDALS[entry.rank - 1].border, MEDALS[entry.rank - 1].text, `pedestal-${entry.place}`]"
+                            >
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fas fa-trophy pedestal-trophy" aria-hidden="true"></i>
+                                    <span><span class="sr-only">Rank</span>{{ entry.rank }}</span>
+                                </span>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1" aria-label="Everyone else">
                         <li v-for="entry in rows" :key="entry.user.id" :class="rowClass(entry)">
-                            <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums" :class="entry.rank <= 3 ? 'text-amber-300' : 'text-white/60'">
+                            <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums text-white/60">
                                 {{ entry.rank }}
                             </span>
                             <DiscordAvatar :user="entry.user" :size="28" />
@@ -61,6 +97,7 @@
                             <span class="shrink-0 text-sm font-semibold tabular-nums">{{ duration(entry.minutes) }}</span>
                         </li>
                     </ol>
+                    </div>
                 </template>
 
                 <p class="mt-4 short:mt-2 text-xs text-white/50">
@@ -75,13 +112,22 @@
 
 <script>
 import axios from 'axios';
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import DiscordAvatar from './DiscordAvatar.vue';
 import { discordInstanceId, discordDisplayName } from '../discord.js';
 
 // Rolling windows, so "today" means the same for members everywhere.
 const PERIODS = { day: '24 hours', week: '7 days', all: 'All time' };
 const EMPTY = { day: 'in the last 24 hours', week: 'in the last 7 days', all: 'yet' };
+
+// Gold, silver and bronze, by rank: two first at equal time both get gold.
+const MEDALS = [
+    { text: 'text-amber-300', ring: 'ring-amber-300', border: 'border-amber-300' },
+    { text: 'text-slate-300', ring: 'ring-slate-300', border: 'border-slate-300' },
+    { text: 'text-orange-400', ring: 'ring-orange-400', border: 'border-orange-400' },
+];
+// The first in the middle, the second on its left, the third on its right.
+const PODIUM_ORDER = [2, 1, 3];
 
 export default {
     components: { DiscordAvatar },
@@ -116,10 +162,20 @@ export default {
             modalRef.value?.focus();
         });
 
-        // The viewer's own row comes last when they are below the top.
+        const podium = computed(() => (board.value?.entries ?? []).slice(0, 3).map((entry, place) => ({ ...entry, place })));
+
+        // After the podium; the viewer's own row comes last when they are below the top.
         const rows = computed(() => board.value
-            ? [...board.value.entries, ...(board.value.me ? [board.value.me] : [])]
+            ? [...board.value.entries.slice(3), ...(board.value.me ? [board.value.me] : [])]
             : []);
+
+        // Smaller in a short frame, where the list needs the height.
+        const shortQuery = window.matchMedia('(max-height: 500px)');
+        const short = ref(shortQuery.matches);
+        const onShortChange = (event) => { short.value = event.matches; };
+        shortQuery.addEventListener('change', onShortChange);
+        onUnmounted(() => shortQuery.removeEventListener('change', onShortChange));
+        const sizes = computed(() => short.value ? { first: 44, other: 34 } : { first: 64, other: 48 });
 
         const rowClass = (entry) => [
             'flex items-center gap-3 px-2 py-1.5 rounded-lg',
@@ -134,7 +190,10 @@ export default {
             return rest ? `${hours} h ${rest} min` : `${hours} h`;
         };
 
-        return { PERIODS, EMPTY, modalRef, period, board, loading, failed, rows, rowClass, duration, name: discordDisplayName };
+        return {
+            PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed,
+            podium, rows, sizes, rowClass, duration, name: discordDisplayName,
+        };
     },
 };
 </script>
@@ -144,5 +203,18 @@ export default {
     /* Fit the frame, however short: a Discord Activity can be under 400px tall. */
     max-height: min(90vh, calc(100% - 2rem));
     overflow: hidden;
+}
+
+.pedestal { padding-top: 0.375rem; font-size: 1.125rem; }
+.pedestal-trophy { font-size: 0.85em; }
+.pedestal-0 { height: 3.5rem; font-size: 1.5rem; }
+.pedestal-1 { height: 2.5rem; }
+.pedestal-2 { height: 1.75rem; }
+
+@media (max-height: 500px) {
+    .pedestal { padding-top: 0; font-size: 0.875rem; }
+    .pedestal-0 { height: 2rem; font-size: 1rem; }
+    .pedestal-1 { height: 1.5rem; }
+    .pedestal-2 { height: 1.125rem; }
 }
 </style>

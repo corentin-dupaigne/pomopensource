@@ -51,6 +51,8 @@ class LeaderboardController extends Controller
             'period' => $period,
             'entries' => $rows->take(self::SHOWN)->values(),
             'me' => $me && $me['rank'] > self::SHOWN ? $me : null,
+            // What the server did together: everyone listed, not just the top.
+            'together' => ['members' => $rows->count(), 'minutes' => $rows->sum('minutes')],
             'hidden' => $this->hiddenUserIds()->contains($viewer->id),
         ]);
     }

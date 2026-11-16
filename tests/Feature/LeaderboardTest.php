@@ -107,7 +107,8 @@ test('the top 10 are shown, and the viewer\'s own row when further down', functi
 
     expect($response->json('entries'))->toHaveCount(10)
         ->and($response->json('me.rank'))->toBe(12)
-        ->and($response->json('me.minutes'))->toBe(5);
+        ->and($response->json('me.minutes'))->toBe(5)
+        ->and($response->json('together'))->toBe(['members' => 12, 'minutes' => array_sum(range(101, 111)) + 5]);
 });
 
 test('those who turned it off are not listed, but still see the leaderboard', function () {
