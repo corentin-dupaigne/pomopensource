@@ -68,14 +68,14 @@
                             class="flex flex-col items-center min-w-0"
                             :style="{ order: PODIUM_ORDER[entry.place] }"
                         >
-                            <DiscordAvatar :user="entry.user" :size="entry.place === 0 ? sizes.first : sizes.other" :class="['ring-2', MEDALS[entry.rank - 1].ring]" />
+                            <DiscordAvatar :user="entry.user" :size="entry.rank === 1 ? sizes.first : sizes.other" :class="['ring-2', MEDALS[entry.rank - 1].ring]" />
                             <span class="mt-2 short:mt-1 max-w-full truncate text-sm font-semibold">
                                 {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60 font-normal"> (you)</span>
                             </span>
                             <span class="text-xs text-white/70 tabular-nums">{{ duration(entry.minutes) }}</span>
                             <div
                                 class="pedestal mt-2 short:mt-1 w-full flex items-start justify-center rounded-t-lg border-t-2 bg-white/10 font-display font-bold"
-                                :class="[MEDALS[entry.rank - 1].border, MEDALS[entry.rank - 1].text, `pedestal-${entry.place}`]"
+                                :class="[MEDALS[entry.rank - 1].border, MEDALS[entry.rank - 1].text, `pedestal-${entry.rank - 1}`]"
                             >
                                 <span class="flex items-center gap-1.5">
                                     <i class="fas fa-trophy pedestal-trophy" aria-hidden="true"></i>
