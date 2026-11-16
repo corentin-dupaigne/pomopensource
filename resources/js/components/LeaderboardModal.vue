@@ -38,7 +38,14 @@
                 </button>
             </div>
 
-            <div id="leaderboard-list" role="tabpanel" class="modal-body flex-1 min-h-0 pt-4 short:pt-2 overflow-y-auto text-white">
+            <div
+                id="leaderboard-list"
+                ref="bodyRef"
+                role="tabpanel"
+                class="modal-body flex-1 min-h-0 pt-4 short:pt-2 overflow-y-auto text-white"
+                :class="{ 'more-below': moreBelow }"
+                @scroll="checkMoreBelow"
+            >
                 <div v-if="loading && !board" class="flex justify-center py-8">
                     <i class="fas fa-spinner fa-spin text-2xl text-white/40" aria-label="Loading the leaderboard"></i>
                 </div>
@@ -63,8 +70,9 @@
                         </span>
                     </p>
 
-                    <!-- Podium: 2nd, 1st, 3rd, the first standing tallest. -->
-                    <ol class="podium mt-4 short:mt-2 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
+                    <!-- Podium: 2nd, 1st, 3rd. Height and size follow the rank, so equal time stands level.
+                         A short frame has no room for it: the top 3 lead the list, with their trophies. -->
+                    <ol v-if="!short" class="podium mt-4 grid grid-cols-3 items-end gap-2" aria-label="Top 3">
                         <li
                             v-for="entry in podium"
                             :key="entry.user.id"
@@ -88,12 +96,16 @@
                         </li>
                     </ol>
 
-                    <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1" aria-label="Everyone else">
+                    <ol v-if="rows.length" class="mt-3 short:mt-2 space-y-1 short:space-y-0.5" :aria-label="short ? 'Ranking' : 'Everyone else'">
                         <li v-for="entry in rows" :key="entry.user.id" :class="rowClass(entry)">
                             <span class="w-7 shrink-0 text-right text-sm font-semibold tabular-nums text-white/60">
-                                {{ entry.rank }}
+                                <template v-if="entry.rank <= 3">
+                                    <i class="fas fa-trophy" :class="MEDALS[entry.rank - 1]" aria-hidden="true"></i>
+                                    <span class="sr-only">{{ entry.rank }}</span>
+                                </template>
+                                <template v-else>{{ entry.rank }}</template>
                             </span>
-                            <DiscordAvatar :user="entry.user" :size="28" />
+                            <DiscordAvatar :user="entry.user" :size="short ? 24 : 28" />
                             <span class="flex-1 min-w-0 truncate text-sm">
                                 {{ name(entry.user) }}<span v-if="entry.me" class="text-white/60"> (you)</span>
                             </span>
@@ -164,21 +176,34 @@ export default {
 
         const podium = computed(() => (board.value?.entries ?? []).slice(0, 3).map((entry, place) => ({ ...entry, place })));
 
-        // After the podium; the viewer's own row comes last when they are below the top.
-        const rows = computed(() => board.value
-            ? [...board.value.entries.slice(3), ...(board.value.me ? [board.value.me] : [])]
-            : []);
-
-        // Smaller in a short frame, where the list needs the height.
+        // A short frame (Discord in a small window) has no room for the podium.
         const shortQuery = window.matchMedia('(max-height: 500px)');
         const short = ref(shortQuery.matches);
         const onShortChange = (event) => { short.value = event.matches; };
         shortQuery.addEventListener('change', onShortChange);
         onUnmounted(() => shortQuery.removeEventListener('change', onShortChange));
-        const sizes = computed(() => short.value ? { first: 44, other: 34 } : { first: 64, other: 48 });
+        const sizes = { first: 64, other: 48 };
+
+        // After the podium, or all of them without one; the viewer's own row
+        // comes last when they are below the top.
+        const rows = computed(() => board.value
+            ? [...board.value.entries.slice(short.value ? 0 : 3), ...(board.value.me ? [board.value.me] : [])]
+            : []);
+
+        // Fade the bottom while there is more to scroll to: a list cut at the
+        // frame's edge otherwise looks like all there is.
+        const bodyRef = ref(null);
+        const moreBelow = ref(false);
+        const checkMoreBelow = () => {
+            const body = bodyRef.value;
+            moreBelow.value = Boolean(body) && body.scrollHeight - body.scrollTop - body.clientHeight > 4;
+        };
+        watch([board, short], () => nextTick(checkMoreBelow));
+        window.addEventListener('resize', checkMoreBelow);
+        onUnmounted(() => window.removeEventListener('resize', checkMoreBelow));
 
         const rowClass = (entry) => [
-            'flex items-center gap-3 px-2 py-1.5 rounded-lg',
+            'flex items-center gap-3 px-2 py-1.5 short:py-1 rounded-lg',
             entry.me ? 'bg-white/15' : '',
             board.value.me === entry ? 'mt-3 border-t border-white/10' : '',
         ];
@@ -196,7 +221,7 @@ export default {
         return {
             hours,
             PERIODS, EMPTY, MEDALS, PODIUM_ORDER, modalRef, period, board, loading, failed,
-            podium, rows, sizes, rowClass, duration, name: discordDisplayName,
+            podium, rows, sizes, short, bodyRef, moreBelow, checkMoreBelow, rowClass, duration, name: discordDisplayName,
         };
     },
 };
@@ -215,10 +240,7 @@ export default {
 .pedestal-1 { height: 2.75rem; }
 .pedestal-2 { height: 2.25rem; }
 
-@media (max-height: 500px) {
-    .pedestal { font-size: 0.875rem; }
-    .pedestal-0 { height: 2.25rem; font-size: 1rem; }
-    .pedestal-1 { height: 1.875rem; }
-    .pedestal-2 { height: 1.5rem; }
+.more-below {
+    mask-image: linear-gradient(to bottom, black calc(100% - 2.5rem), transparent);
 }
 </style>
