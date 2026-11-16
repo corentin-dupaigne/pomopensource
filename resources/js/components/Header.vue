@@ -13,8 +13,10 @@
             <!-- With others in the call, show them here rather than in a row
                  of their own: short frames need the height for the timer. -->
             <Participants v-else-if="discordSession.participants.length > 1" />
-            <!-- Alone in the call: only who is signed in, no name. -->
-            <DiscordAvatar v-else-if="discordSession.user" :user="discordSession.user" :size="32" />
+            <template v-else-if="discordSession.user">
+                <DiscordAvatar :user="discordSession.user" :size="32" />
+                <span class="hidden sm:inline truncate text-sm font-semibold text-white">{{ displayName }}</span>
+            </template>
         </div>
         <nav class="flex items-center space-x-2" :class="{ 'activity-nav': isDiscordActivity }" aria-label="Main navigation">
             <button
@@ -33,7 +35,6 @@
                 class="relative flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-trophy" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm">leaderboard</span>
                 <!-- Until the account first opens one. -->
                 <span
                     v-if="discordSession.leaderboardNew"
@@ -47,7 +48,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm">stats</span>
+                <span v-if="!isDiscordActivity" class="hidden md:inline-block text-sm">stats</span>
             </button>
             <button
                 @click="$emit('toggleSettings')"
@@ -55,7 +56,7 @@
                 class="flex items-center space-x-1 py-2 px-3 bg-white/10 text-white rounded-full hover:bg-white/20 transition"
             >
                 <i class="fas fa-cog w-4 h-4" aria-hidden="true"></i>
-                <span class="hidden md:inline-block text-sm">settings</span>
+                <span v-if="!isDiscordActivity" class="hidden md:inline-block text-sm">settings</span>
             </button>
             <!-- Inside a Discord Activity, Discord handles sign-in. -->
             <a
@@ -82,7 +83,7 @@
 
 <script>
 import axios from 'axios';
-import { isDiscordActivity, discordSession } from '../discord.js';
+import { isDiscordActivity, discordSession, discordDisplayName } from '../discord.js';
 import DiscordAvatar from './DiscordAvatar.vue';
 import Participants from './Participants.vue';
 import { useToast } from '../composables/toast.js';
@@ -91,6 +92,11 @@ export default {
     name: 'Header',
     components: { DiscordAvatar, Participants },
     data: () => ({ isDiscordActivity, discordSession }),
+    computed: {
+        displayName() {
+            return discordDisplayName(this.discordSession.user);
+        },
+    },
     emits: ['toggleStats', 'toggleSettings', 'toggleLeaderboard'],
     props: {
         auth: { default: false },
