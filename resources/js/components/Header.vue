@@ -13,10 +13,8 @@
             <!-- With others in the call, show them here rather than in a row
                  of their own: short frames need the height for the timer. -->
             <Participants v-else-if="discordSession.participants.length > 1" />
-            <template v-else-if="discordSession.user">
-                <DiscordAvatar :user="discordSession.user" :size="32" />
-                <span class="hidden sm:inline truncate text-sm font-semibold text-white">{{ displayName }}</span>
-            </template>
+            <!-- Alone in the call: only who is signed in, no name. -->
+            <DiscordAvatar v-else-if="discordSession.user" :user="discordSession.user" :size="32" />
         </div>
         <nav class="flex items-center space-x-2" :class="{ 'activity-nav': isDiscordActivity }" aria-label="Main navigation">
             <button
@@ -84,7 +82,7 @@
 
 <script>
 import axios from 'axios';
-import { isDiscordActivity, discordSession, discordDisplayName } from '../discord.js';
+import { isDiscordActivity, discordSession } from '../discord.js';
 import DiscordAvatar from './DiscordAvatar.vue';
 import Participants from './Participants.vue';
 import { useToast } from '../composables/toast.js';
@@ -93,11 +91,6 @@ export default {
     name: 'Header',
     components: { DiscordAvatar, Participants },
     data: () => ({ isDiscordActivity, discordSession }),
-    computed: {
-        displayName() {
-            return discordDisplayName(this.discordSession.user);
-        },
-    },
     emits: ['toggleStats', 'toggleSettings', 'toggleLeaderboard'],
     props: {
         auth: { default: false },
