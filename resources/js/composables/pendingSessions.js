@@ -57,16 +57,17 @@ export function flushPendingSessions() {
  * End a signed-in user's focus session. When the server cannot take it
  * (offline, signed out, down), it is kept on this device and sent later:
  * it used to go with the guest sessions, which a signed-in account never
- * reads. Resolves to whether the server has it.
+ * reads. Resolves to the server's answer once it has it, or else null.
  */
 export async function saveSession(session) {
+    let response;
     try {
-        await send(session);
+        response = await send(session);
     } catch (err) {
         console.error('Error ending session', err);
         if (session.time_focused > 0) store([...load(), session]);
-        return false;
+        return null;
     }
     flushPendingSessions();
-    return true;
+    return response.data ?? {};
 }

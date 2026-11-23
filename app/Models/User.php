@@ -37,6 +37,7 @@ class User extends Authenticatable
     protected $casts = [
         'show_subjects_notice' => 'boolean',
         'leaderboard_seen_at' => 'datetime',
+        'stats_hint_at' => 'datetime',
     ];
 
     /**

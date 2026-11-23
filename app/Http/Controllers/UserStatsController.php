@@ -15,6 +15,10 @@ class UserStatsController extends Controller
     {
         $user = $request->user();
         $stats = $this->updateStats($user, $this->timezone($request));
+        // Found them: no need to point to them after a pomodoro.
+        if ($user->stats_hint_at === null) {
+            $user->forceFill(['stats_hint_at' => now()])->save();
+        }
 
         return response()->json([
             'stats' => [

@@ -73,6 +73,7 @@ import { settingsCategories, isEnabled } from '../composables/settings.js';
 import { useQuietWhileFocusing } from '../composables/focus.js';
 import { startDiscordActivity, isDiscordActivity, isServerCall, discordSession, discordLayoutMode, isSmallLayout } from '../discord.js';
 import { subjectsNotice, showSubjectsNotice } from '../composables/subjectsNotice.js';
+import { statsHint, dismissStatsHint } from '../composables/statsHint.js';
 import { SUBJECTS_NOTICE_KEY } from '../composables/localStats.js';
 
 export default {
@@ -199,7 +200,7 @@ export default {
         // window is open.
         const quiet = useQuietWhileFocusing({
             enabled: computed(() => isEnabled(settings.value?.timers?.settings?.hide_controls_while_focusing ?? true)),
-            blocked: computed(() => showStatsModal.value || showSettingsModal.value || showLeaderboardModal.value || showProjectsPanel.value),
+            blocked: computed(() => showStatsModal.value || showSettingsModal.value || showLeaderboardModal.value || showProjectsPanel.value || statsHint.value !== null),
         });
 
         const initialBg = backgroundImage.value ? `url(${backgroundImage.value})` : '';
@@ -262,6 +263,7 @@ export default {
         const toggleStatsModal = () => {
             showStatsModal.value = !showStatsModal.value;
             if (showStatsModal.value) countClick('stats');
+            dismissStatsHint();
         };
 
         const toggleLeaderboardModal = () => {
@@ -465,8 +467,15 @@ export default {
     min-height: 0;
 }
 
-.header, .footer {
+.footer {
     position: relative;
     z-index: 2;
+}
+
+/* Over the timer: the hint under the stats button overlaps it, and must
+   take the clicks. */
+.header {
+    position: relative;
+    z-index: 3;
 }
 </style>
