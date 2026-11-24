@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLaunch;
 use App\Models\FocusedSession;
 use App\Models\Project;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -115,17 +116,41 @@ class FocusedSessionController extends Controller
         $focusedSession = $sessions->where('started_at', $startedAt)->first();
 
         if (!$focusedSession) {
-            $request->user()->focusedSessions()->create($end + [
+            $focusedSession = $request->user()->focusedSessions()->create($end + [
                 'started_at' => $startedAt,
                 'guild_id' => $this->guildOf($validated['instance_id'] ?? null),
             ]);
         } elseif ($focusedSession->ended_at === null) {
             $focusedSession->update($end);
+        } else {
+            // Already ended: a retry of a request that went through, or
+            // progress sent just before the end and arriving after it.
+            return response()->json(['project' => $project ?: null]);
         }
-        // Already ended: a retry of a request that went through, or progress
-        // sent just before the end and arriving after it.
 
-        return response()->json(['project' => $project ?: null]);
+        return response()->json([
+            'project' => $project ?: null,
+            'stats_hint' => $this->statsHint($request, $focusedSession),
+        ]);
+    }
+
+    /**
+     * The minutes just saved, when the app should point to the stats: once
+     * per account, after a pomodoro, if it never opened them. Most people
+     * arrive in a friend's call and never learn their time is kept. Null
+     * otherwise. Claimed in one query, so two tabs don't both show it.
+     */
+    private function statsHint(Request $request, FocusedSession $session): ?int
+    {
+        if ($session->ended_at === null || $session->minute_focused < 1
+            || $request->user()->stats_hint_at !== null) {
+            return null;
+        }
+        $claimed = User::whereKey($request->user()->id)
+            ->whereNull('stats_hint_at')
+            ->update(['stats_hint_at' => now()]);
+
+        return $claimed ? $session->minute_focused : null;
     }
 
     /**

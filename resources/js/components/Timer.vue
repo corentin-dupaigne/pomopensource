@@ -165,6 +165,7 @@ import { setPresence, timerPresence, isDiscordActivity, discordInstanceId, disco
 import SubjectInput from './SubjectInput.vue';
 import { cleanSubject } from '../composables/subjects.js';
 import { subjectsNotice, dismissSubjectsNotice } from '../composables/subjectsNotice.js';
+import { statsHint, dismissStatsHint } from '../composables/statsHint.js';
 import ConfirmModal from './ConfirmModal.vue';
 
 const BASE_TITLE = 'Pomopensource';
@@ -302,6 +303,11 @@ export default {
     const completedPomodoros = ref(loadCompletedToday());
 
     const justFinished = ref(null); // timer type that just completed, until the next start
+    // The pointer to the stats stays through the break, and goes when the
+    // next pomodoro starts, here or from someone else in the call.
+    watch([isRunning, currentTimerType], ([running, type]) => {
+      if (running && type === 'pomodoro') dismissStatsHint();
+    });
     const announcement = ref('');
 
     let isRestoring = false;
@@ -556,6 +562,7 @@ export default {
             if (!saved && duration > 0) {
               error('Could not save this session yet: it is kept on this device and will be sent later');
             }
+            if (saved?.stats_hint) statsHint.value = saved.stats_hint;
           });
       } else if (duration > 0) {
         const local = name ? props.rememberSubject({ name }) : null;
