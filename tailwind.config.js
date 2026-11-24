@@ -21,7 +21,7 @@ export default {
             // keep their width.
             fontFamily: {
                 sans: ['"Nunito Variable"', ...defaultTheme.fontFamily.sans],
-                display: ['"Baloo 2 Variable"', ...defaultTheme.fontFamily.sans],
+                display: ['"Baloo 2 Flat"', '"Baloo 2 Variable"', ...defaultTheme.fontFamily.sans],
             },
             screens: {
                 // Landscape phones and the Discord Activity picture-in-picture
