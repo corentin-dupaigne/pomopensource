@@ -162,22 +162,4 @@ class FocusedSessionController extends Controller
     {
         return Carbon::parse($date)->isAfter(now()->addMinutes(self::CLOCK_TOLERANCE_MINUTES));
     }
-
-    /**
-     * Set the note of past sessions, from the day log. The log shows
-     * back-to-back sessions on the same thing as one line, so this takes
-     * every session of the line.
-     */
-    public function updateNotes(Request $request)
-    {
-        $validated = $request->validate([
-            'ids' => 'required|array|max:100',
-            'ids.*' => 'integer',
-            'note' => 'nullable|string|max:255',
-        ]);
-
-        $request->user()->focusedSessions()
-            ->whereIn('id', $validated['ids'])
-            ->update(['note' => $validated['note'] ?? null]);
-    }
 }

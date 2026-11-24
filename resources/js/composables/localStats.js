@@ -158,17 +158,8 @@ export function computeDayLog(sessions, localProjects, date) {
                 started_at: session.started_at ?? null,
                 minutes_focused: Math.round(session.duration_seconds / 60),
                 project: project ? { id: project.id, name: project.name } : null,
-                note: session.note ?? null,
             };
         });
-}
-
-export function updateLocalSessionNotes(indexes, note) {
-    const sessions = getLocalSessions();
-    for (const index of indexes) {
-        if (sessions[index]) sessions[index].note = note;
-    }
-    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
 }
 
 export function getLocalProjects() {
