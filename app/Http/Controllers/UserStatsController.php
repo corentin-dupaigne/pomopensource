@@ -235,7 +235,6 @@ class UserStatsController extends Controller
                 'started_at' => $session->started_at,
                 'minutes_focused' => $session->minute_focused,
                 'project' => $session->project?->only(['id', 'name']),
-                'note' => $session->note,
             ]),
         ]);
     }

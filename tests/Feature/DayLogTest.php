@@ -33,35 +33,19 @@ test('the day log lists the day\'s finished sessions, oldest first', function ()
         ->assertOk()
         ->assertJsonCount(2, 'sessions')
         ->assertJsonPath('sessions.0.project', ['id' => $this->project->id, 'name' => 'Maths'])
-        ->assertJsonPath('sessions.0.note', 'chapter 3')
         ->assertJsonPath('sessions.0.minutes_focused', 25)
-        ->assertJsonPath('sessions.1.project', null)
-        ->assertJsonPath('sessions.1.note', 'two-sum');
+        ->assertJsonPath('sessions.1.project', null);
 });
 
-test('notes can be set on past sessions', function () {
-    $first = sessionAt($this->user, '2026-10-08 09:00');
-    $second = sessionAt($this->user, '2026-10-08 09:30');
-
-    $this->actingAs($this->user)
-        ->patchJson('/focused-sessions/notes', ['ids' => [$first->id, $second->id], 'note' => 'integrals'])
-        ->assertOk();
-
-    expect($first->fresh()->note)->toBe('integrals')
-        ->and($second->fresh()->note)->toBe('integrals');
-
-    $this->actingAs($this->user)
-        ->patchJson('/focused-sessions/notes', ['ids' => [$first->id], 'note' => null])
-        ->assertOk();
-    expect($first->fresh()->note)->toBeNull();
-});
-
-test('someone else\'s notes cannot be changed', function () {
+test('notes can no longer be changed or seen, but stay stored', function () {
     $session = sessionAt($this->user, '2026-10-08 09:00', ['note' => 'mine']);
 
-    $this->actingAs(User::factory()->create())
-        ->patchJson('/focused-sessions/notes', ['ids' => [$session->id], 'note' => 'yours'])
-        ->assertOk();
+    $this->actingAs($this->user)
+        ->patchJson('/focused-sessions/notes', ['ids' => [$session->id], 'note' => 'changed'])
+        ->assertNotFound();
+    $this->actingAs($this->user)
+        ->getJson('/user-stats/day/2026-10-08')
+        ->assertJsonMissingPath('sessions.0.note');
 
     expect($session->fresh()->note)->toBe('mine');
 });

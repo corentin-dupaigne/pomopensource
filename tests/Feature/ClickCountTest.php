@@ -44,3 +44,11 @@ test('only known elements and contexts are counted', function (array $payload) {
     'unknown context' => [['element' => 'stats', 'context' => 'elsewhere']],
     'missing' => [[]],
 ]);
+
+test('opening the stats calendar is counted, and the old detail tab still is', function () {
+    $this->postJson('/usage/clicks', ['element' => 'stats_calendar', 'context' => 'activity'])->assertNoContent();
+    $this->postJson('/usage/clicks', ['element' => 'stats_detail', 'context' => 'activity'])->assertNoContent();
+
+    expect(clicks('stats_calendar'))->toBe(1)
+        ->and(clicks('stats_detail'))->toBe(1);
+});

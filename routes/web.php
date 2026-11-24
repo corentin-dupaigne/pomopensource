@@ -55,7 +55,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/focused-sessions', [FocusedSessionController::class, 'store'])->name('focused-sessions.store');
     Route::patch('/focused-sessions/current', [FocusedSessionController::class, 'update'])->name('focused-sessions.update');
     Route::get('/focused-sessions', [FocusedSessionController::class, 'index'])->name('focused-sessions.index');
-    Route::patch('/focused-sessions/notes', [FocusedSessionController::class, 'updateNotes'])->name('focused-sessions.notes');
 
     // Routes for User Stats
     Route::get('/user-stats', [UserStatsController::class, 'index'])->name('user-stats.index');

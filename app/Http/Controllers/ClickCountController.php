@@ -17,7 +17,10 @@ class ClickCountController extends Controller
     public const ELEMENTS = [
         'app_open',
         'stats',
+        // The stats' detail tab, before the calendar replaced it: pages
+        // still open from before send it.
         'stats_detail',
+        'stats_calendar',
         'settings',
         'leaderboard',
         'fullscreen',
